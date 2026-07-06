@@ -1,0 +1,14 @@
+# NBACore Studio v8 — Production Dependencies
+# Pinned for reproducible builds
+
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+gunicorn==23.0.0
+psycopg2-binary==2.9.10
+pydantic==2.10.4
+pydantic-settings==2.7.1
+diskcache==5.6.3
+numpy==2.2.1
+pandas==2.2.3
+httpx==0.28.1
+pytest==8.3.4

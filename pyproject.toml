@@ -1,0 +1,30 @@
+[project]
+name = "nbacore-studio"
+version = "8.0.0"
+description = "NBACore Studio v8 — Metric-Driven Batch Analytics Engine"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn>=0.27",
+    "psycopg2-binary>=2.9",
+    "pydantic>=2.6",
+    "pydantic-settings>=2.1",
+    "diskcache>=5.6",
+    "numpy>=1.26",
+    "pandas>=2.1",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8.0", "httpx>=0.27"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-v --tb=short"
+markers = [
+    "phase0: Phase 0 Environment Bootstrap tests",
+    "needs_db: requires live PostgreSQL connection",
+]
+
+[tool.setuptools]
+packages = ["backend"]

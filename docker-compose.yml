@@ -1,0 +1,48 @@
+# NBACore Studio v8 — Docker Compose
+# Usage: docker compose up -d
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: nbacore-db
+    environment:
+      POSTGRES_DB: ${DB_NAME:-nba}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-nba}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  app:
+    build: .
+    container_name: nbacore-app
+    ports:
+      - "${SERVER_PORT:-5577}:5577"
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-nba}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 5577
+      CACHE_DIR: .cache/metric_engine
+      DEBUG: "false"
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - appcache:/app/.cache/metric_engine
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  appcache:

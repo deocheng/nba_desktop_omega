@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# v8 Runtime artifacts
+.cache/
+.env
+*.log
+
+# Build
+dist/
+build/
+*.spec.bak
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Docker
+*.pid
+
+# PyInstaller build artifacts
+build/
+dist/
+*.spec.bak
+NBACore.spec.bak
+__pycache__/
+
+# IDE / Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temp / scratch scripts
+_check_*.py
+_temp_*.py
+test_*.py.bak
+
+# Workbuddy / AI assistant memory
+.workbuddy/
+
+# Database files (if any)
+*.db
+*.sqlite
+*.sqlite3
+
+# Data files
+*.csv
+*.csv.gz
+*.parquet
+*.pkl
+*.pickle
+crawl_status.json
