@@ -28,8 +28,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from backend.api.routers import (
-    batch, charts, context, crawler, export, games,
-    leaderboard, metrics, monitor, players, system, teams, vs,
+    batch, charts, clutch, clutch_replay, context, crawler, data_import, export,
+    games, intelligence, leaderboard, metrics, monitor, players, system, teams,
+    trade, tactics, vs, workspace,
 )
 from backend.core import config
 from backend.core.db import close_pool, init_pool, ping
@@ -125,10 +126,28 @@ def create_app() -> FastAPI:
     app.include_router(system.router)
     app.include_router(crawler.router)
     app.include_router(leaderboard.router)
+    app.include_router(intelligence.router)
+    app.include_router(workspace.router)
+    app.include_router(data_import.router)
+    app.include_router(clutch.router)
+    app.include_router(clutch_replay.router)
+    app.include_router(trade.router)
+    app.include_router(tactics.router)
 
     # Phase 4: mount frontend static files (Layer 4 — pure render)
     from pathlib import Path
     import sys
+
+    class _NoCacheStaticFiles(StaticFiles):
+        """StaticFiles that sends ``Cache-Control: no-cache`` so the browser
+        always revalidates against the server. Dev-friendly: front-end edits
+        show on a normal refresh (no hard reload needed), while unchanged files
+        still 304 quickly via their ETag / Last-Modified."""
+
+        async def get_response(self, path: str, scope) -> "Response":
+            response = await super().get_response(path, scope)
+            response.headers.setdefault("Cache-Control", "no-cache")
+            return response
 
     if getattr(sys, "frozen", False):
         _base = Path(sys._MEIPASS)
@@ -138,10 +157,10 @@ def create_app() -> FastAPI:
     _frontend_dir = _base / "frontend"
     _logo_dir = _base / "NBAlogo"
     if _frontend_dir.is_dir():
-        app.mount("/app", StaticFiles(directory=str(_frontend_dir), html=True), name="frontend")
+        app.mount("/app", _NoCacheStaticFiles(directory=str(_frontend_dir), html=True), name="frontend")
     if _logo_dir.is_dir():
-        app.mount("/assets/logos", StaticFiles(directory=str(_logo_dir)), name="logos")
-        app.mount("/app/assets/logos", StaticFiles(directory=str(_logo_dir)), name="logos-app")
+        app.mount("/assets/logos", _NoCacheStaticFiles(directory=str(_logo_dir)), name="logos")
+        app.mount("/app/assets/logos", _NoCacheStaticFiles(directory=str(_logo_dir)), name="logos-app")
 
     return app
 

@@ -52,8 +52,23 @@ let player2 = null;
 let charts = {};
 let searchTimeouts = {};
 
+function resizeAllCharts() {
+  Object.values(charts).forEach(chart => {
+    if (chart && typeof chart.resize === 'function') {
+      chart.resize();
+    }
+  });
+}
+
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  if (resizeTimer) clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(resizeAllCharts, 150);
+});
+
 // Teams page state
 let currentTeam = null;
+let currentTeamAbbr = null;
 
 // Games page state
 let gamesPage = 1;
@@ -87,6 +102,42 @@ function nav(page) {
   if (page === 'games') loadGamesPage();
   if (page === 'system') loadSystemPage();
   if (page === 'crawler') loadCrawlerPage();
+  if (page === 'dataimport') loadDataImportPage();
+  if (page === 'intelligence') loadIntelligencePage();
+  if (page === 'workspace') loadWorkspacePage();
+  if (page === 'clutch') loadClutchPage();
+  if (page === 'trade') loadTradePage();
+  if (page === 'tactics') loadTacticsPage();
+  if (page === 'clutch-replay') loadClutchReplayPage();
+  setTimeout(resizeAllCharts, 50);
+}
+
+// ── Clutch Page ──
+function loadClutchPage() {
+  if (window.Clutch && typeof window.Clutch.render === 'function') {
+    window.Clutch.render('clutchRoot');
+  }
+}
+
+// ── Trade Simulator Page ──
+function loadTradePage() {
+  if (window.Trade && typeof window.Trade.render === 'function') {
+    window.Trade.render('tradeRoot');
+  }
+}
+
+// ── Tactics Board Page ──
+function loadTacticsPage() {
+  if (window.Tactics && typeof window.Tactics.render === 'function') {
+    window.Tactics.render('tacticsRoot');
+  }
+}
+
+// ── Clutch Replay (Fusion) Page ──
+function loadClutchReplayPage() {
+  if (window.ClutchReplay && typeof window.ClutchReplay.render === 'function') {
+    window.ClutchReplay.render('clutchReplayRoot');
+  }
 }
 
 // ── Server Status ──
@@ -97,14 +148,14 @@ async function checkServerStatus() {
     const r = await api('/health');
     if (r.database_connected) {
       dot.className = 'status-dot ready';
-      text.textContent = 'Server & DB Ready';
+      text.textContent = I18N.t('serverStatus.serverDbReady');
     } else {
       dot.className = 'status-dot error';
-      text.textContent = 'DB Offline';
+      text.textContent = I18N.t('serverStatus.dbOffline');
     }
   } catch {
     dot.className = 'status-dot error';
-    text.textContent = 'Server Offline';
+    text.textContent = I18N.t('serverStatus.offline');
   }
 }
 
@@ -166,7 +217,7 @@ function searchPlayer(slot) {
       const d = await api('/players?name=' + encodeURIComponent(query) + '&limit=10');
       const dd = document.getElementById('player' + slot + 'Dropdown');
       if (!d.players || d.players.length === 0) {
-        dd.innerHTML = '<div class="dropdown-item" style="color:var(--text-dim);">No results</div>';
+        dd.innerHTML = '<div class="dropdown-item" style="color:var(--text-dim);">' + I18N.t('common.noResults') + '</div>';
       } else {
         dd.innerHTML = d.players.map(p => {
           const team = p.team_abbr || p.team || '';
@@ -234,7 +285,7 @@ function renderVSPlayerCard(slot, bio) {
   card.className = 'player-card player-' + slot + ' has-player';
   card.innerHTML = `
     <div class="player-avatar ${slot === 2 ? 'p2' : ''}">${escapeHtml(initials)}</div>
-    <div class="player-name">${escapeHtml(name)}</div>
+    <div class="player-name">${entityLink('player', bio.player_id || '', name, 'entity-link-name')}</div>
     <div class="player-team">${escapeHtml([team, pos].filter(Boolean).join(' · '))}</div>
   `;
 }
@@ -247,16 +298,16 @@ async function loadMetrics() {
     renderMetricGrid();
     populateRankMetricSelect();
   } catch (e) {
-    toast('Failed to load metrics: ' + e.message, 'error');
+    toast(I18N.t('vs.failedToLoadMetrics') + ': ' + e.message, 'error');
     document.getElementById('metricGrid').innerHTML =
-      '<div class="metric-loading" style="color:var(--danger);">Failed to load metrics</div>';
+      '<div class="metric-loading" style="color:var(--danger);">' + I18N.t('vs.failedToLoadMetrics') + '</div>';
   }
 }
 
 function renderMetricGrid() {
   const grid = document.getElementById('metricGrid');
   if (allMetrics.length === 0) {
-    grid.innerHTML = '<div class="metric-loading">No metrics available</div>';
+    grid.innerHTML = '<div class="metric-loading">' + I18N.t('common.noMetricsAvailable') + '</div>';
     return;
   }
   // Auto-select first 5 metrics if none selected
@@ -310,7 +361,7 @@ async function runCompare() {
 
   const btn = document.getElementById('compareBtn');
   btn.disabled = true;
-  btn.innerHTML = '<div class="spinner"></div> Comparing...';
+  btn.innerHTML = '<div class="spinner"></div> ' + I18N.t('vs.comparing');
 
   try {
     const d = await api(
@@ -322,10 +373,10 @@ async function runCompare() {
     renderVSResults(d);
     document.getElementById('vsResults').style.display = 'block';
   } catch (e) {
-    toast('Compare failed: ' + e.message, 'error');
+    toast(I18N.t('vs.compareFailed') + ': ' + e.message, 'error');
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Compare Players';
+    btn.textContent = I18N.t('vs.comparePlayers');
   }
 }
 
@@ -504,18 +555,18 @@ function populateRankMetricSelect() {
   const label = document.getElementById('rankMetricLabel');
 
   if (source === 'metric') {
-    label.textContent = 'Metric:';
+    label.textContent = I18N.t('rankings.metricLabel');
     if (allMetrics.length === 0) return;
     sel.innerHTML = allMetrics.map(m =>
       `<option value="${m.name}">${m.name}</option>`
     ).join('');
   } else if (source === 'per_game') {
-    label.textContent = 'Stat:';
+    label.textContent = I18N.t('rankings.statLabel');
     sel.innerHTML = _PER_GAME_STATS.map(s =>
       `<option value="${s}">${s.toUpperCase()}</option>`
     ).join('');
   } else if (source === 'advanced') {
-    label.textContent = 'Stat:';
+    label.textContent = I18N.t('rankings.statLabel');
     sel.innerHTML = _ADVANCED_STATS.map(s =>
       `<option value="${s}">${s.toUpperCase()}</option>`
     ).join('');
@@ -546,7 +597,7 @@ async function loadRankings() {
   const thead = document.getElementById('rankTableHead');
   const tbody = document.getElementById('rankTableBody');
   tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:30px; color:var(--text-dim);">
-    <div class="spinner"></div> Loading...
+    <div class="spinner"></div> ${I18N.t('common.loading')}
   </td></tr>`;
 
   try {
@@ -562,12 +613,12 @@ async function loadRankings() {
     thead.innerHTML = `
       <tr>
         <th style="width:60px;">#</th>
-        <th>Player</th>
-        <th style="width:120px; text-align:right;">Value</th>
-        <th style="width:100px; text-align:right;">Percentile</th>
+        <th>${I18N.t('common.player')}</th>
+        <th style="width:120px; text-align:right;">${I18N.t('common.value')}</th>
+        <th style="width:100px; text-align:right;">${I18N.t('common.percentile')}</th>
       </tr>`;
     tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:30px; color:var(--danger);">
-      Failed to load: ${escapeHtml(e.message)}
+      ${I18N.t('common.failedToLoad')}: ${escapeHtml(e.message)}
     </td></tr>`;
   }
 }
@@ -575,27 +626,28 @@ async function loadRankings() {
 function renderMetricRankings(d) {
   const thead = document.getElementById('rankTableHead');
   const tbody = document.getElementById('rankTableBody');
-  document.getElementById('rankTitle').textContent = d.metric + ' — Top Players';
-  document.getElementById('rankCount').textContent = d.total + ' players';
+  document.getElementById('rankTitle').textContent = d.metric + ' — ' + I18N.t('rankings.topPlayers');
+  document.getElementById('rankCount').textContent = d.total + I18N.t('rankings.playersSuffix');
 
   thead.innerHTML = `
     <tr>
       <th style="width:60px;">#</th>
-      <th>Player</th>
-      <th style="width:120px; text-align:right;">Value</th>
-      <th style="width:100px; text-align:right;">Percentile</th>
+      <th>${I18N.t('common.player')}</th>
+      <th style="width:120px; text-align:right;">${I18N.t('common.value')}</th>
+      <th style="width:100px; text-align:right;">${I18N.t('common.percentile')}</th>
     </tr>`;
 
   const rankings = d.rankings || [];
   tbody.innerHTML = rankings.map(r => {
     const medalColors = ['var(--warn)', 'var(--text-dim)', '#cd7f32'];
     const rankColor = r.rank <= 3 ? medalColors[r.rank - 1] : 'var(--text-dim)';
-    const name = escapeHtml(r.player_name || r.player_id || '');
+    const rawName = r.player_name || r.player_id || '';
+    const nameHtml = entityLink('player', r.player_id || '', rawName, 'entity-link-name');
     const pos = escapeHtml(r.position || '');
     return `<tr>
       <td style="font-weight:700; color:${rankColor};">${r.rank}</td>
       <td>
-        <div style="font-weight:600;">${name}</div>
+        ${nameHtml}
         ${pos ? `<div class="sub">${pos}</div>` : ''}
       </td>
       <td style="text-align:right; font-family:var(--mono); font-weight:700; color:var(--accent);">${Number(r.value).toFixed(2)}</td>
@@ -607,9 +659,9 @@ function renderMetricRankings(d) {
 function renderStatRankings(d, source) {
   const thead = document.getElementById('rankTableHead');
   const tbody = document.getElementById('rankTableBody');
-  const title = source === 'per_game' ? 'Per Game' : 'Advanced';
-  document.getElementById('rankTitle').textContent = title + ' — Top Players';
-  document.getElementById('rankCount').textContent = (d.total || (d.leaderboard || []).length) + ' players';
+  const title = source === 'per_game' ? I18N.t('rankings.perGameStats') : I18N.t('rankings.advancedStats');
+  document.getElementById('rankTitle').textContent = title + ' — ' + I18N.t('rankings.topPlayers');
+  document.getElementById('rankCount').textContent = (d.total || (d.leaderboard || []).length) + I18N.t('rankings.playersSuffix');
 
   const players = d.leaderboard || d.players || d.data || [];
   let statColumns = [];
@@ -624,21 +676,22 @@ function renderStatRankings(d, source) {
   thead.innerHTML = `
     <tr>
       <th style="width:60px;">#</th>
-      <th>Player</th>
-      <th style="width:100px;">Team</th>
+      <th>${I18N.t('common.player')}</th>
+      <th style="width:100px;">${I18N.t('common.team')}</th>
       ${statColumns.map(c => `<th style="text-align:right;">${c}</th>`).join('')}
     </tr>`;
 
   if (players.length === 0) {
     tbody.innerHTML = `<tr><td colspan="${3 + statColumns.length}" style="text-align:center; padding:30px; color:var(--text-dim);">
-      No data
+      ${I18N.t('common.noData')}
     </td></tr>`;
     return;
   }
 
   tbody.innerHTML = players.map(p => {
     const rank = p.rank || '—';
-    const name = escapeHtml(p.player_name || p.name || p.player_id || 'Unknown');
+    const rawName = p.player_name || p.name || p.player_id || 'Unknown';
+    const nameHtml = entityLink('player', p.player_id || '', rawName, 'entity-link-name');
     const team = escapeHtml(p.team_abbr || p.team || '—');
     const pos = escapeHtml(p.position || p.pos || '');
     const medalColors = ['var(--warn)', 'var(--text-dim)', '#cd7f32'];
@@ -647,7 +700,7 @@ function renderStatRankings(d, source) {
     return `<tr>
       <td style="font-weight:700; color:${rankColor};">${rank}</td>
       <td>
-        <div style="font-weight:600;">${name}</div>
+        ${nameHtml}
         ${pos ? `<div class="sub">${pos}</div>` : ''}
       </td>
       <td><span class="badge badge-blue">${team}</span></td>
@@ -680,7 +733,7 @@ async function doContextSearch(q) {
     const d = await api('/players?name=' + encodeURIComponent(q) + '&limit=8');
     const players = d.players || [];
     if (players.length === 0) {
-      dd.innerHTML = '<div class="dropdown-empty">No players found</div>';
+      dd.innerHTML = '<div class="dropdown-empty">' + I18N.t('common.noPlayersFound') + '</div>';
     } else {
       dd.innerHTML = players.map(p => {
         const pname = escapeHtml(p.full_name || p.player_name || p.player_id || '');
@@ -756,7 +809,7 @@ async function loadContext() {
 async function loadSimilarPlayers(playerId, season, posFilter) {
   const tbody = document.getElementById('similarTableBody');
   tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-dim);">
-    <div class="spinner"></div> Loading...
+    <div class="spinner"></div> ${I18N.t('common.loading')}
   </td></tr>`;
   try {
     const d = await api('/context/similar?player_id=' + playerId + '&season=' + season +
@@ -764,7 +817,7 @@ async function loadSimilarPlayers(playerId, season, posFilter) {
     const players = d.similar_players || [];
     if (players.length === 0) {
       tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-dim);">
-        No similar players found
+        ${I18N.t('context.noSimilarPlayers')}
       </td></tr>`;
       return;
     }
@@ -793,7 +846,7 @@ async function loadSimilarPlayers(playerId, season, posFilter) {
     `).join('');
   } catch (e) {
     tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--danger);">
-      Failed: ${escapeHtml(e.message)}
+      ${I18N.t('common.failed')}: ${escapeHtml(e.message)}
     </td></tr>`;
   }
 }
@@ -881,7 +934,7 @@ function renderCtxVsPlayerCard(slot, bio) {
   card.className = 'player-card ctx-vs-card player-' + slot + ' has-player';
   card.innerHTML = `
     <div class="player-avatar ${slot === 2 ? 'p2' : ''}">${escapeHtml(initials)}</div>
-    <div class="player-name">${escapeHtml(name)}</div>
+    <div class="player-name">${entityLink('player', bio.player_id || '', name, 'entity-link-name')}</div>
     <div class="player-team">${escapeHtml([team, pos].filter(Boolean).join(' · '))}</div>
   `;
 }
@@ -903,7 +956,7 @@ async function doCtxVsPlayer2Search(q) {
     const d = await api('/players?name=' + encodeURIComponent(q) + '&limit=8');
     const players = d.players || [];
     if (players.length === 0) {
-      dd.innerHTML = '<div class="dropdown-empty">No players found</div>';
+      dd.innerHTML = '<div class="dropdown-empty">' + I18N.t('common.noPlayersFound') + '</div>';
     } else {
       dd.innerHTML = players.map(p => {
         const pname = escapeHtml(p.full_name || p.player_name || p.player_id || '');
@@ -959,7 +1012,7 @@ async function loadCtxVsMetrics() {
     allMetrics = d.metrics || [];
     renderCtxVsMetricGrid();
   } catch (e) {
-    grid.innerHTML = '<div class="metric-loading" style="color:var(--danger);">Failed to load metrics</div>';
+    grid.innerHTML = '<div class="metric-loading" style="color:var(--danger);">' + I18N.t('vs.failedToLoadMetrics') + '</div>';
   }
 }
 
@@ -967,7 +1020,7 @@ function renderCtxVsMetricGrid() {
   const grid = document.getElementById('ctxVsMetricGrid');
   if (!grid) return;
   if (allMetrics.length === 0) {
-    grid.innerHTML = '<div class="metric-loading">No metrics available</div>';
+    grid.innerHTML = '<div class="metric-loading">' + I18N.t('common.noMetricsAvailable') + '</div>';
     return;
   }
   if (ctxVsSelectedMetrics.size === 0) {
@@ -1020,7 +1073,7 @@ async function runCtxVsCompare() {
 
   const btn = document.getElementById('ctxVsCompareBtn');
   btn.disabled = true;
-  btn.innerHTML = '<div class="spinner"></div> Comparing...';
+  btn.innerHTML = '<div class="spinner"></div> ' + I18N.t('vs.comparing');
 
   try {
     const d = await api(
@@ -1032,10 +1085,10 @@ async function runCtxVsCompare() {
     renderCtxVsResults(d);
     document.getElementById('ctxVsResults').style.display = 'block';
   } catch (e) {
-    toast('Compare failed: ' + e.message, 'error');
+    toast(I18N.t('vs.compareFailed') + ': ' + e.message, 'error');
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Compare Players';
+    btn.textContent = I18N.t('vs.comparePlayers');
   }
 }
 
@@ -1220,20 +1273,20 @@ function onCtxSeasonChange() {
 
 async function loadRoleEvolution(playerId, seasons) {
   const grid = document.getElementById('evolutionGrid');
-  grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--text-dim);"><div class="spinner"></div> Loading...</div>';
+  grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--text-dim);"><div class="spinner"></div> ' + I18N.t('common.loading') + '</div>';
 
   try {
     const seasonParam = seasons.join(',');
     const d = await api('/context/evolution?player_id=' + playerId + '&seasons=' + seasonParam);
 
-    document.getElementById('evolutionSeasons').textContent = d.seasons.length + ' seasons';
+    document.getElementById('evolutionSeasons').textContent = d.seasons.length + I18N.t('context.seasonsSuffix');
     document.getElementById('overallShift').textContent = (d.overall_shift_magnitude * 100).toFixed(1) + '%';
     document.getElementById('topGrowth').textContent = d.top_growth.slice(0, 2).join(', ') || '—';
     document.getElementById('topDecline').textContent = d.top_decline.slice(0, 2).join(', ') || '—';
 
     const changes = d.metric_changes || [];
     if (changes.length === 0) {
-      grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--text-dim);">Not enough data</div>';
+      grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--text-dim);">' + I18N.t('common.notEnoughData') + '</div>';
       return;
     }
 
@@ -1254,7 +1307,7 @@ async function loadRoleEvolution(playerId, seasons) {
       `;
     }).join('');
   } catch (e) {
-    grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--danger);">Failed: ${escapeHtml(e.message)}</div>`;
+    grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--danger);">${I18N.t('common.failed')}: ${escapeHtml(e.message)}</div>`;
   }
 }
 
@@ -1291,7 +1344,7 @@ async function loadTrend() {
     // Chart
     renderTrendChart(d, metric);
   } catch (e) {
-    toast('Trend load failed: ' + e.message, 'error');
+    toast(I18N.t('context.trendLoadFailed') + ': ' + e.message, 'error');
   }
 }
 
@@ -1369,51 +1422,71 @@ function switchTeamsTab(tab) {
 async function loadTeamsPage() {
   const tbody = document.getElementById('teamsTableBody');
   tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-dim);">
-    <div class="spinner"></div> Loading...
+    <div class="spinner"></div> ${I18N.t('common.loading')}
   </td></tr>`;
 
   try {
     const season = document.getElementById('teamsSeasonSelect').value;
-    const d = await api('/teams?season=' + season);
-    const teams = d.teams || d.data || [];
-    document.getElementById('teamsCount').textContent = teams.length + ' teams';
+    const d = await api('/teams/board?season=' + season);
+    const groups = d.groups || [];
+    const total = groups.reduce((n, g) => n + (g.teams ? g.teams.length : 0), 0);
+    document.getElementById('teamsCount').textContent = total + I18N.t('teams.teamsSuffix');
 
-    if (teams.length === 0) {
+    if (total === 0) {
       tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-dim);">
-        No teams found
+        ${I18N.t('teams.noTeamsFound')}
       </td></tr>`;
       return;
     }
 
-    tbody.innerHTML = teams.map((t, i) => {
-      const name = escapeHtml(t.team_name || t.name || t.full_name || 'Unknown');
-      const abbr = escapeHtml(t.team_abbr || t.abbreviation || t.abbr || '—');
-      const abbrLower = abbr.toLowerCase();
-      const status = escapeHtml(t.status || (t.active ? 'Active' : 'Inactive') || '—');
-      const statusClass = t.active || status === 'Active' ? 'badge-green' : 'badge-gray';
-      const logoHtml = `<img src="/assets/logos/${abbrLower}.svg" class="team-logo-sm" alt="${abbr}" onerror="this.style.display='none'">`;
-      return `<tr style="cursor:pointer;" onclick="selectTeam('${abbr}')">
-        <td style="font-weight:700; color:var(--text-dim);">${i + 1}</td>
-        <td>${logoHtml}</td>
-        <td style="font-weight:600;">${name}</td>
-        <td><span class="badge badge-blue">${abbr}</span></td>
-        <td><span class="badge ${statusClass}">${status}</span></td>
+    let html = '';
+    for (const g of groups) {
+      const confLabel = g.conference === 'East' ? '东部' : (g.conference === 'West' ? '西部' : '');
+      const confClass = g.conference === 'East' ? 'badge-blue' : 'badge-purple';
+      html += `<tr class="division-row">
+        <td colspan="5">
+          <span class="division-name">${escapeHtml(g.division)}</span>
+          <span class="badge ${confClass} division-conf">${confLabel}</span>
+        </td>
       </tr>`;
-    }).join('');
+      for (const t of (g.teams || [])) {
+        const rawName = t.team_name || t.name || I18N.t('common.unknown');
+        const abbr = escapeHtml(t.team_abbr || '—');
+        const linkAbbr = t.team_abbr || '';
+        const abbrLower = (t.team_abbr || '').toLowerCase();
+        const logoHtml = `<img src="/assets/logos/${abbrLower}.svg" class="team-logo-sm" alt="${abbr}" onerror="this.style.display='none'">`;
+        const wl = (t.w != null && t.l != null) ? `${t.w}-${t.l}` : '—';
+        const winPct = (t.win_pct != null) ? (t.win_pct * 100).toFixed(1) + '%' : '—';
+        const poBadge = t.made_playoffs
+          ? `<span class="badge badge-gold" title="季后赛">PO</span>` : '';
+        html += `<tr style="cursor:pointer;" onclick="selectTeam('${abbr}')">
+          <td style="font-weight:700; color:var(--text-dim); text-align:center;">${t.div_rank}</td>
+          <td>${logoHtml}</td>
+          <td style="font-weight:600;">${entityLink('team', linkAbbr, rawName, 'entity-link-name')} ${poBadge}</td>
+          <td style="text-align:center; font-variant-numeric:tabular-nums;">${wl}</td>
+          <td style="text-align:center; font-variant-numeric:tabular-nums;">${winPct}</td>
+        </tr>`;
+      }
+    }
+    tbody.innerHTML = html;
   } catch (e) {
     tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--danger);">
-      Failed to load: ${escapeHtml(e.message)}
+      ${I18N.t('common.failedToLoad')}: ${escapeHtml(e.message)}
     </td></tr>`;
   }
 }
 
 async function selectTeam(teamAbbr) {
   currentTeam = teamAbbr;
-  switchTeamsTab('detail');
-  await loadTeamDetail(teamAbbr);
+  const ts = document.getElementById('teamsSeasonSelect');
+  const season = ts && ts.value ? Number(ts.value) : undefined;
+  if (window.openEntityDetail) {
+    window.openEntityDetail('team', teamAbbr, season);
+  }
 }
 
 async function loadTeamDetail(teamAbbr) {
+  currentTeamAbbr = teamAbbr;
   const season = document.getElementById('teamsSeasonSelect').value;
   document.getElementById('teamDetailEmpty').style.display = 'none';
   document.getElementById('teamDetailContent').style.display = 'block';
@@ -1422,6 +1495,22 @@ async function loadTeamDetail(teamAbbr) {
   document.getElementById('teamDetailLogo').innerHTML = `<img src="/assets/logos/${abbrLower}.svg" class="team-detail-logo-img" alt="${teamAbbr}" onerror="this.parentElement.style.display='none'">`;
   document.getElementById('teamDetailAbbr').textContent = teamAbbr;
 
+  switchTeamDetailTab('history');
+
+  loadTeamStatsData(teamAbbr, season);
+  loadTeamHistoryData(teamAbbr);
+  loadTeamLegendsData(teamAbbr);
+  loadTeamRosterSeasons(teamAbbr);
+}
+
+function switchTeamDetailTab(tabName) {
+  document.querySelectorAll('.team-detail-tab').forEach(e => e.classList.remove('active'));
+  document.querySelectorAll('.team-detail-tab-content').forEach(e => e.classList.remove('active'));
+  document.querySelector(`.team-detail-tab[data-tab="${tabName}"]`)?.classList.add('active');
+  document.getElementById('teamTab' + tabName.charAt(0).toUpperCase() + tabName.slice(1))?.classList.add('active');
+}
+
+async function loadTeamStatsData(teamAbbr, season) {
   const labelMap = {
     pts: 'PTS', reb: 'REB', ast: 'AST', stl: 'STL', blk: 'BLK',
     fg_pct: 'FG%', fg3_pct: '3P%', ft_pct: 'FT%',
@@ -1493,10 +1582,9 @@ async function loadTeamDetail(teamAbbr) {
       teamAbbr
     );
   } catch (e) {
-    toast('Failed to load radar: ' + e.message, 'error');
+    toast(I18N.t('teams.failedLoadRadar') + ': ' + e.message, 'error');
   }
 
-  // Load standings
   try {
     const standingsData = await api('/teams/standings?season=' + season);
     renderTeamStandings(standingsData, teamAbbr);
@@ -1505,13 +1593,64 @@ async function loadTeamDetail(teamAbbr) {
       '<div style="color:var(--danger);">Failed: ' + escapeHtml(e.message) + '</div>';
   }
 
-  // Load stats
   try {
     const statsData = await api('/teams/stats?season=' + season);
     renderTeamStats(statsData, teamAbbr);
   } catch (e) {
     document.getElementById('teamStatsBody').innerHTML =
       '<tr><td colspan="2" style="text-align:center; padding:20px; color:var(--danger);">Failed: ' + escapeHtml(e.message) + '</td></tr>';
+  }
+}
+
+async function loadTeamHistoryData(teamAbbr) {
+  try {
+    const historyData = await api('/teams/' + teamAbbr + '/history');
+    renderTeamHistory(historyData);
+  } catch (e) {
+    document.getElementById('teamHistoryBody').innerHTML =
+      '<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--danger);">Failed: ' + escapeHtml(e.message) + '</td></tr>';
+  }
+}
+
+async function loadTeamLegendsData(teamAbbr) {
+  try {
+    const legendsData = await api('/teams/' + teamAbbr + '/legends');
+    renderTeamLegends(legendsData);
+  } catch (e) {
+    document.getElementById('teamLegendsBody').innerHTML =
+      '<tr><td colspan="8" style="text-align:center; padding:20px; color:var(--danger);">Failed: ' + escapeHtml(e.message) + '</td></tr>';
+  }
+}
+
+async function loadTeamRosterSeasons(teamAbbr) {
+  try {
+    const historyData = await api('/teams/' + teamAbbr + '/history');
+    const seasons = (historyData.data || []).map(h => h.season).sort((a, b) => b - a);
+    const sel = document.getElementById('teamRosterSeasonSelect');
+    sel.innerHTML = '';
+    seasons.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s;
+      opt.textContent = s + '-' + (s + 1).toString().slice(-2);
+      sel.appendChild(opt);
+    });
+    if (seasons.length > 0) {
+      loadTeamRoster();
+    }
+  } catch (e) {
+    console.error('Failed to load roster seasons:', e);
+  }
+}
+
+async function loadTeamRoster() {
+  if (!currentTeamAbbr) return;
+  const season = document.getElementById('teamRosterSeasonSelect').value;
+  try {
+    const rosterData = await api('/teams/' + currentTeamAbbr + '/roster/' + season);
+    renderTeamRoster(rosterData);
+  } catch (e) {
+    document.getElementById('teamRosterBody').innerHTML =
+      '<tr><td colspan="8" style="text-align:center; padding:20px; color:var(--danger);">Failed: ' + escapeHtml(e.message) + '</td></tr>';
   }
 }
 
@@ -1537,7 +1676,7 @@ function renderTeamRadarChart(data, teamAbbr) {
   if (avgValues.length > 0) {
     seriesData.push({
       value: avgValues,
-      name: 'League Avg',
+      name: I18N.t('teams.leagueAvg'),
       itemStyle: { color: THEME.textDim },
       areaStyle: { color: 'rgba(107,122,153,.1)' },
       lineStyle: { width: 1.5, type: 'dashed' },
@@ -1575,7 +1714,7 @@ function renderTeamRadarChart(data, teamAbbr) {
       },
     },
     legend: {
-      data: avgValues.length > 0 ? ['League Avg', teamAbbr] : [teamAbbr],
+      data: avgValues.length > 0 ? [I18N.t('teams.leagueAvg'), teamAbbr] : [teamAbbr],
       bottom: 0,
       textStyle: { color: THEME.textDim, fontSize: 11 },
       itemWidth: 14,
@@ -1615,7 +1754,7 @@ function renderTeamStandings(data, teamAbbr) {
   }
 
   if (!team) {
-    el.innerHTML = '<div style="color:var(--text-dim);">No standings data</div>';
+    el.innerHTML = '<div style="color:var(--text-dim);">' + I18N.t('teams.noStandingsData') + '</div>';
     return;
   }
 
@@ -1628,14 +1767,14 @@ function renderTeamStandings(data, teamAbbr) {
   el.innerHTML = `
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
       <div class="metric-tile">
-        <div class="metric-tile-name">Record</div>
+        <div class="metric-tile-name">${I18N.t('teams.record')}</div>
         <div class="metric-tile-value" style="color:var(--accent);">${wins}-${losses}</div>
-        <div class="metric-tile-sub">Win %: ${typeof winPct === 'number' ? (winPct * 100).toFixed(1) + '%' : winPct}</div>
+        <div class="metric-tile-sub">${I18N.t('teams.winPercent')}: ${typeof winPct === 'number' ? (winPct * 100).toFixed(1) + '%' : winPct}</div>
       </div>
       <div class="metric-tile">
-        <div class="metric-tile-name">${conf || 'Conference'} Rank</div>
+        <div class="metric-tile-name">${conf || I18N.t('teams.conference')} ${I18N.t('teams.rank')}</div>
         <div class="metric-tile-value" style="color:var(--info);">#${rank}</div>
-        <div class="metric-tile-sub">of ${standings.length} teams</div>
+        <div class="metric-tile-sub">of ${standings.length} ${I18N.t('teams.teamsSuffix')}</div>
       </div>
     </div>
   `;
@@ -1649,7 +1788,7 @@ function renderTeamStats(data, teamAbbr) {
     : (data[teamAbbr] || null);
 
   if (!team) {
-    tbody.innerHTML = '<tr><td colspan="2" style="text-align:center; padding:20px; color:var(--text-dim);">No stats data</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="2" style="text-align:center; padding:20px; color:var(--text-dim);">' + I18N.t('teams.noStatsData') + '</td></tr>';
     return;
   }
 
@@ -1695,12 +1834,227 @@ function renderTeamStats(data, teamAbbr) {
   tbody.innerHTML = rows.join('');
 }
 
+function renderTeamHistory(data) {
+  const history = data.data || [];
+  document.getElementById('teamHistoryCount').textContent = history.length + ' 赛季';
+
+  const tbody = document.getElementById('teamHistoryBody');
+  if (history.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--text-dim);">暂无历史数据</td></tr>';
+    return;
+  }
+
+  const rows = history.map(h => {
+    const season = h.season;
+    const w = h.w || 0;
+    const l = h.l || 0;
+    const winPct = h.win_pct != null ? (h.win_pct * 100).toFixed(1) + '%' : '—';
+    const pts = h.pts_per_game != null ? h.pts_per_game.toFixed(1) : '—';
+    const ast = h.ast_per_game != null ? h.ast_per_game.toFixed(1) : '—';
+    const reb = h.trb_per_game != null ? h.trb_per_game.toFixed(1) : '—';
+    const playoffs = h.made_playoffs ? '✓' : '';
+    const playoffsClass = h.made_playoffs ? 'style="color:var(--accent); font-weight:bold;"' : 'style="color:var(--text-dim);"';
+
+    return `<tr>
+      <td style="font-weight:500;">${season}</td>
+      <td style="text-align:center;">${w}-${l}</td>
+      <td style="text-align:right; font-family:var(--mono);">${winPct}</td>
+      <td style="text-align:right; font-family:var(--mono);">${pts}</td>
+      <td style="text-align:right; font-family:var(--mono);">${ast}</td>
+      <td style="text-align:right; font-family:var(--mono);">${reb}</td>
+      <td style="text-align:center;" ${playoffsClass}>${playoffs}</td>
+    </tr>`;
+  });
+  tbody.innerHTML = rows.join('');
+
+  const el = document.getElementById('teamHistoryChart');
+  if (el) {
+    if (charts.teamHistory) charts.teamHistory.dispose();
+    charts.teamHistory = echarts.init(el);
+
+    const sortedHistory = [...history].reverse();
+    const seasons = sortedHistory.map(h => h.season.toString());
+    const winPcts = sortedHistory.map(h => h.win_pct != null ? h.win_pct * 100 : null);
+    const points = sortedHistory.map(h => h.pts_per_game != null ? h.pts_per_game : null);
+
+    charts.teamHistory.setOption({
+      tooltip: { trigger: 'axis' },
+      legend: { data: ['胜率%', '场均得分'], textStyle: { color: THEME.textDim } },
+      grid: { left: 50, right: 20, top: 30, bottom: 40 },
+      xAxis: {
+        type: 'category',
+        data: seasons,
+        axisLabel: { color: THEME.textDim, rotate: 45, fontSize: 10 },
+        axisLine: { lineStyle: { color: THEME.axisLine } },
+      },
+      yAxis: [
+        {
+          type: 'value',
+          name: '胜率%',
+          nameTextStyle: { color: THEME.textDim },
+          axisLabel: { color: THEME.textDim, formatter: '{value}%' },
+          splitLine: { lineStyle: { color: THEME.border } },
+          max: 100,
+        },
+        {
+          type: 'value',
+          name: '得分',
+          nameTextStyle: { color: THEME.textDim },
+          axisLabel: { color: THEME.textDim },
+          splitLine: { show: false },
+        },
+      ],
+      series: [
+        {
+          name: '胜率%',
+          type: 'line',
+          data: winPcts,
+          smooth: true,
+          itemStyle: { color: THEME.accent },
+          symbol: 'circle',
+          symbolSize: 4,
+          areaStyle: { color: 'rgba(0, 184, 138, 0.15)' },
+        },
+        {
+          name: '场均得分',
+          type: 'bar',
+          yAxisIndex: 1,
+          data: points,
+          itemStyle: { color: 'rgba(59, 130, 246, 0.6)' },
+          barWidth: '40%',
+        },
+      ],
+    });
+  }
+}
+
+function renderTeamLegends(data) {
+  const legends = data.data || [];
+  document.getElementById('teamLegendsCount').textContent = legends.length + ' 人';
+
+  const tbody = document.getElementById('teamLegendsBody');
+  if (legends.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:var(--text-dim);">暂无传奇球员数据</td></tr>';
+    return;
+  }
+
+  const rows = legends.map((p, idx) => {
+    const rank = idx + 1;
+    const pos = p.position || '-';
+    const posBadge = `<span class="pos-badge" style="font-size:11px; padding:2px 6px;">${pos}</span>`;
+    const allStar = p.all_star_count || 0;
+
+    return `<tr>
+      <td style="text-align:center; font-weight:bold; color:var(--text-dim);">${rank}</td>
+      <td>
+        <a href="#" onclick="viewPlayerContext('${p.player_id}'); return false;" 
+           style="color:var(--accent); text-decoration:underline;">${p.player_name}</a>
+      </td>
+      <td style="text-align:center;">${posBadge}</td>
+      <td style="text-align:center;">${p.seasons_played}</td>
+      <td style="text-align:right; font-family:var(--mono);">${p.ppg != null ? p.ppg : '—'}</td>
+      <td style="text-align:right; font-family:var(--mono);">${p.rpg != null ? p.rpg : '—'}</td>
+      <td style="text-align:right; font-family:var(--mono);">${p.apg != null ? p.apg : '—'}</td>
+      <td style="text-align:center;">${allStar > 0 ? '<span style="color:var(--warn);">★' + allStar + '</span>' : '-'}</td>
+    </tr>`;
+  });
+  tbody.innerHTML = rows.join('');
+}
+
+function renderTeamRoster(data) {
+  const roster = data.data || [];
+
+  const tbody = document.getElementById('teamRosterBody');
+  if (roster.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:var(--text-dim);">暂无阵容数据</td></tr>';
+    return;
+  }
+
+  const rows = roster.map(p => {
+    const pos = p.position || p.primary_position || '-';
+    const posBadge = `<span class="pos-badge" style="font-size:11px; padding:2px 6px;">${pos}</span>`;
+    const gp = p.games_played || 0;
+    const gs = p.games_started || 0;
+    const ppg = p.points_per_game != null ? p.points_per_game : '—';
+    const rpg = p.rebounds_per_game != null ? p.rebounds_per_game : '—';
+    const apg = p.assists_per_game != null ? p.assists_per_game : '—';
+    const mpg = p.minutes_per_game != null ? p.minutes_per_game : '—';
+
+    return `<tr>
+      <td>
+        <a href="#" onclick="viewPlayerContext('${p.player_id}'); return false;" 
+           style="color:var(--accent); text-decoration:underline;">${p.player_name}</a>
+      </td>
+      <td style="text-align:center;">${posBadge}</td>
+      <td style="text-align:center; font-family:var(--mono);">${gp}</td>
+      <td style="text-align:center; font-family:var(--mono);">${gs}</td>
+      <td style="text-align:right; font-family:var(--mono);">${ppg}</td>
+      <td style="text-align:right; font-family:var(--mono);">${rpg}</td>
+      <td style="text-align:right; font-family:var(--mono);">${apg}</td>
+      <td style="text-align:right; font-family:var(--mono);">${mpg}</td>
+    </tr>`;
+  });
+  tbody.innerHTML = rows.join('');
+}
+
 // ── Crawler Page ──
 let crawlerEventSource = null;
 
-function loadCrawlerPage() {
+async function loadCrawlerPage() {
   checkCrawlerStatus();
   setupCrawlerModeSelect();
+  await loadTableOverview();
+}
+
+// ── Data Import Page ──
+async function loadDataImportPage() {
+  try {
+    const d = await api('/data-import/tables');
+    const sel = document.getElementById('importTableSelect');
+    sel.innerHTML = '';
+    (d.tables || []).forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t;
+      opt.textContent = t;
+      sel.appendChild(opt);
+    });
+  } catch (e) {
+    toast(I18N.t('common.failed') + ': ' + e.message, 'error');
+  }
+}
+
+async function uploadCsv() {
+  const fileInput = document.getElementById('importFile');
+  const table = document.getElementById('importTableSelect').value;
+  const mode = document.getElementById('importModeSelect').value;
+  const resultEl = document.getElementById('importResult');
+
+  if (!fileInput.files || fileInput.files.length === 0) {
+    toast(I18N.t('common.failed') + ': please choose a CSV file', 'error');
+    return;
+  }
+
+  const fd = new FormData();
+  fd.append('file', fileInput.files[0]);
+  fd.append('target_table', table);
+  fd.append('mode', mode);
+
+  resultEl.textContent = I18N.t('dataImport.importing') || 'Importing...';
+  try {
+    const d = await api('/data-import/upload', { method: 'POST', body: fd });
+    const errCount = (d.errors || []).length;
+    let html = `<div style="color:var(--success);"><b>${d.inserted}</b> rows inserted into <b>${d.table}</b></div>`;
+    html += `<div style="color:var(--text-dim); margin-top:6px;">columns: ${(d.columns || []).join(', ')}</div>`;
+    if (errCount > 0) {
+      html += `<div style="color:var(--danger); margin-top:8px;">${errCount} row(s) skipped due to errors:</div>`;
+      html += `<pre style="max-height:200px; overflow:auto; background:var(--bg-dark); padding:8px; border-radius:6px; font-size:12px;">${(d.errors || []).slice(0, 50).map(e => String(e).replace(/</g, '&lt;')).join('\n')}</pre>`;
+    }
+    resultEl.innerHTML = html;
+    toast(I18N.t('dataImport.importDone') + d.inserted, 'success');
+  } catch (e) {
+    resultEl.innerHTML = `<span style="color:var(--danger);">${String(e.message || e).replace(/</g, '&lt;')}</span>`;
+    toast(I18N.t('common.failed') + ': ' + e.message, 'error');
+  }
 }
 
 function setupCrawlerModeSelect() {
@@ -1725,19 +2079,59 @@ async function checkCrawlerStatus() {
 
     if (d.running) {
       badge.className = 'badge badge-green';
-      badge.textContent = 'Running';
+      badge.textContent = I18N.t('crawler.running');
       stopBtn.style.display = 'inline-block';
       startLogStream();
     } else {
       badge.className = 'badge badge-gray';
-      badge.textContent = 'Idle';
+      badge.textContent = I18N.t('crawler.idle');
       stopBtn.style.display = 'none';
       stopLogStream();
     }
   } catch (e) {
     const badge = document.getElementById('crawlerStatusBadge');
     badge.className = 'badge badge-red';
-    badge.textContent = 'Error';
+    badge.textContent = I18N.t('crawler.error');
+  }
+}
+
+async function loadTableOverview() {
+  try {
+    const tables = await api('/crawler/tables');
+    const overviewEl = document.getElementById('crawlerTableOverview');
+    const countEl = document.getElementById('crawlerTableCount');
+    const selectEl = document.getElementById('crawlerTableSelect');
+
+    // Populate overview
+    let html = '<table class="tbl" style="font-size:12px;"><thead><tr>' +
+      '<th>表名</th><th style="text-align:right;">列数</th><th style="text-align:right;">行数</th><th>说明</th></tr></thead><tbody>';
+    tables.forEach(t => {
+      const rowLabel = t.rows >= 1000000 ? (t.rows / 1000000).toFixed(1) + 'M'
+        : t.rows >= 1000 ? (t.rows / 1000).toFixed(0) + 'K'
+        : String(t.rows);
+      html += '<tr><td><code>' + escapeHtml(t.name) + '</code></td>' +
+        '<td style="text-align:right;">' + t.columns + '</td>' +
+        '<td style="text-align:right;">' + rowLabel + '</td>' +
+        '<td style="color:var(--text-dim);">' + escapeHtml(t.description || '') + '</td></tr>';
+    });
+    html += '</tbody></table>';
+    overviewEl.innerHTML = html;
+
+    if (countEl) countEl.textContent = tables.length + ' 张表';
+
+    // Populate dropdown (null-guarded against transient Heisenbug)
+    if (selectEl) {
+      selectEl.innerHTML = '<option value="">— 选择表 —</option>';
+      tables.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.name;
+        opt.textContent = t.name + ' (' + (t.description || '') + ')';
+        selectEl.appendChild(opt);
+      });
+    }
+  } catch (e) {
+    const el = document.getElementById('crawlerTableOverview');
+    if (el) el.innerHTML = '<div style="color:var(--danger); padding:12px;">加载失败: ' + escapeHtml(e.message) + '</div>';
   }
 }
 
@@ -1748,12 +2142,12 @@ async function startCrawl(mode) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mode: mode, params: {} }),
     });
-    toast('Crawl started: ' + mode, 'success');
-    appendCrawlLog('INFO', 'Started crawl: ' + mode);
+    toast(I18N.t('crawler.crawlStarted') + mode, 'success');
+    appendCrawlLog('INFO', I18N.t('crawler.startedCrawl') + mode);
     checkCrawlerStatus();
     startLogStream();
   } catch (e) {
-    toast('Failed: ' + e.message, 'error');
+    toast(I18N.t('common.failed') + ': ' + e.message, 'error');
   }
 }
 
@@ -1762,7 +2156,8 @@ async function startCustomCrawl() {
   const params = {};
 
   if (mode === 'single') {
-    params.table = document.getElementById('crawlTableInput').value;
+    params.table = document.getElementById('crawlTableSelect').value;
+    if (!params.table) { toast('请选择一个表', 'error'); return; }
     const season = document.getElementById('crawlSeasonInput').value;
     if (season) params.season = parseInt(season);
   } else if (mode === 'full_season') {
@@ -1779,23 +2174,23 @@ async function startCustomCrawl() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mode: mode, params: params }),
     });
-    toast('Crawl started: ' + mode, 'success');
-    appendCrawlLog('INFO', 'Started crawl: ' + mode + ' with params: ' + JSON.stringify(params));
+    toast(I18N.t('crawler.crawlStarted') + mode, 'success');
+    appendCrawlLog('INFO', I18N.t('crawler.startedCrawl') + mode + ' with params: ' + JSON.stringify(params));
     checkCrawlerStatus();
     startLogStream();
   } catch (e) {
-    toast('Failed: ' + e.message, 'error');
+    toast(I18N.t('common.failed') + ': ' + e.message, 'error');
   }
 }
 
 async function stopCrawl() {
   try {
     await api('/crawler/stop', { method: 'POST' });
-    toast('Crawl stopped', 'success');
-    appendCrawlLog('INFO', 'Crawl stopped by user');
+    toast(I18N.t('crawler.crawlStopped'), 'success');
+    appendCrawlLog('INFO', I18N.t('crawler.crawlStoppedByUser'));
     checkCrawlerStatus();
   } catch (e) {
-    toast('Failed: ' + e.message, 'error');
+    toast(I18N.t('common.failed') + ': ' + e.message, 'error');
   }
 }
 
@@ -1855,7 +2250,7 @@ function appendCrawlLog(level, msg) {
 function clearCrawlLog() {
   const container = document.getElementById('crawlLogContainer');
   if (container) {
-    container.innerHTML = '<div style="color:var(--text-dim);">No logs yet. Start a crawl to see output here.</div>';
+    container.innerHTML = '<div style="color:var(--text-dim);">' + I18N.t('crawler.noLogs') + '</div>';
   }
 }
 
@@ -1872,7 +2267,7 @@ async function loadGamesPage() {
   const tbody = document.getElementById('gamesTableBody');
 
   tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:30px; color:var(--text-dim);">
-    <div class="spinner"></div> Loading...
+    <div class="spinner"></div> ${I18N.t('common.loading')}
   </td></tr>`;
 
   try {
@@ -1881,14 +2276,14 @@ async function loadGamesPage() {
     const total = d.total || d.count || 0;
     gamesTotalPages = Math.ceil(total / perPage) || 1;
 
-    document.getElementById('gamesCount').textContent = total + ' games';
+    document.getElementById('gamesCount').textContent = total + I18N.t('games.gamesSuffix');
     document.getElementById('gamesPageInfo').textContent = gamesPage + ' / ' + gamesTotalPages;
     document.getElementById('gamesPrevBtn').disabled = gamesPage <= 1;
     document.getElementById('gamesNextBtn').disabled = gamesPage >= gamesTotalPages;
 
     if (games.length === 0) {
       tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:30px; color:var(--text-dim);">
-        No games found
+        ${I18N.t('games.noGamesFound')}
       </td></tr>`;
       return;
     }
@@ -1914,7 +2309,7 @@ async function loadGamesPage() {
     }).join('');
   } catch (e) {
     tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:30px; color:var(--danger);">
-      Failed to load: ${escapeHtml(e.message)}
+      ${I18N.t('common.failedToLoad')}: ${escapeHtml(e.message)}
     </td></tr>`;
   }
 }
@@ -1961,15 +2356,15 @@ async function showGameDetail(gameId) {
   document.getElementById('gameDetailView').style.display = 'block';
 
   // Reset
-  document.getElementById('gameDetailTitle').textContent = 'Loading...';
+  document.getElementById('gameDetailTitle').textContent = I18N.t('common.loading');
   document.getElementById('gameDetailScore').textContent = '—';
   document.getElementById('gameDetailMeta').textContent = '—';
   document.getElementById('gameQuartersRow').innerHTML = '';
   document.getElementById('gameStatsHead').innerHTML = '';
   document.getElementById('gameStatsBody').innerHTML =
-    '<tr><td style="text-align:center; padding:20px; color:var(--text-dim);">Loading...</td></tr>';
+    '<tr><td style="text-align:center; padding:20px; color:var(--text-dim);">' + I18N.t('common.loading') + '</td></tr>';
   document.getElementById('gamePlayersTimeline').innerHTML =
-    '<div style="text-align:center; padding:20px; color:var(--text-dim);">Loading...</div>';
+    '<div style="text-align:center; padding:20px; color:var(--text-dim);">' + I18N.t('common.loading') + '</div>';
   document.getElementById('gamePlayersCount').textContent = '—';
   if (charts.gameRadar) {
     charts.gameRadar.dispose();
@@ -1990,8 +2385,8 @@ async function showGameDetail(gameId) {
     renderGameStatsTable(detailResp.data || {});
     renderGamePlayerTimeline(playersResp.players || []);
   } catch (e) {
-    toast('Failed to load game detail: ' + e.message, 'error');
-    document.getElementById('gameDetailTitle').textContent = 'Error: ' + e.message;
+    toast(I18N.t('games.failedLoadDetail') + ': ' + e.message, 'error');
+    document.getElementById('gameDetailTitle').textContent = I18N.t('common.error') + ': ' + e.message;
   }
 }
 
@@ -2150,31 +2545,31 @@ function renderGameStatsTable(detail) {
   const away = detail.away_team_abbr || 'AWAY';
 
   const stats = [
-    { label: 'Points', home: detail.home_pts, away: detail.away_pts },
-    { label: 'FG Made', home: detail.home_fgm, away: detail.away_fgm },
-    { label: 'FG Att', home: detail.home_fga, away: detail.away_fga },
-    { label: 'FG%', home: detail.home_fg_pct, away: detail.away_fg_pct, fmt: 'pct' },
-    { label: '3P Made', home: detail.home_fg3m, away: detail.away_fg3m },
-    { label: '3P Att', home: detail.home_fga3, away: detail.away_fga3 },
-    { label: '3P%', home: detail.home_fg3_pct, away: detail.away_fg3_pct, fmt: 'pct' },
-    { label: 'FT Made', home: detail.home_ftm, away: detail.away_ftm },
-    { label: 'FT Att', home: detail.home_fta, away: detail.away_fta },
-    { label: 'FT%', home: detail.home_ft_pct, away: detail.away_ft_pct, fmt: 'pct' },
-    { label: 'Rebounds', home: detail.home_reb, away: detail.away_reb },
-    { label: 'Off Reb', home: detail.home_oreb, away: detail.away_oreb },
-    { label: 'Def Reb', home: detail.home_dreb, away: detail.away_dreb },
-    { label: 'Assists', home: detail.home_ast, away: detail.away_ast },
-    { label: 'Steals', home: detail.home_stl, away: detail.away_stl },
-    { label: 'Blocks', home: detail.home_blk, away: detail.away_blk },
-    { label: 'Turnovers', home: detail.home_tov, away: detail.away_tov },
-    { label: 'Fouls', home: detail.home_pf, away: detail.away_pf },
+    { key: 'pts', label: I18N.t('games.points'), home: detail.home_pts, away: detail.away_pts },
+    { key: 'fgm', label: I18N.t('games.fgMade'), home: detail.home_fgm, away: detail.away_fgm },
+    { key: 'fga', label: I18N.t('games.fgAtt'), home: detail.home_fga, away: detail.away_fga },
+    { key: 'fg_pct', label: 'FG%', home: detail.home_fg_pct, away: detail.away_fg_pct, fmt: 'pct' },
+    { key: 'fg3m', label: I18N.t('games.fg3Made'), home: detail.home_fg3m, away: detail.away_fg3m },
+    { key: 'fg3a', label: I18N.t('games.fg3Att'), home: detail.home_fga3, away: detail.away_fga3 },
+    { key: 'fg3_pct', label: '3P%', home: detail.home_fg3_pct, away: detail.away_fg3_pct, fmt: 'pct' },
+    { key: 'ftm', label: I18N.t('games.ftMade'), home: detail.home_ftm, away: detail.away_ftm },
+    { key: 'fta', label: I18N.t('games.ftAtt'), home: detail.home_fta, away: detail.away_fta },
+    { key: 'ft_pct', label: 'FT%', home: detail.home_ft_pct, away: detail.away_ft_pct, fmt: 'pct' },
+    { key: 'reb', label: I18N.t('games.rebounds'), home: detail.home_reb, away: detail.away_reb },
+    { key: 'oreb', label: I18N.t('games.offReb'), home: detail.home_oreb, away: detail.away_oreb },
+    { key: 'dreb', label: I18N.t('games.defReb'), home: detail.home_dreb, away: detail.away_dreb },
+    { key: 'ast', label: I18N.t('games.assists'), home: detail.home_ast, away: detail.away_ast },
+    { key: 'stl', label: I18N.t('games.steals'), home: detail.home_stl, away: detail.away_stl },
+    { key: 'blk', label: I18N.t('games.blocks'), home: detail.home_blk, away: detail.away_blk },
+    { key: 'tov', label: I18N.t('games.turnovers'), home: detail.home_tov, away: detail.away_tov },
+    { key: 'pf', label: I18N.t('games.fouls'), home: detail.home_pf, away: detail.away_pf },
   ];
 
   const head = document.getElementById('gameStatsHead');
   const body = document.getElementById('gameStatsBody');
 
   head.innerHTML = `<tr>
-    <th style="text-align:left;">Stat</th>
+    <th style="text-align:left;">${I18N.t('games.stat')}</th>
     <th style="text-align:right;">${escapeHtml(away)}</th>
     <th style="text-align:right;">${escapeHtml(home)}</th>
   </tr>`;
@@ -2188,7 +2583,7 @@ function renderGameStatsTable(detail) {
     const aVal = fmt(s.away);
     const hVal = fmt(s.home);
     // Highlight winner (higher is better, except TOV/PF where lower is better)
-    const lowerBetter = s.label === 'Turnovers' || s.label === 'Fouls';
+    const lowerBetter = s.key === 'tov' || s.key === 'pf';
     let aClass = '';
     let hClass = '';
     if (s.home != null && s.away != null) {
@@ -2210,11 +2605,11 @@ function renderGameStatsTable(detail) {
 
 function renderGamePlayerTimeline(players) {
   const container = document.getElementById('gamePlayersTimeline');
-  document.getElementById('gamePlayersCount').textContent = players.length + ' rows';
+  document.getElementById('gamePlayersCount').textContent = players.length + I18N.t('games.rowsSuffix');
 
   if (!players || players.length === 0) {
     container.innerHTML = '<div style="text-align:center; padding:30px; color:var(--text-dim);">' +
-      'No play-by-play data available for this game</div>';
+      I18N.t('games.noPlayByPlayData') + '</div>';
     return;
   }
 
@@ -2302,8 +2697,8 @@ function renderGamePlayerTimeline(players) {
 
 function renderPlayerCard(p) {
   const periodBadges = p.periods.map(pp => {
-    const timeIn = pp.time_in ? formatClock(pp.time_in) : 'Start';
-    const timeOut = pp.time_out ? formatClock(pp.time_out) : 'End';
+    const timeIn = pp.time_in ? formatClock(pp.time_in) : I18N.t('games.start');
+    const timeOut = pp.time_out ? formatClock(pp.time_out) : I18N.t('games.end');
     const hasStats = (pp.pts || 0) + (pp.reb || 0) + (pp.ast || 0) + (pp.tov || 0) + (pp.pf || 0) > 0;
     const statsSummary = hasStats
       ? ` | ${pp.pts || 0}PTS ${pp.reb || 0}REB ${pp.ast || 0}AST ${pp.tov || 0}TOV ${pp.pf || 0}PF`
@@ -2320,12 +2715,12 @@ function renderPlayerCard(p) {
   const detailsHtml = [];
   if (foulDetails.length > 0) {
     detailsHtml.push(`<div style="margin-top:4px; font-size:11px; color:var(--warning);">
-      <b>Fouls:</b> ${foulDetails.map(d => `Q${d.period} ${formatClock(d.clock)} (${escapeHtml(d.desc)})`).join('; ')}
+      <b>${I18N.t('games.fouls')}:</b> ${foulDetails.map(d => `Q${d.period} ${formatClock(d.clock)} (${escapeHtml(d.desc)})`).join('; ')}
     </div>`);
   }
   if (tovDetails.length > 0) {
     detailsHtml.push(`<div style="margin-top:4px; font-size:11px; color:var(--danger);">
-      <b>Turnovers:</b> ${tovDetails.map(d => `Q${d.period} ${formatClock(d.clock)} (${escapeHtml(d.desc)})`).join('; ')}
+      <b>${I18N.t('games.turnovers')}:</b> ${tovDetails.map(d => `Q${d.period} ${formatClock(d.clock)} (${escapeHtml(d.desc)})`).join('; ')}
     </div>`);
   }
 
@@ -2355,13 +2750,13 @@ async function loadSystemPage() {
     const status = await api('/system/status?season=' + season);
     document.getElementById('sysDbStatus').innerHTML =
       status.database_connected
-        ? '<span style="color:var(--accent);">Connected</span>'
-        : '<span style="color:var(--danger);">Disconnected</span>';
-    document.getElementById('sysTableCount').textContent = status.table_count ?? status.tables ?? '—';
+        ? '<span style="color:var(--accent);">' + I18N.t('system.connected') + '</span>'
+        : '<span style="color:var(--danger);">' + I18N.t('system.disconnected') + '</span>';
+    document.getElementById('sysTableCount').textContent = status.table_count ?? status.total_tables ?? (status.tables ? status.tables.length : '—');
     document.getElementById('sysTotalRecords').textContent = status.total_records ?? status.records ?? '—';
   } catch (e) {
-    document.getElementById('sysDbStatus').innerHTML = '<span style="color:var(--danger);">Error</span>';
-    toast('Failed to load system status: ' + e.message, 'error');
+    document.getElementById('sysDbStatus').innerHTML = '<span style="color:var(--danger);">' + I18N.t('common.error') + '</span>';
+    toast(I18N.t('system.failedLoadStatus') + ': ' + e.message, 'error');
   }
 
   // Load tables
@@ -2371,7 +2766,7 @@ async function loadSystemPage() {
 async function loadSystemTables() {
   const tbody = document.getElementById('sysTablesBody');
   tbody.innerHTML = `<tr><td colspan="2" style="text-align:center; padding:30px; color:var(--text-dim);">
-    <div class="spinner"></div> Loading...
+    <div class="spinner"></div> ${I18N.t('common.loading')}
   </td></tr>`;
 
   try {
@@ -2380,7 +2775,7 @@ async function loadSystemTables() {
 
     if (tables.length === 0) {
       tbody.innerHTML = `<tr><td colspan="2" style="text-align:center; padding:30px; color:var(--text-dim);">
-        No tables found
+        ${I18N.t('system.noTablesFound')}
       </td></tr>`;
       return;
     }
@@ -2395,7 +2790,7 @@ async function loadSystemTables() {
     }).join('');
   } catch (e) {
     tbody.innerHTML = `<tr><td colspan="2" style="text-align:center; padding:30px; color:var(--danger);">
-      Failed to load: ${escapeHtml(e.message)}
+      ${I18N.t('common.failedToLoad')}: ${escapeHtml(e.message)}
     </td></tr>`;
   }
 }
@@ -2405,7 +2800,7 @@ async function loadTableData(tableName) {
   sysDataPage = 1;
   const card = document.getElementById('sysTableDataCard');
   card.style.display = 'block';
-  document.getElementById('sysTableDataTitle').textContent = 'Table: ' + tableName;
+  document.getElementById('sysTableDataTitle').textContent = I18N.t('system.tableName') + ': ' + tableName;
   await loadSysTableDataPage();
 }
 
@@ -2415,7 +2810,7 @@ async function loadSysTableDataPage() {
   const tbody = document.getElementById('sysDataTableBody');
 
   tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:30px; color:var(--text-dim);">
-    <div class="spinner"></div> Loading...
+    <div class="spinner"></div> ${I18N.t('common.loading')}
   </td></tr>`;
 
   try {
@@ -2431,7 +2826,7 @@ async function loadSysTableDataPage() {
     if (rows.length === 0) {
       thead.innerHTML = '';
       tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:30px; color:var(--text-dim);">
-        No data
+        ${I18N.t('common.noData')}
       </td></tr>`;
       return;
     }
@@ -2452,7 +2847,7 @@ async function loadSysTableDataPage() {
     </tr>`).join('');
   } catch (e) {
     tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:30px; color:var(--danger);">
-      Failed to load: ${escapeHtml(e.message)}
+      ${I18N.t('common.failedToLoad')}: ${escapeHtml(e.message)}
     </td></tr>`;
   }
 }
@@ -2481,20 +2876,20 @@ function exportRankings(format) {
   const source = document.getElementById('rankSourceSelect').value;
   const metric = document.getElementById('rankMetricSelect').value;
   const season = document.getElementById('rankSeasonSelect').value;
-  if (!metric) { toast('Select a stat first', 'error'); return; }
+  if (!metric) { toast(I18N.t('common.selectStatFirst'), 'error'); return; }
 
   if (source === 'metric') {
     const url = '/export/rankings?metric=' + encodeURIComponent(metric) +
       '&season=' + season + '&format=' + format + '&limit=50';
     window.location.href = url;
-    toast('Exporting ' + format.toUpperCase() + '...', 'success');
+    toast(I18N.t('common.exporting') + format.toUpperCase() + '...', 'success');
   } else {
-    toast('Export for stat rankings not available yet', 'error');
+    toast(I18N.t('rankings.exportNotAvailable'), 'error');
   }
 }
 
 function exportVS(format) {
-  if (!player1 || !player2) { toast('Select both players first', 'error'); return; }
+  if (!player1 || !player2) { toast(I18N.t('common.selectBothPlayers'), 'error'); return; }
   const season = document.getElementById('seasonSelect').value;
   const metrics = Array.from(selectedMetrics).join(',');
   const url = '/export/vs?p1=' + encodeURIComponent(player1.player_id) +
@@ -2502,7 +2897,7 @@ function exportVS(format) {
     '&season=' + season + '&format=' + format +
     (metrics ? '&metrics=' + encodeURIComponent(metrics) : '');
   window.location.href = url;
-  toast('Exporting ' + format.toUpperCase() + '...', 'success');
+  toast(I18N.t('common.exporting') + format.toUpperCase() + '...', 'success');
 }
 
 // ── Growth Report Page ──
@@ -2521,7 +2916,7 @@ function searchGrowthPlayer() {
       const r = await api('/players?name=' + encodeURIComponent(q) + '&limit=8');
       const dd = document.getElementById('growthPlayerDropdown');
       if (!r.players || r.players.length === 0) {
-        dd.innerHTML = '<div class="dropdown-item" style="color:var(--text-dim);">No results</div>';
+        dd.innerHTML = '<div class="dropdown-item" style="color:var(--text-dim);">' + I18N.t('common.noResults') + '</div>';
       } else {
         dd.innerHTML = r.players.map(p =>
           `<div class="dropdown-item" onmousedown="selectGrowthPlayer('${p.player_id}', '${p.player_name.replace(/'/g, "\\'")}')">
@@ -2562,6 +2957,7 @@ function loadLeBronExample() {
 }
 
 async function loadGrowthReport(playerId) {
+  growthPlayer = playerId;
   try {
     const report = await api('/players/' + playerId + '/growth');
     renderGrowthReport(report);
@@ -2590,13 +2986,12 @@ function seasonLabel(s) {
 }
 
 function renderGrowthReport(report) {
-  // Dispose old charts
   disposeGrowthCharts();
 
   document.getElementById('growthEmpty').style.display = 'none';
   document.getElementById('growthResults').style.display = 'block';
 
-  const { bio, seasons, positions, milestones } = report;
+  const { bio, seasons, positions, shooting, milestones } = report;
 
   // Bio
   document.getElementById('growthPlayerName').textContent = bio.player_name || bio.full_name || '—';
@@ -2612,8 +3007,12 @@ function renderGrowthReport(report) {
   // Totals
   document.getElementById('growthTotalGames').textContent = formatNum(bio.total_games);
   document.getElementById('growthTotalPts').textContent = formatNum(bio.total_points);
-  document.getElementById('growthTotalReb').textContent = formatNum(bio.total_rebounds);
+  document.getElementById('growthTotalOReb').textContent = formatNum(bio.total_offensive_rebounds);
+  document.getElementById('growthTotalDReb').textContent = formatNum(bio.total_defensive_rebounds);
   document.getElementById('growthTotalAst').textContent = formatNum(bio.total_assists);
+  document.getElementById('growthTotalSteals').textContent = formatNum(bio.total_steals);
+  document.getElementById('growthTotalBlocks').textContent = formatNum(bio.total_blocks);
+  document.getElementById('growthTotalFouls').textContent = formatNum(bio.total_fouls);
 
   // Milestones
   renderMilestones(milestones);
@@ -2628,10 +3027,20 @@ function renderGrowthReport(report) {
   renderWsChart(seasons);
   renderPosPieChart(positions);
   renderPosRadarChart(positions);
+  if (shooting && shooting.length > 0) {
+    renderShootingChart(shooting);
+  }
+  renderPhysChart(bio, seasons);
+  renderShootingPctChart(seasons);
+  renderAdvancedChart(seasons);
+  renderMinutesChart(seasons);
 
   // Tables
   renderSeasonTable(seasons);
   renderPosTable(positions);
+
+  // v8.1 Deep Analysis cards
+  loadV81Analysis(growthPlayer, report);
 }
 
 function formatNum(n) {
@@ -2775,35 +3184,50 @@ function renderPerChart(seasons) {
 function renderRebAstChart(seasons) {
   const chart = getGrowthChart('growthRebAstChart');
   const seasonsLabels = seasons.map(s => seasonLabel(s.season));
-  const rpg = seasons.map(s => s.trb_per_game);
+  const orpg = seasons.map(s => s.orb_per_game);
+  const drpg = seasons.map(s => s.drb_per_game);
   const apg = seasons.map(s => s.ast_per_game);
   const spg = seasons.map(s => s.stl_per_game);
   const bpg = seasons.map(s => s.blk_per_game);
+  const sbf = seasons.map(s => s.steal_block_per_foul || null);
+  const apt = seasons.map(s => s.ast_per_tov || null);
 
   chart.setOption({
     tooltip: { trigger: 'axis' },
-    legend: { data: ['篮板', '助攻', '抢断', '盖帽'], textStyle: { color: THEME.textDim } },
-    grid: { left: 50, right: 20, top: 40, bottom: 30 },
+    legend: { data: ['进攻篮板', '防守篮板', '助攻', '抢断', '盖帽', '(抢断+盖帽)/犯规', '助攻/失误'], textStyle: { color: THEME.textDim } },
+    grid: { left: 50, right: 20, top: 50, bottom: 30 },
     xAxis: {
       type: 'category',
       data: seasonsLabels,
       axisLabel: { color: THEME.textDim, rotate: 45, fontSize: 10 },
       axisLine: { lineStyle: { color: THEME.axisLine } },
     },
-    yAxis: {
-      type: 'value',
-      axisLabel: { color: THEME.textDim },
-      splitLine: { lineStyle: { color: THEME.border } },
-    },
+    yAxis: [
+      {
+        type: 'value',
+        axisLabel: { color: THEME.textDim },
+        splitLine: { lineStyle: { color: THEME.border } },
+      },
+      {
+        type: 'value',
+        axisLabel: { color: THEME.textDim },
+        splitLine: { show: false },
+      },
+    ],
     series: [
       {
-        name: '篮板',
-        type: 'line',
-        data: rpg,
-        smooth: true,
-        itemStyle: { color: '#06b6d4' },
-        symbol: 'circle',
-        symbolSize: 5,
+        name: '进攻篮板',
+        type: 'bar',
+        data: orpg,
+        itemStyle: { color: 'rgba(59, 130, 246, 0.6)' },
+        barWidth: '20%',
+      },
+      {
+        name: '防守篮板',
+        type: 'bar',
+        data: drpg,
+        itemStyle: { color: 'rgba(59, 130, 246, 0.3)' },
+        barWidth: '20%',
       },
       {
         name: '助攻',
@@ -2831,6 +3255,26 @@ function renderRebAstChart(seasons) {
         itemStyle: { color: '#f59e0b' },
         symbol: 'circle',
         symbolSize: 4,
+      },
+      {
+        name: '(抢断+盖帽)/犯规',
+        type: 'line',
+        yAxisIndex: 1,
+        data: sbf,
+        smooth: true,
+        itemStyle: { color: '#ef4444' },
+        symbol: 'diamond',
+        symbolSize: 5,
+      },
+      {
+        name: '助攻/失误',
+        type: 'line',
+        yAxisIndex: 1,
+        data: apt,
+        smooth: true,
+        itemStyle: { color: '#06b6d4' },
+        symbol: 'diamond',
+        symbolSize: 5,
       },
     ],
   });
@@ -2974,6 +3418,340 @@ function renderPosRadarChart(positions) {
   });
 }
 
+function renderShootingChart(shooting) {
+  const chart = getGrowthChart('growthShootingChart');
+  const seasonsLabels = shooting.map(s => seasonLabel(s.season));
+  
+  const zoneNames = ['0-3英尺', '3-10英尺', '10-16英尺', '16-三分线', '三分球'];
+  const zoneColors = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'];
+  
+  const series = zoneNames.map((name, i) => {
+    const fieldName = `percent_fga_from_x${[0, 3, 10, 16, '3p'][i]}_range`;
+    return {
+      name: name,
+      type: 'bar',
+      stack: 'total',
+      data: shooting.map(s => (s[fieldName] || 0) * 100),
+      itemStyle: { color: zoneColors[i] },
+    };
+  });
+
+  chart.setOption({
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      formatter: function(params) {
+        let result = params[0].axisValue + '<br/>';
+        let total = 0;
+        params.forEach(p => {
+          total += p.value;
+          result += `${p.marker} ${p.seriesName}: ${p.value.toFixed(1)}%<br/>`;
+        });
+        result += `总计: ${total.toFixed(1)}%`;
+        return result;
+      },
+    },
+    legend: {
+      data: zoneNames,
+      textStyle: { color: THEME.textDim },
+      bottom: 0,
+    },
+    grid: { left: 50, right: 20, top: 40, bottom: 60 },
+    xAxis: {
+      type: 'category',
+      data: seasonsLabels,
+      axisLabel: { color: THEME.textDim, rotate: 45, fontSize: 10 },
+      axisLine: { lineStyle: { color: THEME.axisLine } },
+    },
+    yAxis: {
+      type: 'value',
+      name: '出手占比%',
+      nameTextStyle: { color: THEME.textDim },
+      axisLabel: { color: THEME.textDim, formatter: '{value}%' },
+      splitLine: { lineStyle: { color: THEME.border } },
+      max: 100,
+    },
+    series: series,
+  });
+}
+
+function renderPhysChart(bio, seasons) {
+  const chart = getGrowthChart('growthPhysChart');
+  const seasonsLabels = seasons.map(s => seasonLabel(s.season));
+  
+  const height = bio.height_cm || 0;
+  const weight = bio.weight_kg || 0;
+  
+  const ages = seasons.map(s => s.age);
+  const weights = seasons.map(() => weight);
+  const heights = seasons.map(() => height);
+
+  chart.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['年龄', '身高(cm)', '体重(kg)'], textStyle: { color: THEME.textDim } },
+    grid: { left: 50, right: 20, top: 40, bottom: 30 },
+    xAxis: {
+      type: 'category',
+      data: seasonsLabels,
+      axisLabel: { color: THEME.textDim, rotate: 45, fontSize: 10 },
+      axisLine: { lineStyle: { color: THEME.axisLine } },
+    },
+    yAxis: [
+      {
+        type: 'value',
+        name: '年龄',
+        nameTextStyle: { color: THEME.textDim },
+        axisLabel: { color: THEME.textDim },
+        splitLine: { lineStyle: { color: THEME.border } },
+      },
+      {
+        type: 'value',
+        name: 'cm/kg',
+        nameTextStyle: { color: THEME.textDim },
+        axisLabel: { color: THEME.textDim },
+        splitLine: { show: false },
+      },
+    ],
+    series: [
+      {
+        name: '年龄',
+        type: 'line',
+        data: ages,
+        smooth: true,
+        itemStyle: { color: '#8b5cf6' },
+        symbol: 'circle',
+        symbolSize: 5,
+      },
+      {
+        name: '身高(cm)',
+        type: 'line',
+        yAxisIndex: 1,
+        data: heights,
+        smooth: false,
+        itemStyle: { color: '#3b82f6' },
+        symbol: 'none',
+        lineStyle: { type: 'dashed' },
+      },
+      {
+        name: '体重(kg)',
+        type: 'line',
+        yAxisIndex: 1,
+        data: weights,
+        smooth: false,
+        itemStyle: { color: '#f59e0b' },
+        symbol: 'none',
+        lineStyle: { type: 'dashed' },
+      },
+    ],
+  });
+}
+
+function renderShootingPctChart(seasons) {
+  const chart = getGrowthChart('growthShootingPctChart');
+  const seasonsLabels = seasons.map(s => seasonLabel(s.season));
+  const fg = seasons.map(s => s.fg_percent ? s.fg_percent * 100 : null);
+  const x3p = seasons.map(s => s.x3p_percent ? s.x3p_percent * 100 : null);
+  const ft = seasons.map(s => s.ft_percent ? s.ft_percent * 100 : null);
+  const efg = seasons.map(s => s.e_fg_percent ? s.e_fg_percent * 100 : null);
+
+  chart.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['投篮命中率', '三分命中率', '罚球命中率', '有效命中率'], textStyle: { color: THEME.textDim } },
+    grid: { left: 50, right: 20, top: 40, bottom: 30 },
+    xAxis: {
+      type: 'category',
+      data: seasonsLabels,
+      axisLabel: { color: THEME.textDim, rotate: 45, fontSize: 10 },
+      axisLine: { lineStyle: { color: THEME.axisLine } },
+    },
+    yAxis: {
+      type: 'value',
+      name: '命中率%',
+      nameTextStyle: { color: THEME.textDim },
+      axisLabel: { color: THEME.textDim, formatter: '{value}%' },
+      splitLine: { lineStyle: { color: THEME.border } },
+      max: 70,
+    },
+    series: [
+      {
+        name: '投篮命中率',
+        type: 'line',
+        data: fg,
+        smooth: true,
+        itemStyle: { color: '#3b82f6' },
+        symbol: 'circle',
+        symbolSize: 5,
+      },
+      {
+        name: '三分命中率',
+        type: 'line',
+        data: x3p,
+        smooth: true,
+        itemStyle: { color: '#ef4444' },
+        symbol: 'circle',
+        symbolSize: 5,
+      },
+      {
+        name: '罚球命中率',
+        type: 'line',
+        data: ft,
+        smooth: true,
+        itemStyle: { color: '#10b981' },
+        symbol: 'circle',
+        symbolSize: 5,
+      },
+      {
+        name: '有效命中率',
+        type: 'line',
+        data: efg,
+        smooth: true,
+        itemStyle: { color: '#f59e0b' },
+        symbol: 'diamond',
+        symbolSize: 5,
+      },
+    ],
+  });
+}
+
+function renderAdvancedChart(seasons) {
+  const chart = getGrowthChart('growthAdvancedChart');
+  const seasonsLabels = seasons.map(s => seasonLabel(s.season));
+  const per = seasons.map(s => s.per);
+  const ts = seasons.map(s => s.ts_percent ? s.ts_percent * 100 : null);
+  const ws = seasons.map(s => s.ws);
+  const bpm = seasons.map(s => s.bpm);
+
+  chart.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['PER', 'TS%', 'WS', 'BPM'], textStyle: { color: THEME.textDim } },
+    grid: { left: 50, right: 20, top: 40, bottom: 30 },
+    xAxis: {
+      type: 'category',
+      data: seasonsLabels,
+      axisLabel: { color: THEME.textDim, rotate: 45, fontSize: 10 },
+      axisLine: { lineStyle: { color: THEME.axisLine } },
+    },
+    yAxis: [
+      {
+        type: 'value',
+        name: 'PER/WS',
+        nameTextStyle: { color: THEME.textDim },
+        axisLabel: { color: THEME.textDim },
+        splitLine: { lineStyle: { color: THEME.border } },
+      },
+      {
+        type: 'value',
+        name: '%/BPM',
+        nameTextStyle: { color: THEME.textDim },
+        axisLabel: { color: THEME.textDim },
+        splitLine: { show: false },
+      },
+    ],
+    series: [
+      {
+        name: 'PER',
+        type: 'line',
+        data: per,
+        smooth: true,
+        itemStyle: { color: '#8b5cf6' },
+        symbol: 'circle',
+        symbolSize: 5,
+      },
+      {
+        name: 'TS%',
+        type: 'line',
+        yAxisIndex: 1,
+        data: ts,
+        smooth: true,
+        itemStyle: { color: '#10b981' },
+        symbol: 'circle',
+        symbolSize: 5,
+      },
+      {
+        name: 'WS',
+        type: 'bar',
+        data: ws,
+        itemStyle: { color: 'rgba(59, 130, 246, 0.6)' },
+        barWidth: '20%',
+      },
+      {
+        name: 'BPM',
+        type: 'line',
+        yAxisIndex: 1,
+        data: bpm,
+        smooth: true,
+        itemStyle: { color: '#f59e0b' },
+        symbol: 'circle',
+        symbolSize: 5,
+      },
+    ],
+  });
+}
+
+function renderMinutesChart(seasons) {
+  const chart = getGrowthChart('growthMinutesChart');
+  const seasonsLabels = seasons.map(s => seasonLabel(s.season));
+  const mpg = seasons.map(s => Number(s.mp_per_game));
+  const g = seasons.map(s => s.g);
+  const gs = seasons.map(s => s.gs);
+
+  chart.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['场均出场时间', '出场场次', '首发场次'], textStyle: { color: THEME.textDim } },
+    grid: { left: 50, right: 20, top: 40, bottom: 30 },
+    xAxis: {
+      type: 'category',
+      data: seasonsLabels,
+      axisLabel: { color: THEME.textDim, rotate: 45, fontSize: 10 },
+      axisLine: { lineStyle: { color: THEME.axisLine } },
+    },
+    yAxis: [
+      {
+        type: 'value',
+        name: '分钟',
+        nameTextStyle: { color: THEME.textDim },
+        axisLabel: { color: THEME.textDim },
+        splitLine: { lineStyle: { color: THEME.border } },
+      },
+      {
+        type: 'value',
+        name: '场次',
+        nameTextStyle: { color: THEME.textDim },
+        axisLabel: { color: THEME.textDim },
+        splitLine: { show: false },
+      },
+    ],
+    series: [
+      {
+        name: '场均出场时间',
+        type: 'line',
+        data: mpg,
+        smooth: true,
+        itemStyle: { color: '#3b82f6' },
+        symbol: 'circle',
+        symbolSize: 5,
+        areaStyle: { color: 'rgba(59, 130, 246, 0.1)' },
+      },
+      {
+        name: '出场场次',
+        type: 'bar',
+        yAxisIndex: 1,
+        data: g,
+        itemStyle: { color: 'rgba(16, 185, 129, 0.5)' },
+        barWidth: '30%',
+      },
+      {
+        name: '首发场次',
+        type: 'bar',
+        yAxisIndex: 1,
+        data: gs,
+        itemStyle: { color: 'rgba(16, 185, 129, 0.8)' },
+        barWidth: '30%',
+      },
+    ],
+  });
+}
+
 function renderSeasonTable(seasons) {
   const tbody = document.getElementById('growthSeasonTableBody');
   const num = v => v == null || v === '' ? null : Number(v);
@@ -3013,6 +3791,103 @@ function renderPosTable(positions) {
   `).join('');
 }
 
+// ── v8.1 Deep Analysis ──
+function loadV81Analysis(playerId, report) {
+  if (!report || !window.V81) return;
+  const seasons = report.seasons || [];
+  const latest = seasons.length ? seasons[seasons.length - 1] : null;
+  try {
+    window.V81.renderReboundingCard('rebCard', latest);
+    window.V81.renderPlaymakingCard('playCard', latest);
+    window.V81.renderDefenseProfileCard('defCard', latest);
+    window.V81.renderTeamContributionChart('teamShareChart', seasons);
+  } catch (e) {
+    console.error('[v8.1] card render failed', e);
+  }
+  api('/players/' + playerId + '/shooting-profile').then(d => {
+    window.V81.renderShotProfileChart('shotChart', d);
+    setTimeout(resizeAllCharts, 60);
+  }).catch(e => renderV81Error('shotChart', '投篮数据加载失败', e.message));
+  api('/players/' + playerId + '/career-defense').then(d => {
+    window.V81.renderCareerDefenseSummary('careerDefCard', d);
+  }).catch(e => renderV81Error('careerDefCard', '生涯防守数据加载失败', e.message));
+  setTimeout(resizeAllCharts, 90);
+}
+
+function renderV81Error(containerId, title, msg) {
+  const el = document.getElementById(containerId);
+  if (el) el.innerHTML = '<div class="card v81-card"><div class="card-header"><div class="card-title">' + escapeHtml(title) + '</div></div><div class="v81-empty" style="color:var(--danger);">出错: ' + escapeHtml(msg) + '</div></div>';
+}
+
+// ── Intelligence Page (v8.2) ──
+async function loadIntelligencePage() {
+  const root = document.getElementById('intelRoot');
+  if (!root) return;
+  if (!window.Intelligence) {
+    root.innerHTML = '<div class="card"><div class="v81-empty" style="color:var(--danger);">情报组件未加载，请刷新页面</div></div>';
+    return;
+  }
+
+  let seasons = [2025, 2024, 2023];
+  try {
+    seasons = await api('/players/seasons');
+    if (!Array.isArray(seasons)) seasons = [2025, 2024, 2023];
+  } catch (e) {
+    // fallback seasons
+  }
+
+  const opts = seasons.map(s => `<option value="${s}">${seasonLabel(s)}</option>`).join('');
+  const defSeason = seasons.includes(2025) ? 2025 : seasons[0];
+
+  root.innerHTML = `
+    <div class="page-header">
+      <h2>Player Intelligence · 球员情报</h2>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">查询球员情报</div>
+      </div>
+      <div class="form-row" style="align-items:flex-end;">
+        <div style="flex:1; min-width:240px;">
+          <label class="label">球员 ID</label>
+          <input class="input" id="intelPlayerInput" placeholder="例如 jamesle01" value="jamesle01">
+        </div>
+        <div style="min-width:160px;">
+          <label class="label">赛季</label>
+          <select class="select" id="intelSeasonSelect">${opts}</select>
+        </div>
+        <button class="btn btn-primary" id="intelLoadBtn" onclick="loadIntelResult()">加载情报</button>
+      </div>
+    </div>
+    <div id="intelResult"></div>
+  `;
+
+  const sel = document.getElementById('intelSeasonSelect');
+  if (defSeason) sel.value = defSeason;
+
+  // Auto-load the default player
+  loadIntelResult();
+}
+
+async function loadIntelResult() {
+  const pid = (document.getElementById('intelPlayerInput') || {}).value;
+  const season = (document.getElementById('intelSeasonSelect') || {}).value;
+  if (!pid) { toast('请输入球员 ID', 'error'); return; }
+  if (!window.Intelligence) return;
+  await window.Intelligence.render('intelResult', pid.trim(), season);
+}
+
+// ── Workspace Page (v8.3) ──
+async function loadWorkspacePage() {
+  const root = document.getElementById('workspaceRoot');
+  if (!root) return;
+  if (!window.Workspace) {
+    root.innerHTML = '<div class="card"><div class="v81-empty" style="color:var(--danger);">工作区组件未加载，请刷新页面</div></div>';
+    return;
+  }
+  await window.Workspace.renderList('workspaceRoot');
+}
+
 // ── Init ──
 async function init() {
   checkServerStatus();
@@ -3022,3 +3897,7 @@ async function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+// Expose globals so component scripts can reuse shared config/helpers
+window.THEME = THEME;
+window.escapeHtml = escapeHtml;
