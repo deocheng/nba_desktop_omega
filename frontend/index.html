@@ -71,6 +71,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3v18"/><path d="M5.5 5.5c3 3 3 10 0 13"/><path d="M18.5 5.5c-3 3-3 10 0 13"/></svg>
         <span>战术板 v1</span>
       </div>
+      <div class="nav-item" data-page="video-library" onclick="nav('video-library')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none"/></svg>
+        <span>录像库</span>
+      </div>
       <div class="nav-section" data-i18n="nav.system">System</div>
       <div class="nav-item" data-page="crawler" onclick="nav('crawler')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 10v6M4.22 4.22l4.24 4.24m7.08 7.08l4.24 4.24M1 12h6m10 0h6M4.22 19.78l4.24-4.24m7.08-7.08l4.24-4.24"/></svg>
@@ -1164,6 +1168,9 @@
     <div id="page-tactics" class="page">
       <div id="tacticsRoot"></div>
     </div>
+    <div id="page-video-library" class="page">
+      <div id="videoLibraryRoot"></div>
+    </div>
   </main>
 </div>
 
@@ -1195,5 +1202,6 @@
 <script src="js/components/trade.js"></script>
 <script src="js/components/tactics.js"></script>
 <script src="js/components/clutch_replay.js"></script>
+<script src="js/components/video_library.js"></script>
 </body>
 </html>

@@ -110,6 +110,61 @@ def load_team_season_stats(season: int) -> list[dict]:
     return batch_query(sql, (season,))
 
 
+def load_player_team_share(season: int, player_ids: list[str] | None = None) -> list[dict]:
+    """v8.1 §8 — Join player season stats with team season points.
+
+    Produces one row per (player, season) — excluding TOT/combined team rows
+    and keeping the team stint with the most games — with the player's own
+    pts/g plus the team's season total pts/g. This is the Layer-1 source for
+    the `team_scoring_share` metric (the cross-table join lives here, keeping
+    the Metric Engine as the sole compute layer per v8 §2 isolation).
+
+    Args:
+        season: required NBA season.
+        player_ids: optional BBR ID filter (IN-clause). If None, all players.
+
+    Returns:
+        list[dict] with: player_id, pts, g, team_pts, team_g.
+    """
+    _assert_season("fact_player_season_stats", season)
+    player_schema = get_schema("fact_player_season_stats")
+    team_schema = get_schema("fact_team_season_stats")
+
+    in_clause = ""
+    params: list[Any] = [season, season]
+    if player_ids:
+        clause, in_params = _build_in_clause(player_ids)
+        in_clause = f" AND pr.player_id IN {clause}"
+        params.extend(in_params)
+
+    sql = f"""
+        WITH player_ranked AS (
+            SELECT player_id, season, team, pts, g,
+                   ROW_NUMBER() OVER (PARTITION BY player_id, season ORDER BY g DESC) AS rn
+            FROM {player_schema.name}
+            WHERE season = %s AND team NOT IN ('TOT', '2TM', '3TM', '4TM')
+        ),
+        team_pts AS (
+            -- NOTE: in this dataset `fact_team_season_stats.playoffs` is a
+            -- *qualification* flag (did the team make the playoffs?), NOT a
+            -- regular-vs-playoff game-type split. Every (season, abbreviation)
+            -- row IS the regular-season total and is unique, so we join on
+            -- (season, abbreviation) WITHOUT a playoffs filter. Filtering
+            -- `playoffs = false` previously dropped ~20/30 teams per season and
+            -- made team_scoring_share return None for most players (v8.1 FIX).
+            SELECT abbreviation, season, pts AS team_pts, g AS team_g
+            FROM {team_schema.name}
+            WHERE season = %s
+        )
+        SELECT pr.player_id, pr.pts, pr.g, tp.team_pts, tp.team_g
+        FROM player_ranked pr
+        JOIN team_pts tp ON tp.abbreviation = pr.team AND tp.season = pr.season
+        WHERE pr.rn = 1{in_clause}
+        ORDER BY pr.player_id
+    """
+    return batch_query(sql, tuple(params))
+
+
 def load_games(
     season: int,
     season_type: str | None = None,

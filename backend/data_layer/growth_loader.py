@@ -34,6 +34,7 @@ def get_player_career_stats(player_id: str) -> list[dict]:
         WITH ranked AS (
             SELECT season, age, team, pos, g, gs, mp,
                    pts, trb, ast, stl, blk, tov, pf,
+                   orb, drb,
                    fg_percent, x3p_percent, ft_percent,
                    per, ts_percent, usg_percent, ws, bpm, vorp,
                    orb_percent, drb_percent, trb_percent, ast_percent,
@@ -45,6 +46,7 @@ def get_player_career_stats(player_id: str) -> list[dict]:
         )
         SELECT season, age, team, pos, g, gs, mp,
                pts, trb, ast, stl, blk, tov, pf,
+               orb, drb,
                fg_percent, x3p_percent, ft_percent,
                per, ts_percent, usg_percent, ws, bpm, vorp,
                orb_percent, drb_percent, trb_percent, ast_percent,
@@ -126,10 +128,13 @@ def get_player_career_summary(player_id: str) -> dict:
                SUM(mp)::int AS total_minutes,
                SUM(pts)::int AS total_points,
                SUM(trb)::int AS total_rebounds,
+               SUM(orb)::int AS total_offensive_rebounds,
+               SUM(drb)::int AS total_defensive_rebounds,
                SUM(ast)::int AS total_assists,
                SUM(stl)::int AS total_steals,
                SUM(blk)::int AS total_blocks,
                SUM(tov)::int AS total_turnovers,
+               SUM(pf)::int AS total_fouls,
                SUM(ws) AS total_win_shares
         FROM fact_player_season_stats
         WHERE player_id = %s
@@ -203,10 +208,69 @@ def get_team_season_points(team: str, season: int) -> int | None:
     sql = """
         SELECT pts
         FROM fact_team_season_stats
-        WHERE abbreviation = %s AND season = %s AND playoffs = false
+        WHERE abbreviation = %s AND season = %s
         LIMIT 1
     """
     rows = batch_query(sql, (team, season))
     if rows and rows[0].get('pts') is not None:
         return int(rows[0]['pts'])
     return None
+
+
+def get_player_shooting_career(player_id: str) -> list[dict]:
+    """Get shooting profile data for a player's entire career.
+
+    Uses player_shooting table to get shot distribution by distance zones.
+
+    Args:
+        player_id: BBR player ID.
+
+    Returns:
+        list[dict]: One row per season with shooting zone data.
+    """
+    if not player_id or not isinstance(player_id, str):
+        raise ValueError("player_id must be a non-empty string")
+
+    sql = """
+        WITH player_name AS (
+            SELECT player_name FROM dim_players WHERE player_id = %s
+        ),
+        ranked AS (
+            SELECT s.season, s.player, s.team, s.g, s.mp,
+                   s.fg_percent, s.avg_dist_fga,
+                   s.percent_fga_from_x0_3_range,
+                   s.percent_fga_from_x3_10_range,
+                   s.percent_fga_from_x10_16_range,
+                   s.percent_fga_from_x16_3p_range,
+                   s.percent_fga_from_x3p_range,
+                   s.fg_percent_from_x0_3_range,
+                   s.fg_percent_from_x3_10_range,
+                   s.fg_percent_from_x10_16_range,
+                   s.fg_percent_from_x16_3p_range,
+                   s.fg_percent_from_x3p_range,
+                   s.percent_assisted_x2p_fg,
+                   s.percent_assisted_x3p_fg,
+                   ROW_NUMBER() OVER (PARTITION BY s.season ORDER BY s.g DESC) as rn
+            FROM player_shooting s
+            WHERE s.player = (SELECT player_name FROM player_name)
+              AND s.team NOT IN ('TOT', '2TM', '3TM', '4TM')
+        )
+        SELECT season, player, team, g, mp,
+               fg_percent, avg_dist_fga,
+               percent_fga_from_x0_3_range,
+               percent_fga_from_x3_10_range,
+               percent_fga_from_x10_16_range,
+               percent_fga_from_x16_3p_range,
+               percent_fga_from_x3p_range,
+               fg_percent_from_x0_3_range,
+               fg_percent_from_x3_10_range,
+               fg_percent_from_x10_16_range,
+               fg_percent_from_x16_3p_range,
+               fg_percent_from_x3p_range,
+               percent_assisted_x2p_fg,
+               percent_assisted_x3p_fg
+        FROM ranked
+        WHERE rn = 1
+        ORDER BY season ASC
+    """
+    return batch_query(sql, (player_id,))

@@ -109,6 +109,7 @@ function nav(page) {
   if (page === 'trade') loadTradePage();
   if (page === 'tactics') loadTacticsPage();
   if (page === 'clutch-replay') loadClutchReplayPage();
+  if (page === 'video-library') loadVideoLibraryPage();
   setTimeout(resizeAllCharts, 50);
 }
 
@@ -137,6 +138,13 @@ function loadTacticsPage() {
 function loadClutchReplayPage() {
   if (window.ClutchReplay && typeof window.ClutchReplay.render === 'function') {
     window.ClutchReplay.render('clutchReplayRoot');
+  }
+}
+
+// ── Video Library Page ──
+function loadVideoLibraryPage() {
+  if (window.VideoLibrary && typeof window.VideoLibrary.renderList === 'function') {
+    window.VideoLibrary.renderList('videoLibraryRoot');
   }
 }
 

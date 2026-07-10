@@ -16,6 +16,7 @@ from backend.data_layer import (
     load_player_gamelog,
     load_player_gamelog_by_ids,
     load_player_season_stats,
+    load_player_team_share,
     load_players,
     load_seasons_available,
     search_players,
@@ -31,6 +32,11 @@ _SOURCE_TABLE_LOADERS = {
     "fact_player_season_stats": {
         "all": load_player_season_stats,
         "by_ids": None,  # no dedicated by_ids loader; load all + filter in-process
+        "player_col": "player_id",
+    },
+    "player_team_share": {
+        "all": load_player_team_share,         # v8.1 §8 — player+team joined season stats
+        "by_ids": None,  # load all + filter in-process (small player sets)
         "player_col": "player_id",
     },
     "player_gamelog": {

@@ -18,6 +18,7 @@ from backend.api.routers import (
     teams,
     trade,
     tactics,
+    video_library,
     vs,
     workspace,
 )
@@ -41,6 +42,7 @@ __all__ = [
     "teams",
     "trade",
     "tactics",
+    "video_library",
     "vs",
     "workspace",
 ]

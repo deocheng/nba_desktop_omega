@@ -16,6 +16,7 @@ Phase 2: feature-complete loaders (teams, games, player charts, system, charts)
 from backend.data_layer.batch_loader import (
     load_player_gamelog,
     load_player_season_stats,
+    load_player_team_share,
     load_players,
     load_games,
     load_team_season_stats,
@@ -32,6 +33,14 @@ from backend.data_layer.joins import (
     load_player_gamelog_with_game_context,
     load_player_season_stats_with_bio,
 )
+from backend.data_layer.entity_loader import (
+    load_player_games_aggregated,
+    load_player_seasons,
+    load_team_games_aggregated,
+    load_team_gamelog_with_game_context,
+    load_team_seasons,
+    season_label,
+)
 from backend.data_layer.schema_validator import (
     validate_registry,
     registry_healthy,
@@ -39,6 +48,7 @@ from backend.data_layer.schema_validator import (
 )
 from backend.data_layer.team_loader import (
     list_all_teams,
+    get_teams_board,
     get_team_splits,
     get_team_standings,
     get_team_stats_per_game,
@@ -46,6 +56,9 @@ from backend.data_layer.team_loader import (
     get_team_scoring_trend,
     get_team_radar,
     get_league_radar_avg,
+    get_team_history,
+    get_team_legend_players,
+    get_team_season_roster,
 )
 from backend.data_layer.game_loader import (
     list_games,
@@ -77,6 +90,7 @@ __all__ = [
     # Phase 0.5 — IN-clause loaders
     "load_player_gamelog",
     "load_player_season_stats",
+    "load_player_team_share",
     "load_players",
     "load_games",
     "load_team_season_stats",
@@ -91,12 +105,20 @@ __all__ = [
     # Phase 1 — join loaders
     "load_player_gamelog_with_game_context",
     "load_player_season_stats_with_bio",
+    # v8 Entity Detail — aggregation + season discovery
+    "load_player_games_aggregated",
+    "load_player_seasons",
+    "load_team_games_aggregated",
+    "load_team_gamelog_with_game_context",
+    "load_team_seasons",
+    "season_label",
     # Phase 1 — schema validation
     "validate_registry",
     "registry_healthy",
     "drift_summary",
     # Phase 2 — team loader
     "list_all_teams",
+    "get_teams_board",
     "get_team_splits",
     "get_team_standings",
     "get_team_stats_per_game",
@@ -104,6 +126,9 @@ __all__ = [
     "get_team_scoring_trend",
     "get_team_radar",
     "get_league_radar_avg",
+    "get_team_history",
+    "get_team_legend_players",
+    "get_team_season_roster",
     # Phase 2 — game loader
     "list_games",
     "get_quarter_stats",

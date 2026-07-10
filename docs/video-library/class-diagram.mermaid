@@ -1,0 +1,207 @@
+classDiagram
+    %% ── 请求 / 结果（video_library_engine/schemas.py）──
+    class VideoLibraryListRequest {
+        +str season
+        +str team
+        +str date
+    }
+    class VideoLibraryGameRow {
+        +str game_id
+        +str season
+        +list~str~ teams
+        +str date
+        +str score
+        +bool has_video
+        +str source
+    }
+    class VideoLibraryListResult {
+        +str season
+        +int total
+        +list~VideoLibraryGameRow~ games
+    }
+    class VideoSourceRow {
+        +int id
+        +str gameid
+        +str season
+        +str source
+        +str video_url
+        +str local_path
+        +float video_offset_seconds
+        +str created_at
+    }
+    class UpsertVideoSourceRequest {
+        +str gameid
+        +str season
+        +str source
+        +str video_url
+        +str local_path
+        +float video_offset_seconds
+    }
+    class BulkImportRequest {
+        +list~UpsertVideoSourceRequest~ items
+    }
+    class EventTimeMark {
+        +int event_index
+        +int period
+        +float clock_seconds
+        +int frame_index
+        +float video_time
+    }
+    class PlaybackResponse {
+        +str game_id
+        +str season
+        +str video_ref
+        +str video_ref_type
+        +float video_offset_seconds
+        +list~ReplayFrame~ frames
+        +ReplayMeta meta
+        +list~EventTimeMark~ timeline
+        +list~ClutchSegment~ clutch_segments
+        +list~ClutchPlayerStat~ clutch_players
+        +str perspective
+    }
+
+    %% ── AI 可插拔（P2 契约）──
+    class GameAnalysis {
+        +str game_id
+        +str season
+        +str summary
+        +list~AnalysisSegment~ segments
+    }
+    class AnalysisSegment {
+        +int event_index
+        +str period_clock
+        +str commentary
+    }
+    class GameAnalyzer {
+        <<abstract>>
+        +analyze(game_id, season, video_ref) GameAnalysis
+    }
+    class StaticAnalyzer {
+        +analyze(game_id, season, video_ref) GameAnalysis
+    }
+    class LLMAnalyzer {
+        +analyze(game_id, season, video_ref) GameAnalysis
+    }
+
+    %% ── 聚合层内部（video_library_engine）──
+    class VideoLibraryDB {
+        +upsert_video_source(req) VideoSourceRow
+        +delete_video_source(gameid, season) int
+        +bulk_import(items) BulkImportResult
+        +get_video_source(gameid, season) VideoSourceRow
+        +list_games_with_flag(season, team, date) list~dict~
+    }
+    class OffsetMapper {
+        +period_length(p) int
+        +game_elapsed(p, c) float
+        +build_timeline(events, frames, offset) list~EventTimeMark~
+        +attach_video_time(segments, marks) list~ClutchSegment~
+    }
+    class VideoLibraryService {
+        +list_games(req) VideoLibraryListResult
+        +get_playback(gameid, season, perspective) PlaybackResponse
+        +upsert_video_source(req) VideoSourceRow
+        +delete_video_source(gameid, season) int
+        +bulk_import(req) BulkImportResult
+        +analyze(gameid, season, provider) GameAnalysis
+    }
+
+    %% ── 复用的现有引擎 ──
+    class TacticsService {
+        +replay(req) dict
+    }
+    class ClutchReplayService {
+        +clutch_replay(req) dict
+    }
+    class ClutchReplayMapper {
+        +first_frame_for_event_index(frames, ei) int
+    }
+    class ReplayFrame {
+        +float t
+        +int event_index
+        +list players
+        +BallSprite ball
+        +list annotations
+    }
+    class ReplayMeta {
+        +int frame_count
+        +int fps
+        +dict teams
+    }
+    class ClutchSegment {
+        +int start_event_index
+        +int end_event_index
+        +int start_frame
+        +int end_frame
+        +int period
+        +float clock_start
+        +float clock_end
+        +list players
+        +int margin
+        +float video_time_start
+        +float video_time_end
+    }
+    class ClutchPlayerStat {
+        +str player_id
+        +str player_name
+        +str team
+        +int poss
+        +float fg_pct
+    }
+
+    %% ── 前端（Layer 4）──
+    class TacticsPlayerEngine {
+        <<window.Tactics 可驱动 API>>
+        +setFrames(frames, meta)
+        +seekFrame(idx)
+        +seekProgress(p)
+        +play() / pause()
+        +onTick(cb)
+    }
+    class ClutchReplayTimeline {
+        <<window.ClutchReplay.Timeline>>
+        +mount(container, opts) TimelineHandle
+        +TimelineHandle.setProgress(p)
+        +TimelineHandle.onSeek(cb)
+    }
+    class VideoLibraryPage {
+        <<window.VideoLibrary>>
+        +renderList(rootId)
+        +renderPlayback(rootId, gameid, season)
+        -SyncController sync
+    }
+    class SyncController {
+        -timeline list~EventTimeMark~
+        -videoEl HTMLVideoElement
+        -guarded bool
+        +onTimelineSeek(p)
+        +onVideoTimeUpdate()
+    }
+
+    %% ── 关系 ──
+    VideoLibraryService --> TacticsService : replay frames
+    VideoLibraryService --> ClutchReplayService : clutch segments/players
+    VideoLibraryService --> ClutchReplayMapper : first_frame_for_event_index
+    VideoLibraryService --> OffsetMapper : build_timeline
+    VideoLibraryService --> VideoLibraryDB : read/write game_videos
+    VideoLibraryService --> GameAnalyzer : analyze (P2)
+    OffsetMapper ..> EventTimeMark : builds
+    OffsetMapper ..> ClutchSegment : attach_video_time
+    VideoLibraryService ..> PlaybackResponse : builds
+    VideoLibraryService ..> VideoLibraryListResult : builds
+    PlaybackResponse "1" *-- "0..*" EventTimeMark : timeline
+    PlaybackResponse "1" *-- "0..*" ReplayFrame : frames
+    PlaybackResponse "1" *-- "0..*" ClutchSegment : clutch_segments
+    PlaybackResponse "1" *-- "0..*" ClutchPlayerStat : clutch_players
+    VideoLibraryListResult "1" *-- "0..*" VideoLibraryGameRow : games
+
+    GameAnalyzer <|-- StaticAnalyzer
+    GameAnalyzer <|-- LLMAnalyzer
+    GameAnalysis "1" *-- "0..*" AnalysisSegment : segments
+
+    VideoLibraryPage --> TacticsPlayerEngine : setFrames/seekProgress/seekFrame
+    VideoLibraryPage --> ClutchReplayTimeline : mount(onSeek)
+    VideoLibraryPage --> SyncController : owns
+    SyncController --> TacticsPlayerEngine : seekProgress
+    SyncController --> ClutchReplayTimeline : setProgress

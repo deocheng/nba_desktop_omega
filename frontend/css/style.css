@@ -1532,3 +1532,94 @@ body {
 @media (max-width: 1024px) {
   .tactics-layout { grid-template-columns: 1fr; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Video Library — playback layout + add-source modal + badges
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.badge-green {
+  background: rgba(16, 185, 129, .15);
+  color: var(--success);
+  border: 1px solid rgba(16, 185, 129, .3);
+}
+
+/* Add Video Source Modal */
+.vl-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.vl-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, .4);
+}
+.vl-modal-panel {
+  position: relative;
+  background: var(--bg, #fff);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, .2);
+  max-width: 480px;
+  width: 90%;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+.vl-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border, #e1e8f0);
+}
+.vl-modal-title {
+  font-weight: 600;
+  font-size: 16px;
+}
+.vl-modal-close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--text-dim, #7f8c9b);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+.vl-modal-close:hover {
+  background: var(--bg-dark, #f5f7fa);
+}
+.vl-modal-body {
+  padding: 20px;
+}
+.vl-modal-body .label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+  color: var(--text-dim, #7f8c9b);
+}
+.vl-modal-body .input,
+.vl-modal-body .select {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+/* Video playback area */
+#vlVideo {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+}
+
+/* Timeline container in playback view */
+#vlTimelineContainer {
+  min-height: 60px;
+}
+
+/* Tactics container in playback view */
+#vlTacticsContainer svg {
+  max-width: 100%;
+  height: auto;
+}
+

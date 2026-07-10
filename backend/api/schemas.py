@@ -5,7 +5,11 @@ All numeric values come from metric_engine — schemas just shape them.
 """
 from __future__ import annotations
 
+from datetime import datetime
+
 from pydantic import BaseModel, Field
+
+from backend.services.workspace_engine.models import LOCAL_OWNER_ID
 
 
 # ── Metric schemas ──
@@ -106,6 +110,149 @@ class PlayerDetailResponse(BaseModel):
     metrics: dict[str, float]  # {metric_name: value}
 
 
+# ── v8.1 §7/§10.2 Shooting Profile ──
+
+class ShootingZone(BaseModel):
+    zone: str
+    fg_pct: float | None = None
+    fga_rate: float | None = None
+
+
+class ShootingSeason(BaseModel):
+    season: int | None = None
+    team: str | None = None
+    zones: list[ShootingZone]
+
+
+class ShootingProfileResponse(BaseModel):
+    player_id: str
+    latest_season: int | None = None
+    seasons: list[ShootingSeason]
+
+
+# ── v8.1 §9 Career Defensive Summary ──
+
+class CareerDefenseResponse(BaseModel):
+    player_id: str
+    found: bool = True
+    seasons: int | None = None
+    total_games: int | None = None
+    total_steals: int | None = None
+    total_blocks: int | None = None
+    total_fouls: int | None = None
+    total_offensive_rebounds: int | None = None
+    total_defensive_rebounds: int | None = None
+    stocks: int | None = None
+    stocks_per_game: float | None = None
+    steals_per_game: float | None = None
+    blocks_per_game: float | None = None
+    def_activity_efficiency: float | None = None
+
+
+# ── v8.2 Intelligence Layer ──
+
+class DnaScores(BaseModel):
+    """Player DNA — 7 identity dimensions on a 0-100 scale."""
+    scoring: float
+    playmaking: float
+    defense: float
+    rebounding: float
+    efficiency: float
+    durability: float
+    leadership: float
+
+
+class AvailabilityInfo(BaseModel):
+    """Games-played / minutes availability context."""
+    team: str | None = None
+    games: int | None = None
+    team_games: float | None = None
+    availability: float | None = None
+    minutes: float | None = None
+    team_minutes: float | None = None
+    minutes_share: float | None = None
+
+
+class ZoneProfile(BaseModel):
+    """Shot-zone frequency + efficiency (0-1 each)."""
+    frequency: float
+    efficiency: float
+
+
+class IntelligenceResponse(BaseModel):
+    player_id: str
+    season: int
+    season_type: str
+    role: str
+    dna: DnaScores
+    availability: AvailabilityInfo
+    scoring_profile: dict[str, ZoneProfile]
+
+
+# ── v8.3.1 Workspace Core ──
+
+class WorkspaceChartResponse(BaseModel):
+    """A single chart node inside a workspace."""
+    id: int
+    workspace_id: int
+    name: str
+    chart_config: dict = Field(default_factory=dict)
+    created_at: datetime | None = None
+
+
+class WorkspaceResponse(BaseModel):
+    """Full workspace projection (PRD v8.3.1 §5.1 / §11)."""
+    id: int
+    name: str
+    owner_id: int
+    description: str = ""
+    status: str = "active"
+    datasets: list[int] = Field(default_factory=list)
+    formulas: list[int] = Field(default_factory=list)
+    charts: list[WorkspaceChartResponse] = Field(default_factory=list)
+    created_at: str | None = None
+    updated_at: str | None = None
+
+
+class WorkspaceCreate(BaseModel):
+    """Create payload (PRD v8.3.1 §11)."""
+    name: str
+    owner_id: int = LOCAL_OWNER_ID
+    description: str = ""
+    status: str = "active"
+
+
+class WorkspaceUpdate(BaseModel):
+    """Patch payload — all fields optional (PRD v8.3.1 §11)."""
+    name: str | None = None
+    description: str | None = None
+    status: str | None = None
+
+
+class WorkspaceDatasetLink(BaseModel):
+    dataset_id: int
+
+
+class WorkspaceFormulaLink(BaseModel):
+    formula_id: int
+
+
+class WorkspaceChartCreate(BaseModel):
+    name: str = "chart"
+    chart_config: dict = Field(default_factory=dict)
+
+
+# ── Formula Presets ──
+
+class FormulaPreset(BaseModel):
+    """A predefined NBA analysis formula."""
+    id: int
+    name: str
+    description: str
+    expression: str
+    category: str
+
+
 # ── VS schemas ──
 
 class VSCompareResponse(BaseModel):
@@ -185,3 +332,70 @@ class TrendResponse(BaseModel):
     momentum: float | None
     predicted_next: float | None
     direction: str
+
+
+# ── v8 Entity Detail (player / team dedicated pages) ──
+
+class GameRow(BaseModel):
+    """A single game in an entity's schedule (with context)."""
+    game_id: str
+    game_date: str
+    opponent: str | None = None
+    is_home: bool = False
+    result: str | None = None  # 'W' | 'L' | 'T' | None
+    pts: float | None = None
+
+
+class GameAggregate(BaseModel):
+    """Aggregated stats for a group of games (or the full season)."""
+    gp: int = 0
+    pts: float | None = None
+    fg_pct: float | None = None
+
+
+class GameGroup(BaseModel):
+    """One aggregation bucket (a season / month / ISO week / single game)."""
+    key: str
+    label: str
+    games: list[GameRow] = []
+    aggregate: GameAggregate
+
+
+class EntityGamesResponse(BaseModel):
+    """Response for /players|teams/{id}/games — games grouped by granularity."""
+    entity_type: str
+    entity_id: str
+    season: int
+    granularity: str
+    groups: list[GameGroup] = []
+    totals: GameAggregate
+
+
+class SeasonCoverage(BaseModel):
+    """A season an entity actually has data for (empty seasons are skipped)."""
+    season: int
+    label: str
+    has_data: bool = True
+
+
+class PlayerEntityDetail(BaseModel):
+    """Full player entity detail (bio + metrics + shooting + defense + intel)."""
+    bio: dict
+    season: int
+    metrics: dict
+    shooting: dict
+    defense: dict
+    intelligence: dict
+    seasons: list[SeasonCoverage]
+
+
+class TeamEntityDetail(BaseModel):
+    """Full team entity detail (standings / stats / radar / trend)."""
+    team_abbr: str
+    team_name: str | None = None
+    season: int
+    standings: dict
+    stats: dict
+    radar: dict
+    trend: list[dict] = []
+    seasons: list[SeasonCoverage]

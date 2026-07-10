@@ -27,6 +27,15 @@ v8 §6 forbidden list (enforced by tests):
 """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    # Pandas is imported lazily inside compute/compute_many/_group_compute to
+    # avoid a heavy module-level dependency at import time. Declared here only
+    # so the "pd.Series" / "pd.DataFrame" return annotations resolve under
+    # static analysis / get_type_hints without importing pandas at runtime.
+    import pandas as pd
+
 # Importing metrics package triggers register() calls for built-in metrics.
 # This MUST happen before any public API is called.
 from backend.services.metric_engine import metrics  # noqa: F401  (side-effect import)
@@ -141,7 +150,6 @@ def compute(
     rows, player_col = load_metric_input(spec, season, player_ids)
     if not rows:
         # No data for requested players — return empty Series (not an error).
-        import pandas as pd
         return pd.Series(name=metric_name, dtype=float)
     series = execute_spec(spec, rows, player_col)
 
@@ -191,13 +199,59 @@ def compute_many(
     rows, player_col = load_metric_input(specs[0], season, player_ids)
     if not rows:
         # No data for requested players — return empty DataFrame.
-        import pandas as pd
         return pd.DataFrame(columns=metric_names)
     df = execute_many(metric_names, rows, player_col)
 
     if use_cache:
         get_engine().set(cache_key, df)
 
+    return df
+
+
+def _group_compute(
+    metric_names: list[str],
+    season: int,
+    player_ids: list[str] | None = None,
+    use_cache: bool = True,
+) -> "pd.DataFrame":
+    """Compute metrics that may span multiple source_tables.
+
+    compute_many() requires every metric to share a single source_table. This
+    helper groups by source_table, computes each group, and merges the result
+    DataFrames column-wise on the player_id index. v8 §2 compliant: the API
+    layer stays orchestration-only and never sees the grouping logic.
+    """
+    import pandas as pd
+    from collections import defaultdict
+
+    if not metric_names:
+        return pd.DataFrame()
+
+    registry = get_registry()
+    groups: dict[str, list[str]] = defaultdict(list)
+    for m in metric_names:
+        spec = registry.get(m)
+        if spec is not None:
+            groups[spec.source_table].append(m)
+
+    frames = []
+    for names in groups.values():
+        try:
+            frames.append(
+                compute_many(names, season, player_ids=player_ids, use_cache=use_cache)
+            )
+        except Exception:  # pragma: no cover - defensive
+            continue
+
+    if not frames:
+        return pd.DataFrame(columns=metric_names)
+
+    df = pd.concat(frames, axis=1)
+    for m in metric_names:
+        if m not in df.columns:
+            df[m] = pd.NA
+    # De-duplicate columns defensively (should never trigger)
+    df = df.loc[:, ~df.columns.duplicated()]
     return df
 
 
@@ -242,7 +296,7 @@ def player_metrics_dict(
         player_id: BBR player_id
         use_cache: cache the underlying compute_many call
     """
-    df = compute_many(metric_names, season, player_ids=[player_id], use_cache=use_cache)
+    df = _group_compute(metric_names, season, player_ids=[player_id], use_cache=use_cache)
     result: dict[str, float] = {}
     if player_id not in df.index:
         return result
@@ -269,7 +323,7 @@ def vs_compare(
     Returns: {metric_name: {player_id_1: x, player_id_2: y}}
     NaN values are preserved as-is (callers can handle None).
     """
-    df = compute_many(
+    df = _group_compute(
         metric_names,
         season,
         player_ids=[player_id_1, player_id_2],

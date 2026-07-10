@@ -68,3 +68,22 @@ register(MetricSpec(
     compute=_per_game("blk"),
     description="Blocks per game = sum(blk) / sum(g)",
 ))
+
+# ── v8.1 §3.1 Rebounding split metrics ──
+register(MetricSpec(
+    name="orb_per_game",
+    kind="per_game",
+    source_table=_SOURCE,
+    required_cols=("orb", "g"),
+    compute=_per_game("orb"),
+    description="Offensive rebounds per game = sum(orb) / sum(g)",
+))
+
+register(MetricSpec(
+    name="drb_per_game",
+    kind="per_game",
+    source_table=_SOURCE,
+    required_cols=("drb", "g"),
+    compute=_per_game("drb"),
+    description="Defensive rebounds per game = sum(drb) / sum(g)",
+))

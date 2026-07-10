@@ -19,11 +19,20 @@ logger = logging.getLogger("nbacore.data.joins")
 _MAX_GAMELOG_ROWS = 200_000
 
 
-def load_player_gamelog_with_game_context(season: int) -> list[dict]:
+def load_player_gamelog_with_game_context(
+    season: int, player_id: str | None = None
+) -> list[dict]:
     """Batch load player_gamelog joined with dim_games (game date, teams, scores).
 
     Single query — avoids N+1 game lookups per gamelog row.
     Returns gamelog columns + game_date + home/away team + pts.
+
+    Args:
+        season: required NBA season filter.
+        player_id: optional BBR player_id filter. When provided, only that
+            player's gamelog rows are loaded (keeps the full-season scan
+            out of the hot path). When None the original full-season load
+            behavior is preserved (backward compatible).
 
     Safety: checks row count before loading to prevent OOM on desktop EXE.
     """
@@ -33,7 +42,11 @@ def load_player_gamelog_with_game_context(season: int) -> list[dict]:
     dg = get_schema("dim_games")
 
     count_sql = f"SELECT COUNT(*) AS cnt FROM {gl.name} WHERE {gl.season_col} = %s"
-    count_rows = batch_query(count_sql, (season,))
+    count_params: tuple = (season,)
+    if player_id:
+        count_sql += f" AND {gl.player_col} = %s"
+        count_params = (season, player_id)
+    count_rows = batch_query(count_sql, count_params)
     row_count = count_rows[0]["cnt"] if count_rows else 0
     if row_count > _MAX_GAMELOG_ROWS:
         raise ValueError(
@@ -41,21 +54,25 @@ def load_player_gamelog_with_game_context(season: int) -> list[dict]:
             f"{row_count:,} rows, exceeds safety cap of {_MAX_GAMELOG_ROWS:,}."
         )
     logger.info(
-        "load_player_gamelog_with_game_context: full-season load | season=%s | rows=%d",
-        season, row_count,
+        "load_player_gamelog_with_game_context: load | season=%s | player_id=%s | rows=%d",
+        season, player_id, row_count,
     )
 
     sql = f"""
         SELECT
             g.*,
             d.game_date, d.home_team_abbr, d.away_team_abbr,
-            d.home_pts, d.away_pts, d.season_type
+            d.home_pts, d.away_pts, d.home_wl, d.away_wl, d.season_type
         FROM {gl.name} g
         LEFT JOIN {dg.name} d
           ON g.gameid = d.game_id
         WHERE g.{gl.season_col} = %s
     """
-    return batch_query(sql, (season,))
+    params: tuple = (season,)
+    if player_id:
+        sql += f" AND g.{gl.player_col} = %s"
+        params = (season, player_id)
+    return batch_query(sql, params)
 
 
 def load_player_season_stats_with_bio(season: int) -> list[dict]:

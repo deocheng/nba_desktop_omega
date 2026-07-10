@@ -4,6 +4,6 @@ Importing this package registers all built-in metrics with the singleton
 MetricRegistry. Metric Engine users only need:
     import backend.services.metric_engine  # triggers registration
 """
-from backend.services.metric_engine.metrics import advanced, basic, composite  # noqa: F401
+from backend.services.metric_engine.metrics import advanced, basic, composite, derived  # noqa: F401
 
-__all__ = ["basic", "advanced", "composite"]
+__all__ = ["basic", "advanced", "composite", "derived"]

@@ -19,6 +19,7 @@ from backend.data_layer.growth_loader import (
     get_player_career_summary,
     get_player_per_game_career,
     get_player_position_breakdown,
+    get_player_shooting_career,
     get_team_season_points,
 )
 
@@ -80,10 +81,22 @@ def build_growth_report(player_id: str) -> dict:
                 ("stl", "stl_per_game"),
                 ("blk", "blk_per_game"),
                 ("tov", "tov_per_game"),
+                ("orb", "orb_per_game"),
+                ("drb", "drb_per_game"),
                 ("mp", "mp_per_game"),
             ]:
                 if combined.get(pg_key) is None and combined.get(total_key) is not None:
                     combined[pg_key] = round(combined[total_key] / g, 2)
+
+        # Compute advanced ratios
+        pf = combined.get("pf") or 0
+        tov = combined.get("tov") or 0
+        if pf > 0:
+            combined["steal_block_per_foul"] = round(
+                (combined.get("stl", 0) + combined.get("blk", 0)) / pf, 2
+            )
+        if tov > 0:
+            combined["ast_per_tov"] = round(combined.get("ast", 0) / tov, 2)
 
         # Compute team scoring share (what % of team's points this player scored)
         team = combined.get("team")
@@ -94,6 +107,8 @@ def build_growth_report(player_id: str) -> dict:
                 combined["scoring_share"] = round(
                     combined["pts"] / team_pts * 100, 2
                 )
+            else:
+                combined["scoring_share"] = None
 
         # Add position display name
         pos = combined.get("pos")
@@ -108,7 +123,10 @@ def build_growth_report(player_id: str) -> dict:
         pos = p.get("pos", "")
         p["pos_cn"] = POSITION_MAP.get(pos, pos)
 
-    # 4. Compute milestones
+    # 4. Shooting profile data
+    shooting = get_player_shooting_career(player_id)
+
+    # 5. Compute milestones
     milestones = _compute_milestones(seasons, bio)
 
     return {
@@ -116,6 +134,7 @@ def build_growth_report(player_id: str) -> dict:
         "bio": bio,
         "seasons": seasons,
         "positions": positions,
+        "shooting": shooting,
         "milestones": milestones,
     }
 

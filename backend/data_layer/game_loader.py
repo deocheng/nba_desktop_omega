@@ -12,6 +12,40 @@ from __future__ import annotations
 from backend.core.db import batch_query
 
 
+def _resolve_join_key(game_id: str) -> str:
+    """Resolve the numeric join key used by player_gamelog / play_by_play.
+
+    After the games.game_id -> BR migration, recent-season game_ids are
+    alphanumeric (e.g. '202605130DET') while `player_gamelog.gameid` and
+    `play_by_play.gameid` still key on the numeric NBA.com id stored in
+    `games.nba_api_id`.  This helper translates a (BR-format or numeric)
+    game_id back to that numeric key.
+
+    For legacy seasons the matching row has `nba_api_id = NULL` and its
+    `game_id` is already numeric, so we fall back to the original game_id
+    (no translation needed) — the join then hits gamelog/pbp directly.
+
+    Args:
+        game_id: A BR-format or numeric game id as exposed by the API.
+
+    Returns:
+        str: The numeric join key (nba_api_id) when available, else game_id.
+    """
+    if not game_id:
+        return game_id
+    rows = batch_query(
+        "SELECT nba_api_id FROM games WHERE game_id = %s", (str(game_id),)
+    )
+    nba_api_id = (
+        rows[0]["nba_api_id"]
+        if rows and rows[0].get("nba_api_id") is not None
+        else None
+    )
+    # Return a STRING key: player_gamelog.gameid / play_by_play.gameid are
+    # text columns, and nba_api_id arrives from the DB as an int.
+    return str(nba_api_id) if nba_api_id is not None else game_id
+
+
 def list_games(
     season: int | None,
     page: int,
@@ -187,7 +221,7 @@ def _aggregate_team_stats_from_gamelog(game_id: str) -> dict[str, dict]:
         FROM player_rows
         GROUP BY team
     """
-    rows = batch_query(sql, (str(game_id),))
+    rows = batch_query(sql, (str(_resolve_join_key(game_id)),))
     result = {}
     for r in rows:
         team = r.get('team') or ''
@@ -390,7 +424,7 @@ def get_play_by_play(game_id: str) -> list[dict]:
         WHERE gameid = %s
         ORDER BY eventnum
     """
-    return batch_query(sql, (str(game_id),))
+    return batch_query(sql, (str(_resolve_join_key(game_id)),))
 
 
 def _get_gamelog_players(game_id: str) -> dict[str, dict]:
@@ -425,7 +459,7 @@ def _get_gamelog_players(game_id: str) -> dict[str, dict]:
           AND br_player_id IS NOT NULL
         ORDER BY br_player_id, created_at DESC
     """
-    rows = batch_query(sql, (str(game_id),))
+    rows = batch_query(sql, (str(_resolve_join_key(game_id)),))
     result = {}
     for r in rows:
         pid = r.get('br_player_id') or ''

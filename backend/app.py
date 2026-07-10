@@ -30,7 +30,7 @@ from fastapi.staticfiles import StaticFiles
 from backend.api.routers import (
     batch, charts, clutch, clutch_replay, context, crawler, data_import, export,
     games, intelligence, leaderboard, metrics, monitor, players, system, teams,
-    trade, tactics, vs, workspace,
+    trade, tactics, video_library, vs, workspace,
 )
 from backend.core import config
 from backend.core.db import close_pool, init_pool, ping
@@ -133,6 +133,7 @@ def create_app() -> FastAPI:
     app.include_router(clutch_replay.router)
     app.include_router(trade.router)
     app.include_router(tactics.router)
+    app.include_router(video_library.router)
 
     # Phase 4: mount frontend static files (Layer 4 — pure render)
     from pathlib import Path

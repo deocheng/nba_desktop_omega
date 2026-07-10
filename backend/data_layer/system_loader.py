@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import logging
 
-from backend.core.db import batch_query
+from backend.core.db import batch_query, ping
 
 logger = logging.getLogger("nbacore.data_layer.system_loader")
 
@@ -61,10 +61,12 @@ def list_tables() -> list[dict]:
             Sorted by row count descending.
     """
     sql = """
-        SELECT relname AS name,
-               COALESCE(n_live_tup, 0) AS rows
-        FROM pg_stat_user_tables
-        ORDER BY n_live_tup DESC
+        SELECT c.relname AS name,
+               GREATEST(COALESCE(c.reltuples, 0), 0)::bigint AS rows
+        FROM pg_class c
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = 'public' AND c.relkind = 'r'
+        ORDER BY c.reltuples DESC NULLS LAST
     """
     return batch_query(sql)
 
@@ -179,6 +181,13 @@ def get_status_summary(season: int) -> dict:
     if not isinstance(season, int) or season < 1900 or season > 2100:
         raise ValueError(f"Invalid season {season!r}")
 
+    db_up = False
+    try:
+        db_up = ping()
+    except Exception as e:
+        logger.warning("DB connectivity check failed: %s", e)
+        db_up = False
+
     tables = list_tables()
     total_records = sum(t["rows"] for t in tables)
 
@@ -258,6 +267,7 @@ def get_status_summary(season: int) -> dict:
 
     return {
         "tables": tables,
+        "database_connected": db_up,
         "total_tables": len(tables),
         "total_records": total_records,
         "active_teams": active_teams,
