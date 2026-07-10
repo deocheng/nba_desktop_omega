@@ -22,6 +22,7 @@
   var currentMeta = {};
   var segPlayerNames = [];   // 第 i 个片段涉及的球员名（用于侧栏联动）
   var unTick = null;
+  var timelineHandle = null;  // window.ClutchReplay.Timeline.mount 返回的句柄
 
   function eh(v) {
     if (typeof escapeHtml === 'function') return escapeHtml(v == null ? '' : String(v));
@@ -40,6 +41,7 @@
     currentSegments = [];
     currentMeta = {};
     segPlayerNames = [];
+    timelineHandle = null;
 
     // 1) 外壳：标题 + 赛季/比赛选择 + 挂载点
     root.innerHTML = buildShell();
@@ -141,9 +143,27 @@
       // 注入帧序列并启动播放引擎
       window.Tactics.setFrames(data.frames || [], data.meta || {});
       drawSidebar(data.clutch_players || []);
-      drawHighlights(currentSegments, currentMeta);
 
-      // 注册每帧回调，联动高亮段与侧栏
+      // 经锁定共享契约 Timeline.mount 渲染高亮轨道（DRY；录像库 video_library.js 亦复用同一组件）
+      segPlayerNames = currentSegments.map(function (seg) {
+        return (seg.players || []).map(function (p) { return p.player; });
+      });
+      timelineHandle = window.ClutchReplay.Timeline.mount(
+        document.getElementById('tacticsClutchTrack'),
+        {
+          segments: currentSegments,
+          frameCount: currentMeta.frame_count || 0,
+          onSeek: function (p, idx) {
+            var fc = currentMeta.frame_count || 0;
+            if (!fc) return;
+            var frameIndex = Math.round((p / 1000) * Math.max(1, fc - 1));
+            window.Tactics.seekFrame(frameIndex);
+            if (idx >= 0) { window.Tactics.play(); highlightActive(idx); }
+          },
+        }
+      );
+
+      // 注册每帧回调，联动高亮段（setProgress）与侧栏
       if (unTick) { try { unTick(); } catch (e) {} }
       unTick = window.Tactics.onTick(onPlayerTick);
 
@@ -192,44 +212,88 @@
     return '<span class="clutch-stat"><i>' + eh(label) + '</i>' + eh(val) + '</span>';
   }
 
-  // ───────────────────────── Timeline 高亮轨道 ─────────────────────────
-  function drawHighlights(segments, meta) {
-    var track = document.getElementById('tacticsClutchTrack');
-    if (!track) return;
-    track.innerHTML = '';
-    var fc = (meta && meta.frame_count) || 0;
-    if (!fc) return;
-    segPlayerNames = [];
+  // ───────────────────────── 可复用 Timeline 高亮组件（锁定共享契约 §3.2 / §8.6）─────────────────────────
+  // 单一事实源：融合页自身经 mount 消费；录像库 video_library.js 经 SyncController 复用同一组件，不重造。
+  // 接口：mount(containerEl, {segments, frameCount, onSeek}) → { setProgress(p), onSeek(cb) }
+  //   - 归一化空间恒为 0–1000（p）：组件只发 p、只收 p，零帧算术（帧↔p 换算交由消费者）。
+  //   - onSeek 与 handle.onSeek(cb) 均为「追加注册」语义（多监听者并存，互不覆盖）。
+  //   - setProgress(p) 仅用于外部反向同步游标，不触发 onSeek（避免回环）。
+  var Timeline = (function () {
+    function mount(containerEl, opts) {
+      opts = opts || {};
+      var segments = opts.segments || [];
+      var frameCount = opts.frameCount || 0;
+      var seekCbs = [];                  // 追加注册的 onSeek 监听者
+      if (typeof opts.onSeek === 'function') seekCbs.push(opts.onSeek);
 
-    segments.forEach(function (seg, i) {
-      var left = (seg.start_frame / (fc - 1)) * 100;
-      var right = (seg.end_frame / (fc - 1)) * 100;
-      var w = Math.max(0.8, right - left);
-      var div = document.createElement('div');
-      div.className = 'clutch-seg';
-      div.style.left = left + '%';
-      div.style.width = w + '%';
-      div.title = '第' + seg.period + '节 · 剩 ' + seg.clock_start.toFixed(0) + 's · 分差 ' + seg.margin +
-        ' · ' + (seg.players || []).map(function (p) { return p.player; }).join('、');
-      div.onclick = function (e) {
-        e.stopPropagation();
-        window.Tactics.seekFrame(seg.start_frame);
-        window.Tactics.play();
-        highlightActive(i);
+      var noop = { setProgress: function () {}, onSeek: function () {} };
+      if (!containerEl) return noop;
+      containerEl.innerHTML = '';
+      if (!frameCount) return noop;
+
+      var maxFrame = Math.max(1, frameCount - 1);   // 防 0 除
+      var toPct = function (p) { return (p / 1000) * 100; };
+
+      // 1) 渲染高亮段：投影 start_frame / end_frame → 0–1000 → 百分比定位
+      segments.forEach(function (seg, i) {
+        var leftP = (seg.start_frame / maxFrame) * 1000;
+        var rightP = (seg.end_frame / maxFrame) * 1000;
+        var wP = Math.max(8, rightP - leftP);        // 最小宽度，保证可点（8/1000 ≈ 0.8%）
+        var div = document.createElement('div');
+        div.className = 'clutch-seg';
+        div.style.left = toPct(leftP) + '%';
+        div.style.width = toPct(wP) + '%';
+        div.title = '第' + seg.period + '节 · 剩 ' + seg.clock_start.toFixed(0) + 's · 分差 ' + seg.margin +
+          ' · ' + (seg.players || []).map(function (p) { return p.player; }).join('、');
+        var segP = leftP;                            // 段代表 p（取段起点，0–1000）
+        div.onclick = function (e) {
+          e.stopPropagation();
+          for (var k = 0; k < seekCbs.length; k++) {
+            try { seekCbs[k](segP, i); } catch (err) { /* 隔离单个监听者异常 */ }
+          }
+        };
+        containerEl.appendChild(div);
+      });
+
+      // 2) 点击轨道空白处按比例跳转（同样只发 p，0–1000）
+      containerEl.onclick = function (e) {
+        if (e.target === containerEl && frameCount > 1) {
+          var rect = containerEl.getBoundingClientRect();
+          var frac = (e.clientX - rect.left) / rect.width;
+          var p = Math.max(0, Math.min(1000, frac * 1000));
+          for (var k = 0; k < seekCbs.length; k++) {
+            try { seekCbs[k](p, -1); } catch (err) { /* 隔离单个监听者异常 */ }
+          }
+        }
       };
-      track.appendChild(div);
-      segPlayerNames.push((seg.players || []).map(function (p) { return p.player; }));
-    });
 
-    // 点击轨道空白处按比例跳转（细粒度 scrub 仍由 range 负责）
-    track.onclick = function (e) {
-      if (e.target === track && fc > 1) {
-        var rect = track.getBoundingClientRect();
-        var frac = (e.clientX - rect.left) / rect.width;
-        window.Tactics.seekProgress(frac);
+      // 3) setProgress(p)：外部（<video> 进度 / Tactics 每帧）反向同步游标，仅高亮命中段；
+      //    不触发 onSeek（避免回环）。p ∈ [0,1000]，亦容错接受 [0,1]。
+      function setProgress(p) {
+        var pp = (p > 1) ? p : (p * 1000);
+        pp = Math.max(0, Math.min(1000, pp));
+        var active = -1;
+        for (var i = 0; i < segments.length; i++) {
+          var leftP = (segments[i].start_frame / maxFrame) * 1000;
+          var rightP = (segments[i].end_frame / maxFrame) * 1000;
+          if (pp >= leftP && pp <= rightP) { active = i; break; }
+        }
+        var segs = containerEl.querySelectorAll('.clutch-seg');
+        for (var j = 0; j < segs.length; j++) {
+          segs[j].classList.toggle('clutch-seg-active', j === active);
+        }
       }
-    };
-  }
+
+      // 4) onSeek(cb)：追加注册回调（不覆盖既有监听者）
+      function onSeek(cb) {
+        if (typeof cb === 'function') seekCbs.push(cb);
+      }
+
+      return { setProgress: setProgress, onSeek: onSeek };
+    }
+
+    return { mount: mount };
+  })();
 
   // ───────────────────────── 播放联动 ─────────────────────────
   function onPlayerTick(idx) {
@@ -240,16 +304,13 @@
       var s = currentSegments[i];
       if (idx >= s.start_frame && idx <= s.end_frame) { active = i; break; }
     }
+    // 反向同步 Timeline 高亮（p ∈ [0,1000]，setProgress 不触发 onSeek）
+    if (timelineHandle) timelineHandle.setProgress((idx / Math.max(1, fc - 1)) * 1000);
     highlightActive(active);
   }
 
   function highlightActive(activeIdx) {
-    // 高亮轨道片段
-    var segs = document.querySelectorAll('#tacticsClutchTrack .clutch-seg');
-    for (var i = 0; i < segs.length; i++) {
-      segs[i].classList.toggle('clutch-seg-active', i === activeIdx);
-    }
-    // 联动侧栏球员行
+    // 联动侧栏球员行（轨道高亮由 Timeline.mount 的 setProgress 负责）
     var names = (activeIdx >= 0 && segPlayerNames[activeIdx]) ? segPlayerNames[activeIdx] : [];
     var rows = document.querySelectorAll('#tacticsClutchSidebar .clutch-player-row');
     rows.forEach(function (row) {
@@ -259,5 +320,5 @@
   }
 
   // ── Public API ──
-  window.ClutchReplay = { render: render };
+  window.ClutchReplay = { render: render, Timeline: Timeline };
 })();
