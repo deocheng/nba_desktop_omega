@@ -51,6 +51,7 @@ os.chdir(CRAWLER_DIR)
 from backend.core import config  # works: script dir (omega) is on sys.path[0]
 from nba_daily_crawler import BrowserManager, CrawlLogger
 from br_pbp_parse import parse_pbp, SEASON
+from bs4 import BeautifulSoup
 import psycopg2
 from psycopg2.extras import execute_batch
 
@@ -80,6 +81,25 @@ INSERT_SQL = """
 # Rate limiter — never hammer Basketball-Reference
 # --------------------------------------------------------------------------
 DEFAULT_RATE_PER_MINUTE = 15
+
+
+def normalize_br_id(raw):
+    """BR boxscore ids are 12 chars: YYYYMMDD + '0' + HHH.
+
+    TASK A backfill accidentally stored the 11-char form (YYYYMMDD + HHH)
+    into games.br_crawled_id / game_id, which 404s on basketball-reference.
+    Insert the missing '0' so the outbound fetch URL resolves. The stored
+    11-char game_id is kept as our internal key (PBP.gameid stays consistent
+    with games.game_id); only the outbound BR URL uses the 12-char form.
+    This mirrors the 136k existing BR-keyed rows in play_by_play
+    (e.g. '200204020IND'), confirming the 12-char form is the real one.
+    """
+    if not raw:
+        return raw
+    s = raw.strip()
+    if len(s) == 11 and s[:8].isdigit() and s[8:].isalpha():
+        return s[:8] + '0' + s[8:]
+    return s
 
 
 class RateLimiter:
@@ -117,15 +137,42 @@ class RateLimiter:
 # --------------------------------------------------------------------------
 # Fetch
 # --------------------------------------------------------------------------
-def fetch_pbp(browser, br_id):
+def fetch_pbp(browser, br_id, cf_timeout=180, max_attempts=2):
+    """Fetch the PBP page, patient with Cloudflare.
+
+    User mandate: wait longer on the CF challenge -- it usually clears if we
+    just sit on it (the old 40s cap gave up too early). We retry a couple of
+    times and, on final failure, dump the raw page so we can see what BR
+    actually returned (challenge? 404? empty?).
+    """
     url = f"https://www.basketball-reference.com/boxscores/pbp/{br_id}.html"
-    soup = browser.fetch_soup(url)
-    if soup is None:
-        return None
-    tbl = soup.find('table', id='pbp') or soup.find('table', id=lambda x: x and 'pbp' in x.lower())
-    if tbl is None:
-        return None
-    return soup
+    last_html = None
+    for attempt in range(1, max_attempts + 1):
+        html = browser.fetch_page(url, cf_timeout=cf_timeout)
+        if html is not None:
+            last_html = html
+            soup = BeautifulSoup(html, 'lxml')
+            tbl = soup.find('table', id='pbp') or soup.find(
+                'table', id=lambda x: x and 'pbp' in x.lower())
+            if tbl is not None:
+                return soup
+            logger.warning(
+                f"  {br_id}: page {len(html)}B loaded but no pbp table "
+                f"(attempt {attempt}/{max_attempts})")
+        else:
+            logger.warning(
+                f"  {br_id}: no page/soup returned (attempt {attempt}/"
+                f"{max_attempts})")
+    if last_html:
+        try:
+            diag = f"reconcile_2026-07-10/_diag_pbp_{br_id}.html"
+            with open(diag, "w", encoding="utf-8") as f:
+                f.write(last_html[:300000])
+            logger.warning(
+                f"  {br_id}: dumped last page ({len(last_html)}B) -> {diag}")
+        except Exception:
+            pass
+    return None
 
 
 def main():
@@ -220,12 +267,16 @@ def main():
     ok = failed = 0
     try:
         for gid, br, away, home in games:
-            br_id = br or gid
+            br_id = normalize_br_id(br or gid)
             limiter.wait()  # 严格遵守 ≤15 BR 请求/分钟
             soup = fetch_pbp(browser, br_id)
             if soup is None:
-                logger.warning(f"  {br_id}: no PBP page/soup, skipping")
                 failed += 1
+                logger.warning(f"  {br_id}: no PBP page/soup, skipping (failed {failed})")
+                # 安全阀：前 3 场全失败说明 id 格式/CF 仍有问题，停止以免浪费配额
+                if ok == 0 and failed >= 3:
+                    logger.error("前 3 场全部获取失败，疑似 id 格式或 CF 问题，停止批量以免浪费配额")
+                    break
                 continue
             rows = parse_pbp(soup, away, home, gid)
             if not rows:
