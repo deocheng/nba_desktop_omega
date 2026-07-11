@@ -2,6 +2,263 @@
 
 All changes to LOCKED phases must be recorded here (v8 §1 Change Request mechanism).
 
+## v8.3 — Analytics Workspace (in progress)
+
+First sub-phase delivered against the v8.3.1 Workspace Core PRD:
+- **v8.3.1** Workspace Core — Model + DB tables + CRUD API + resource links + `.nbacore` export *(this record, LOCKED)*
+- **v8.3.2** Analytics Builder — data / formula / filter / visualization nodes *(planned)*
+- **v8.3.3** Open Platform — CSV/Excel import, multi-league schema *(planned)*
+
+### 2026-07-08 — v8.3.1 Workspace Core BUILD + VERIFY + VALIDATE + LOCK
+**Status**: ✅ LOCKED
+
+**Added — new package `backend/services/workspace_engine/` (7 files)**:
+- `models.py` — `Workspace` + `WorkspaceChart` frozen dataclasses (mirrors MetricSpec style), pure serialization helpers, `LOCAL_OWNER_ID` (single local analyst; multi-user ownership deferred to v8.3 permissions).
+- `workspace_db.py` — **DEDICATED WRITE-PATH DATA LAYER**. `core.db` is deliberately SELECT-only per v8 §6, so workspace persistence gets its own psycopg2 pool + `ensure_schema()` (idempotent `CREATE TABLE IF NOT EXISTS` for `workspaces` / `workspace_datasets` / `workspace_formulas` / `workspace_charts` with JSONB) + parameterized INSERT/UPDATE/DELETE/`copy_links`. This is the *only* module in the package importing psycopg2; the API and compute layers never do.
+- `workspace_repository.py` — maps DB rows → `Workspace` domain objects; orchestrates the write path (CRUD + dataset/formula/chart links + `duplicate`).
+- `workspace_validator.py` — `validate_create` / `validate_update`; raises `WorkspaceValidationError` (HTTP 400) on empty name / bad status / bad owner_id.
+- `workspace_manager.py` — high-level facade (`create` / `save` / `load` / `list_workspaces` / `update_workspace` / `delete` / `duplicate` + resource link wrappers), PRD §9 `WorkspaceManager`.
+- `workspace_serializer.py` — `.nbacore` JSON (de)serialization (`to_dict` / `from_dict` / `to_file` / `from_file`). Included here so Core is self-contained (PRD §8 / §18 Phase 2).
+- `__init__.py` — public API re-exports.
+
+**Added — API + schemas**:
+- `backend/api/routers/workspace.py` — `APIRouter(prefix="/api/workspaces")` (PRD §11). 14 endpoints: `POST` create (201), `GET` list, `GET /{id}`, `PUT /{id}`, `DELETE /{id}` (204), `POST /{id}/duplicate`, dataset link `POST`/`DELETE`, formula link `POST`/`DELETE`, chart `POST`/`PUT`/`DELETE`, `GET /{id}/export` (`.nbacore` StreamingResponse). Pure orchestration — no pandas/SQL/compute.
+- `backend/api/schemas.py` — `WorkspaceCreate`, `WorkspaceUpdate`, `WorkspaceResponse`, `WorkspaceChartResponse`, `WorkspaceDatasetLink`, `WorkspaceFormulaLink`, `WorkspaceChartCreate`.
+- `backend/app.py` + `backend/api/routers/__init__.py` — registered `workspace.router`.
+- `tests/test_phase83_workspace.py` — 27 tests across 4 classes (validator / manager / serializer / API).
+
+**Architecture decisions**:
+- **Write-path isolation**: `core.db` stays SELECT-only for analytics; `workspace_db.py` is the *designated* writer for the Workspace module. All statements are hardcoded constants (DDL) or parameterized DML — no dynamic SQL, no `eval`/`exec`. Satisfies v8 §6 ("Data Layer is the only DB entry point") while allowing workspace writes.
+- **No FK to non-existent tables**: `workspace_datasets.dataset_id` / `workspace_formulas.formula_id` are plain integer reference IDs (no FK) because the datasets/formulas tables arrive in v8.3.2+. Referential existence validation is deferred and documented; links are stored as references only.
+- **Resource tables + acceptance**: the four resource tables satisfy PRD §19 acceptance ("dataset/formula/chart relationship works") within v8.3.1 Core.
+- **Deviation (documented)**: PRD §18 Phase 2 (file serialization) is delivered inside Core via `workspace_serializer.py`; Phase 3 (version/template system) remains deferred to a later v8.3 sub-phase.
+
+**VERIFY (full suite)**:
+- **265/265 tests pass** (238 pre-v8.3.1 + 27 new v8.3.1), 0 regressions, ~14.2s
+- `tests/test_phase83_workspace.py` — 27 tests across 4 classes:
+  - `TestWorkspaceValidator` (7): empty/whitespace name, invalid status, owner_id bound, valid create/update
+  - `TestWorkspaceManager` (8): create+load, update, delete, duplicate copies links, dataset/formula link add+remove, chart CRUD, list includes created
+  - `TestWorkspaceSerializer` (2): dict round-trip + file round-trip (`.nbacore`)
+  - `TestWorkspaceAPI` (10): create 201, validation 400, list, get by id, unknown 404, update PUT, delete 204, dataset link, chart flow, export
+- Layer isolation: router is pure orchestration (`api_client` guard confirms no SQL-keyword strings in `backend/api/`); `workspace_db.py` is the sole psycopg2 importer.
+
+**VALIDATE (live PostgreSQL, full lifecycle)**:
+- `create('VALIDATE_demo')` → id=75
+- link dataset 999 + formula 7 + chart (`radar`, `{type,metrics}`) → id=18; reload confirms `datasets=[999]`, `formulas=[7]`, `charts=1`
+- `to_file` → 578-byte `.nbacore`; `from_file` → re-import as new workspace id=76 (links preserved)
+- chart `update` → `radar_v2`; `remove` → charts empty
+- `duplicate(75, 'VALIDATE_demo_copy')` → id=77, `datasets=[999]` copied
+- cleanup → `list_workspaces()` count 0 (no leaked rows)
+
+**FIX (2 issues found during VERIFY)**:
+1. **Router name-shadowing infinite recursion** — the list endpoint was named `list_workspaces`, shadowing the imported engine `list_workspaces`, so the call recursed into itself (`RecursionError`). Renamed the endpoint to `list_workspaces_endpoint`.
+2. **v8 §6 SQL-keyword guard false positive** — a schema docstring `Partial update payload` matched the API-layer forbidden-keyword scan (`"UPDATE "`). Reworded to `Patch payload — all fields optional` (no SQL verb). Re-ran the full suite: guard passes.
+
+**Files**: `backend/services/workspace_engine/` (new package, 7 files), `backend/api/routers/workspace.py` (new), `backend/api/schemas.py` (edited), `backend/app.py` (edited), `backend/api/routers/__init__.py` (edited), `tests/test_phase83_workspace.py` (new)
+
+---
+
+## v8.2 — Intelligence Layer (in progress)
+
+Three sub-phases planned against the v8.2 Intelligence Layer PRD:
+- **v8.2-A** Core Intelligence — Pace Adjustment + Availability + Season Type Separation + Historical Percentile *(this record, LOCKED)*
+- **v8.2-B** Player Understanding — Role Classification + Player DNA + Scoring Profile + `GET /players/{id}/intelligence`
+- **v8.2-C** Advanced Analysis — Clutch + Peak + Age Curve + Similar Evolution
+
+### 2026-07-08 — v8.2-A Core Intelligence BUILD + VERIFY + VALIDATE + LOCK
+**Status**: ✅ LOCKED
+
+**Added — new package `backend/services/intelligence_engine/` (6 files, separate calc layer above Metric Engine)**:
+- `common.py` — `to_df()` / `safe_div()` shared pure helpers (no imports cycle)
+- `season_type.py` — `normalize_season_type()` / `validate_season_type()` (alias map: regular/playoffs/play_in → canonical `Regular`/`Playoffs`/`PlayIn`)
+- `loader.py` — Layer-1 access (`load_player_intel`, `load_team_intel`) via `batch_query` (single DB entry, IN-clause batches, mandatory season filter) — mirrors `data_layer.batch_loader`, no psycopg2/SQL in compute modules
+- `pace_adjustment.py` — `team_possessions` / `team_pace` / `league_pace` / `pace_adjust` (pure) + `compute_team_paces` / `compute_league_pace` / `pace_adjust_player_stats` (DB)
+- `availability.py` — `availability_score` / `minutes_share` (pure) + `compute_availability` (DB)
+- `historical_percentile.py` — `percentile_rank` (pure, mean convention) + `historical_percentile` (DB, 6 supported metrics)
+- `__init__.py` — public API re-exports
+
+**v8.2-A capabilities (PRD §5/§7/§12/§16)**:
+1. **Pace Adjustment** — `Adjusted = Stat × (LeaguePace / TeamPace)`. Pace = `240 × Poss / MP`; `Poss = FGA − ORB + TOV + 0.44×FTA`. Four outputs: `adjusted_points / adjusted_assists / adjusted_rebounds / adjusted_usage`.
+2. **Availability** — `availability_score = games / team_games`, `minutes_share = player_mp / team_mp` (both clipped [0,1]).
+3. **Season Type Separation** — every engine function accepts `season_type` and threads it into `load_player_intel` (`fact_player_season_stats.season_type` is REAL: 33,339 `Regular` + 11,734 `Playoffs` rows). Team pace/minutes are regular-season only (team fact has no season_type split) → playoff availability denominator uses regular-season team games as a documented proxy.
+4. **Historical Percentile** — places a player's metric value against the league-wide distribution for the same season+season_type. Supported: `ppg, ts_percent, ast, reb, bpm, vorp` (all present as columns). Mean-rank convention `(below + 0.5×equal)/n × 100`.
+
+**Architecture decisions**:
+- Intelligence Engine is a SEPARATE layer from the Metric Engine — its outputs are NOT registered as `MetricSpec` metrics (preserves the v8 §2 single-registry contract; the engine sits above it).
+- `fact_player_season_stats` has a real `season_type` column → season-type filtering is genuine, not a stub.
+- No mock data: all DB-backed wrappers tested against the live `nba` PostgreSQL instance.
+
+**VERIFY (full suite)**:
+- 220/220 tests pass (189 pre-v8.2 + 31 new v8.2-A), 0 regressions, 15.9s
+- `tests/test_phase82_intelligence.py` — 31 tests across 5 classes:
+  - `TestSeasonType` (5): normalize aliases + invalid raises
+  - `TestPacePure` (6): possessions/pace/league_pace/pace_adjust + zero-guard
+  - `TestPaceDB` (4): league pace realistic (90–115), team paces 28+ teams, LeBron adjusted keys, season_type filter real (Reg + PO rows > 0)
+  - `TestAvailability` (3): pure score/share + LeBron 2025 (g=70, mp=2444, availability≈0.854)
+  - `TestHistoricalPercentile` (6): mean convention, all 6 metrics in [0,100], unsupported raises, playoffs no-crash
+- Layer isolation: AST scan confirms `intelligence_engine/**` has no `eval`/`exec`/`psycopg2`/SQL string; compute is vectorized pandas (no per-player DB loop)
+
+**VALIDATE (live 2025 data, LeBron `jamesle01`)**:
+- `compute_league_pace(2025)` = **101.40** (NBA-realistic); LAL 99.71 / BOS 98.16
+- `pace_adjust_player_stats` → adjusted_points **24.84** (raw 24.43; LAL slower than league → rescaled up), adjusted_assists 8.35, adjusted_rebounds 7.93, adjusted_usage 30.61
+- `compute_availability` → games 70 / team 82 → **availability 0.8537**, minutes_share **0.1239** (2444 / 19730)
+- `historical_percentile` → ppg **96.8%**, ts_percent 75.4%, ast **99.3%**, reb 93.8%, bpm **97.7%**, vorp **99.1%** (all top-tier, consistent with reality)
+- `season_type='Playoffs'` path executes without error (LeBron 2025 had no playoff row → returns `{}`, correct)
+
+**FIX**: none required — engine built clean against live data on first pass.
+
+**Files**: `backend/services/intelligence_engine/` (new package, 7 files incl. `__init__`), `tests/test_phase82_intelligence.py` (new)
+
+### 2026-07-08 — v8.2-B Player Understanding BUILD + VERIFY + VALIDATE + LOCK
+**Status**: ✅ LOCKED
+
+**Added (v8.2 §8/§9/§10/§19)**:
+- `backend/services/intelligence_engine/role_classification.py` — `classify_role()` / `classify_role_batch()`; deterministic priority-ordered rule tree over 9 archetypes (Primary Creator, Secondary Creator, Scoring Guard, 3&D Wing, Shot Creator, Rim Protector, Stretch Big, Two Way Star, Role Player). Inputs: usg%/ast%/ts%/x3pa_rate/orb%/drb%/stl%/blk%.
+- `backend/services/intelligence_engine/player_dna.py` — `compute_dna()` / `compute_dna_batch()`; 7 dimensions (scoring/playmaking/defense/rebounding/efficiency/durability/leadership) on 0-100, transparent linear formulas (documented in module docstring). `leadership` is the only proxy dimension (usage + playmaking; no leadership column exists in source).
+- `backend/services/intelligence_engine/scoring_profile.py` — `scoring_profile()`; groups `player_shooting` BR distance bands into 4 canonical zones (At Rim / Paint / Mid-Range / Three Point) with frequency + FGA-weighted efficiency.
+- `backend/services/intelligence_engine/loader.py` — added `load_player_shooting()` (Layer-1 access for shot-zone splits).
+- `backend/api/routers/intelligence.py` — `GET /players/{player_id}/intelligence` (pure orchestration; delegates to engine). `season` optional (defaults to latest available), `season_type` supported.
+- `backend/api/schemas.py` — `DnaScores`, `AvailabilityInfo`, `ZoneProfile`, `IntelligenceResponse`.
+- `backend/app.py` + `backend/api/routers/__init__.py` — registered `intelligence.router`.
+
+**Decisions / deviations (documented)**:
+- Scoring Profile is **zone-based**, not the PRD §10 *play-type* categories (At Rim/Post Up/Isolation/PnR/Spot Up/Transition/Pull Up). This dataset has shot *location* bands only, not event-tagged play types — play-type scoring requires event-level PBP tagging not present. We expose the supported zone profile and state the limitation rather than fabricate play-type data.
+- `leadership` DNA dimension is a documented approximation (usage + playmaking), since no leadership metric exists in the source.
+- Engine outputs are NOT registered as MetricSpec metrics (Intelligence Engine is a separate layer above Metric Engine).
+
+**VERIFY (full suite)**:
+- 238/238 tests pass (220 + 18 new v8.2-B), 0 regressions, 13.8s
+- `tests/test_phase82b_intelligence.py` — 18 tests across 4 classes:
+  - `TestRoleClassification` (11): all 9 roles hit by synthetic inputs + LeBron→Primary Creator (live)
+  - `TestPlayerDNA` (3): range [0,100] + keys, zero-games no-crash, LeBron playmaking/leadership ≥ 90
+  - `TestScoringProfile` (1): LeBron 4 zones, frequencies sum ~1.0, efficiency in [0,1]
+  - `TestIntelligenceAPI` (3): 200 with full structure, 404 unknown player, defaults to latest season
+- Layer isolation: router is pure orchestration (no pandas/SQL/compute); all compute in engine.
+
+**VALIDATE (live 2025 data, LeBron `jamesle01`)**:
+- `GET /players/jamesle01/intelligence?season=2025` → 200
+- `role` = **Primary Creator** (usg 30.1 + ast% 40.3)
+- `dna` = scoring 75.1 / playmaking 100.0 / defense 43.5 / rebounding 54.1 / efficiency 60.4 / durability 85.4 / leadership 100.0
+- `availability` = 0.8537 (70/82), minutes_share 0.1239
+- `scoring_profile` = At Rim 24.2% @ 78.2% FG, Paint 23.0% @ 47.3%, Mid-Range 21.7% @ 45.1%, Three Point 31.2% @ 37.6% (frequencies sum ≈ 1.0)
+- `GET /players/nonexistent01/intelligence?season=2025` → 404 (correct)
+
+**FIX**: none required — built clean against live data on first pass.
+
+**Files**: `backend/services/intelligence_engine/{role_classification,player_dna,scoring_profile}.py`, `backend/services/intelligence_engine/loader.py` (edited), `backend/api/routers/intelligence.py` (new), `backend/api/schemas.py` (edited), `backend/app.py` (edited), `backend/api/routers/__init__.py` (edited), `tests/test_phase82b_intelligence.py` (new)
+
+---
+
+## v8.1 — Metric Expansion (LOCKED 2026-07-08)
+
+Four sub-phases delivered against the v8.1 Metric Expansion PRD:
+- **v8.1-A** Metric Engine — 5 new metrics (registry 11 → 16)
+- **v8.1-B** Player API — 2 new endpoints + 2 schemas
+- **v8.1-C** Frontend — 6 analysis cards on the Growth page
+- **v8.1-D** Tests + change-log LOCK (this record)
+
+### 2026-07-08 — v8.1-D VERIFY + FIX + LOCK
+**Status**: ✅ LOCKED
+
+**VERIFY results (full suite)**:
+- 189/189 tests pass (160 pre-v8.1 + 29 new v8.1), 0 regressions, 13.6s
+- v8.1 metrics: 5 new metrics registered, `registry ≥ 16`
+- Mixed-source bug fix: `player_metrics_dict` / `vs_compare` no longer crash on metrics spanning two `source_table`s
+- Layer isolation: `metrics/` subpackage free of eval/exec/psycopg2/SQL
+- New schemas (`ShootingProfileResponse`, `CareerDefenseResponse`) serialize correctly
+
+**FIX (2 stale test assertions from Phase 10 — source code was correct)**:
+1. `test_phase0_health.py::test_root_endpoint` — expected phase `"7-testing-monitoring"`; app correctly returns `"10-v7-feature-migration"` after the Phase 10 merge. Updated the assertion.
+2. `test_phase3_api_layer.py::test_routers_have_no_compute_logic` — flagged `charts.py` (377 lines) as over the 200-line pure-orchestration heuristic. `charts.py` is confirmed pure orchestration (no pandas/psycopg2/SQL); the line-limit assertion is now gated on compute-layer imports so legitimately large pure-orchestration routers are not penalized.
+
+**New tests added**:
+- `tests/test_phase81_v81_metrics.py` — 29 tests across 6 classes:
+  - `TestV81Registry` (4): 5 new metrics present, correct `source_table`/`required_cols`, count grew to ≥16
+  - `TestV81MetricCompute` (9): pure-compute formula checks + div-by-zero guards for all 5 metrics
+  - `TestV81MixedSourceBugFix` (4): documents `compute_many` single-table constraint + `_group_compute` fix (incl. live-DB `player_metrics_dict` / `vs_compare`)
+  - `TestV81Schemas` (4): `ShootingProfileResponse` / `CareerDefenseResponse` shape (found + not-found)
+  - `TestV81LayerIsolation` (3): no eval/exec/psycopg2/SQL in `metrics/`
+  - `TestV81RealCompute2025` (5, live DB): ranges sane + `team_scoring_share` coverage > 500 players (proves playoffs-filter fix)
+
+**VALIDATE (live 2025/2026 data)**:
+- `GET /players/jamesle01/shooting-profile` → 23 seasons, latest 2026, 5 zones (restricted_area 60% FG / 32% FGA-rate)
+- `GET /players/jamesle01/career-defense` → STL 2417, BLK 1185, STOCKS 3602, stocks/g 2.22, DAE 1.259
+- `GET /players/jamesle01?season=2025` → all 6 v8.1 metrics present; `team_scoring_share = 0.215` (21.5% — correct after playoffs-filter fix)
+- `GET /players/jamesle01/growth` → latest 2026 season fields feed the 6 frontend cards (orb_pg 0.72, orb% 2.6, ast/tov 2.41, sb/f 1.32, scoring_share 13.17)
+
+**Files**: `tests/test_phase81_v81_metrics.py` (new), `tests/test_phase0_health.py` (edited), `tests/test_phase3_api_layer.py` (edited)
+
+---
+
+### 2026-07-07 — v8.1-C Frontend BUILD + VERIFY
+**Status**: ✅ Implemented (consumed by v8.1-D tests)
+
+**Added (6 components, `frontend/js/components/`, `window.V81` namespace, pure render)**:
+1. `ReboundingCard.js` — latest-season ORB/DRB/TRB per-game bars + ORB%/DRB%/TRB% chips
+2. `PlaymakingCard.js` — AST/TOV/AST-TO ratio tiles
+3. `DefenseProfileCard.js` — STL/BLK/PF/DAE tiles
+4. `ShotProfileChart.js` — grouped bar of zone `fg_pct%` & `fga_rate%` (ECharts)
+5. `TeamContributionChart.js` — `scoring_share%` line across growth seasons (ECharts)
+6. `CareerDefenseSummary.js` — career STL/BLK/PF/STOCKS tiles + chips
+
+**Wiring**:
+- `frontend/index.html` — new `v81-section` on the Growth page (`#page-growth`) + 6 `<script>` tags
+- `frontend/js/app.js` — `growthPlayer` state, `loadV81Analysis()` (renders cards 1–4 from growth report; fetches shooting-profile + career-defense), `renderV81Error()`
+- `frontend/css/style.css` — `.v81-*` styles (grid-3, cards, chips, charts, responsive)
+
+**v8 §2 Layer 4 compliance**:
+- ✅ Pure render — every value comes pre-computed from the backend (growth report / `/shooting-profile` / `/career-defense`)
+- ✅ No client-side computation / aggregation / filtering
+- ✅ `escapeHtml()` on all dynamic text; `echarts` charts tracked in `charts[key]` and resized via `resizeAllCharts()`
+
+---
+
+### 2026-07-07 — v8.1-B Player API BUILD + VERIFY
+**Status**: ✅ Implemented (consumed by v8.1-D tests)
+
+**Added (backend)**:
+- `backend/services/player_profile.py` — `get_shooting_profile()` (reads `player_shooting`, groups 5 zones: restricted_area/paint/mid_range/long_two/three_point) + `get_career_defense()` (career STL/BLK/PF/ORB/DRB totals → stocks, stocks/g, steals/g, blocks/g, DAE)
+- `backend/api/routers/players.py` — `GET /players/{player_id}/shooting-profile` + `GET /players/{player_id}/career-defense`
+- `backend/api/schemas.py` — `ShootingProfileResponse` / `ShootingSeason` / `ShootingZone` / `CareerDefenseResponse`
+
+**v8 §2 Layer 3 compliance**:
+- ✅ Routers are pure orchestration (call `player_profile` service, return Pydantic models — no pandas/SQL/eval)
+- ✅ All computation in services (Layer 2.5), data via data_layer (Layer 1)
+
+**Decisions**:
+- Shooting zones follow v8.1 §7.1 mapping; corner-3 vs above-break-3 NOT separated → single `three_point` zone (documented deviation)
+- `career-defense` returns `found=False` (not 404) when a player has no defensive logging, so the frontend can render an empty state gracefully
+
+---
+
+### 2026-07-07 — v8.1-A Metric Engine BUILD + VERIFY + FIX
+**Status**: ✅ Implemented (consumed by v8.1-D tests)
+
+**Added (5 metrics — registry 11 → 16)**:
+- `orb_per_game` (ORB/g, source `fact_player_season_stats`, cols orb/g)
+- `drb_per_game` (DRB/g, source `fact_player_season_stats`, cols drb/g)
+- `ast_to_ratio` (AST/TOV, guarded TOV→1.0, source `fact_player_season_stats`, cols ast/tov)
+- `def_activity_efficiency` (STL+BLK)/PF, guarded PF→1.0, source `fact_player_season_stats`, cols stl/blk/pf)
+- `team_scoring_share` (player_ppg / team_ppg, source `player_team_share`, cols pts/g/team_pts/team_g)
+
+**FIX (1 real bug found during v8.1 integration)**:
+- **Mixed-source-table crash**: `player_metrics_dict` (used by `GET /players/{id}`) and `vs_compare` called `compute_many()`, which requires ALL metrics share ONE `source_table`. The v8.1 default metric set spans `fact_player_season_stats` AND `player_team_share`, so these would 500 at runtime. **Fix**: added `_group_compute()` in `backend/services/metric_engine/__init__.py` — groups metrics by `source_table`, runs `compute_many` per group, `pd.concat(axis=1)`, pads missing columns with `pd.NA`, de-duplicates. Routed both `player_metrics_dict` and `vs_compare` through it.
+- **Playoffs-filter data drop**: `load_player_team_share` (in `backend/data_layer/batch_loader.py`) filtered `playoffs = false` on `fact_team_season_stats`, but in this dataset `playoffs` is a *qualification* flag — every team row IS the regular-season total. The filter dropped 20 of 30 teams per season, making `team_scoring_share` return `None` for almost everyone. **Fix**: removed the erroneous `playoffs = false` filter (each `(season, abbreviation)` pair is already unique and represents the regular-season total). After the fix, `team_scoring_share` coverage is > 500 players/season (verified in v8.1-D).
+
+**Modified**:
+- `backend/services/metric_engine/metrics/derived.py` — 5 new `MetricSpec` registrations
+- `backend/services/metric_engine/metrics/basic.py` — (orb/drb aliases wired)
+- `backend/services/metric_engine/__init__.py` — `_group_compute()` helper + routed `player_metrics_dict` / `vs_compare`
+- `backend/data_layer/batch_loader.py` — `load_player_team_share` playoffs-filter fix
+- `backend/api/routers/players.py` — default player metrics now include v8.1 set (5 core + team_scoring_share etc.)
+
+**v8 §2 Layer 2 compliance**:
+- ✅ Frozen `MetricSpec` + `MetricRegistry` (no decorator magic)
+- ✅ Vectorized pandas compute, no per-player loop, no eval/exec, no dynamic SQL
+- ✅ `team_scoring_share` keeps its dedicated `player_team_share` join table (isolation preserved)
+
+---
+
 ## Phase 10 — Feature Enhancements (2026-07-06)
 
 ### 2026-07-06 — Player Growth + Context VS + Team Logos

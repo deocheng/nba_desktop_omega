@@ -1,6 +1,6 @@
 # NBACore Studio v8 — 完整项目文档
 
-> 版本: 8.0.0 | 更新日期: 2026-07-06
+> 版本: 8.3.1 | 更新日期: 2026-07-08
 > 架构: 四层严格隔离 (Data Layer → Metric Engine → API Layer → Frontend)
 
 ---
@@ -7460,7 +7460,7 @@ class TestRealEndpoints2025:
 ```json
 {
   "status": "ok",
-  "version": "8.0.0",
+  "version": "8.3.1",
   "database_connected": true,
   "runtime_guard": {
     "config_loaded": { "ok": true },
@@ -7481,7 +7481,7 @@ class TestRealEndpoints2025:
 **GET /metrics 响应:**
 ```json
 {
-  "count": 11,
+  "count": 16,
   "metrics": [
     {
       "name": "pts_per_game",
@@ -7509,6 +7509,9 @@ class TestRealEndpoints2025:
 | GET | `/players/{id}` | 获取球员详情 + 赛季指标 |
 | GET | `/players/seasons` | 获取可用赛季列表 |
 | GET | `/players/{id}/growth` | 获取球员成长报告（生涯逐年数据） |
+| GET | `/players/{id}/shooting-profile` | 获取球员投篮分布（按赛季/区域 FG%/FGA 占比） |
+| GET | `/players/{id}/career-defense` | 获取球员生涯防守汇总（STL/BLK/STOCKS/DAE） |
+| GET | `/players/{id}/intelligence` | 获取球员情报（角色分类/DNA/可用性/投篮分布） |
 
 **GET /players 参数:**
 - `name` (str, 必填, min=2): 搜索关键字
@@ -7657,6 +7660,101 @@ class TestRealEndpoints2025:
 | GET | `/monitor/schema` | Schema 漂移检测报告 |
 
 ---
+
+### 5.4 v8.1 新增接口 (Metric Expansion)
+
+v8.1 在 Metric Engine 新增 5 个指标（注册表 11 → 16），并在 Players API 新增 2 个只读端点。
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/players/{id}/shooting-profile` | 球员投篮分布：按赛季分组，5 个投篮区域（禁区/油漆区/中距离/长两分/三分线外）的 FG% 与 FGA 占比 |
+| GET | `/players/{id}/career-defense` | 球员生涯防守汇总：累计 STL/BLK/PF、STOCKS、STOCKS/G、STL/G、BLK/G、防守活动效率 DAE |
+
+**GET /players/{id}/shooting-profile 响应示例:**
+```json
+{
+  "player_id": "jamesle01",
+  "latest_season": 2026,
+  "seasons": [
+    {
+      "season": 2026,
+      "team": "LAL",
+      "zones": [
+        { "zone": "restricted_area", "fg_pct": 0.60, "fga_rate": 0.32 },
+        { "zone": "paint", "fg_pct": 0.45, "fga_rate": 0.18 },
+        { "zone": "mid_range", "fg_pct": 0.40, "fga_rate": 0.22 },
+        { "zone": "long_two", "fg_pct": 0.38, "fga_rate": 0.10 },
+        { "zone": "three_point", "fg_pct": 0.35, "fga_rate": 0.28 }
+      ]
+    }
+  ]
+}
+```
+
+**GET /players/{id}/career-defense 响应示例:**
+```json
+{
+  "player_id": "jamesle01",
+  "found": true,
+  "seasons": 23,
+  "total_games": 1491,
+  "total_steals": 2417,
+  "total_blocks": 1185,
+  "total_fouls": 2500,
+  "stocks": 3602,
+  "stocks_per_game": 2.22,
+  "steals_per_game": 1.62,
+  "blocks_per_game": 0.79,
+  "def_activity_efficiency": 1.259
+}
+```
+
+> 注：投篮区域遵循 v8.1 §7.1 映射，底角三分与弧顶三分未区分（合并为 `three_point` 区域，属已知偏差）。
+
+## 5.5 v8.2 球员情报 API
+
+`GET /players/{id}/intelligence?season=&season_type=` 返回球员情报对象（纯编排，计算全部在 Intelligence Engine）：
+
+- `role`：9 种球员原型之一（Primary Creator / Secondary Creator / Scoring Guard / 3&D Wing / Shot Creator / Rim Protector / Stretch Big / Two Way Star / Role Player），由 usg%/ast%/ts%/三分率/篮板%/抢断%/盖帽% 的确定性规则树判定。
+- `dna`：7 维球员画像（scoring / playmaking / defense / rebounding / efficiency / durability / leadership），各 0-100，公式透明可解释（`leadership` 为使用率+组织参与的近似维度，源数据无直接领导力指标）。
+- `availability`：出勤（games/team_games）与出场时间占比（mp/team_mp），均裁剪 [0,1]。
+- `scoring_profile`：投篮分布（按区域 At Rim / Paint / Mid-Range / Three Point 的频率与命中率）。**说明**：本数据集仅有投篮*位置*分区，无事件级 play-type 标注，故按区域呈现而非 PRD §10 的 play-type 分类（At Rim/Post Up/Isolation/PnR/Spot Up/Transition/Pull Up），已知偏差已注明，未伪造数据。
+
+Intelligence Engine 为独立于 Metric Engine 的计算层（其产出不注册为 MetricSpec 指标）。
+
+## 5.6 v8.3 工作区 API (Workspace Core)
+
+工作区（Workspace）是完整的篮球分析项目容器（PRD v8.3.1 §5.1），可挂载数据集、公式、图表等资源。所有端点前缀 `/api/workspaces`（纯编排，持久化由专用写路径数据层 `workspace_db.py` 完成；`core.db` 仍保持 SELECT-only，满足 v8 §6）。
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/workspaces` | 创建工作区（201） |
+| GET | `/api/workspaces` | 列出工作区（支持 `owner_id` / `status` / `limit` / `offset`） |
+| GET | `/api/workspaces/{id}` | 获取单个工作区（含 datasets / formulas / charts） |
+| PUT | `/api/workspaces/{id}` | 更新工作区（name / description / status） |
+| DELETE | `/api/workspaces/{id}` | 删除工作区（204，级联删除资源链接） |
+| POST | `/api/workspaces/{id}/duplicate` | 复制工作区（复制资源链接） |
+| POST | `/api/workspaces/{id}/datasets` | 关联数据集 `{"dataset_id": int}` |
+| DELETE | `/api/workspaces/{id}/datasets/{dataset_id}` | 取消关联数据集 |
+| POST | `/api/workspaces/{id}/formulas` | 关联公式 `{"formula_id": int}` |
+| DELETE | `/api/workspaces/{id}/formulas/{formula_id}` | 取消关联公式 |
+| POST | `/api/workspaces/{id}/charts` | 新建图表 `{"name": str, "chart_config": dict}`（201） |
+| PUT | `/api/workspaces/{id}/charts/{chart_id}` | 更新图表 |
+| DELETE | `/api/workspaces/{id}/charts/{chart_id}` | 删除图表（204） |
+| GET | `/api/workspaces/{id}/export` | 导出 `.nbacore` 项目文件（JSON） |
+
+**数据表**（v8.3.1 新增，PostgreSQL）：
+
+| 表名 | 说明 |
+|------|------|
+| `workspaces` | 工作区主表（id SERIAL, owner_id, name, description, status, created_at, updated_at） |
+| `workspace_datasets` | 工作区↔数据集关联（workspace_id, dataset_id；UNIQUE） |
+| `workspace_formulas` | 工作区↔公式关联（workspace_id, formula_id；UNIQUE） |
+| `workspace_charts` | 工作区图表（workspace_id, name, chart_config JSONB） |
+
+**说明**：`workspace_datasets.dataset_id` / `workspace_formulas.formula_id` 为引用 ID（暂不设外键），因 datasets / formulas 实体表在 v8.3.2+ 才落地；引用合法性校验随其后置。`.nbacore` 文件格式见 PRD v8.3.1 §8。
+
+Workspace Engine 为独立于 Metric / Intelligence Engine 的持久化与分析层（v8.3.0 §4.1），其写路径是 v8 中唯一被允许的 DML 来源。
 
 ## 6. 数据库 Schema
 
@@ -7919,5 +8017,36 @@ if _logo_dir.is_dir():
 
 ---
 
-> 文档生成时间: 2026-07-06
-> 项目: NBACore Studio v8.0.0
+### 7.4 v8.1 指标扩展 (Metric Expansion)
+
+v8.1 在原有 11 个指标基础上新增 5 个指标，注册表规模达到 16。所有新增指标均遵循 v8 §2 分层约束（向量化 pandas 计算，无 per-player 循环，无 eval/exec，无动态 SQL）。
+
+#### 7.4.1 新增指标
+
+| 指标 | 类型 | 数据源 | 公式 | 说明 |
+|------|------|--------|------|------|
+| `orb_per_game` | per_game | `fact_player_season_stats` | sum(orb)/sum(g) | 进攻篮板/场 |
+| `drb_per_game` | per_game | `fact_player_season_stats` | sum(drb)/sum(g) | 防守篮板/场 |
+| `ast_to_ratio` | ratio | `fact_player_season_stats` | sum(ast)/clip(sum(tov),1.0) | 助攻/失误比（失误下限 1.0 防除零） |
+| `def_activity_efficiency` | ratio | `fact_player_season_stats` | (sum(stl)+sum(blk))/clip(sum(pf),1.0) | 防守活动效率 DAE（犯规下限 1.0 防除零） |
+| `team_scoring_share` | ratio | `player_team_share` | player_ppg / team_ppg | 球员得分占球队得分比（专用 join 表） |
+
+#### 7.4.2 前端分析卡片
+
+球员成长页面（Growth）新增 v8.1 分析区，包含 6 个纯渲染组件（`frontend/js/components/`，命名空间 `window.V81`，数值全部由后端预计算）：
+
+1. **ReboundingCard** — 最新赛季 ORB/DRB/TRB 场均条形 + ORB%/DRB%/TRB% 占比
+2. **PlaymakingCard** — AST/TOV/AST-TO 比磁贴
+3. **DefenseProfileCard** — STL/BLK/PF/DAE 磁贴
+4. **ShotProfileChart** — 各投篮区域 FG% 与 FGA 占比分组柱状图（ECharts）
+5. **TeamContributionChart** — 生涯各赛季 `scoring_share%` 折线图（ECharts）
+6. **CareerDefenseSummary** — 生涯 STL/BLK/PF/STOCKS 磁贴 + 占比
+
+#### 7.4.3 测试覆盖
+
+新增 `tests/test_phase81_v81_metrics.py`（29 个测试），覆盖指标注册、纯计算、混合数据源 bug 修复、Pydantic schema、层级隔离与实时数据库计算。全量测试 189/189 通过（v8.1-D LOCK）。
+
+---
+
+> 文档生成时间: 2026-07-08
+> 项目: NBACore Studio v8.3.1

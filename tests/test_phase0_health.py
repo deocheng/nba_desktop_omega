@@ -185,7 +185,9 @@ class TestHealthEndpoint:
     def test_root_endpoint(self, app_client):
         body = app_client.get("/").json()
         assert body["name"] == config.APP_NAME
-        assert body["phase"] == "7-testing-monitoring"
+        # Phase reflects current project stage (Phase 10 — v7 feature migration).
+        # Updated from "7-testing-monitoring" after the Phase 10 feature merge.
+        assert body["phase"] == "10-v7-feature-migration"
 
 
 # ── §4 Phase 0: DB connectivity (skipped if DB down) ──

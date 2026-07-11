@@ -1,7 +1,8 @@
-# NBACore Studio v8 — Production Dependencies
+# NBACore Studio v8 - Production Dependencies
 # Pinned for reproducible builds
 
 fastapi==0.115.6
+python-multipart==0.0.20
 uvicorn[standard]==0.34.0
 gunicorn==23.0.0
 psycopg2-binary==2.9.10
