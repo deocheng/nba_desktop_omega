@@ -25,6 +25,15 @@ Usage:
   python ingest_br_pbp.py                 # full run (291 gap games)
   python ingest_br_pbp.py --limit 5       # process only 5 games (smoke test)
   python ingest_br_pbp.py --dry-run       # parse only, no DB writes
+  python ingest_br_pbp.py --rate-per-min 15   # hard cap on BR requests/min (default 15)
+  python ingest_br_pbp.py --ids-file gaps.tsv # crawl ONLY the listed game ids
+
+IMPORTANT — BR rate limit:
+  Basketball-Reference will serve a Cloudflare challenge / soft-block if we hit
+  it too hard. User mandate: never exceed 15 requests/minute. The default
+  min-interval is 4.5s (≈13/min, safely under the cap) and a rolling 60s window
+  hard-caps at --rate-per-min (default 15). Running faster than this is what
+  previously got us flagged.
 """
 from __future__ import annotations
 
@@ -68,6 +77,44 @@ INSERT_SQL = """
 
 
 # --------------------------------------------------------------------------
+# Rate limiter — never hammer Basketball-Reference
+# --------------------------------------------------------------------------
+DEFAULT_RATE_PER_MINUTE = 15
+
+
+class RateLimiter:
+    """Hard cap on outbound Basketball-Reference requests.
+
+    Enforces BOTH a minimum interval between requests AND a rolling
+    max-per-minute window, so we never exceed the user-mandated
+    15 requests/minute (and stay safely under it with a 4.5s floor).
+    """
+
+    def __init__(self, max_per_minute=DEFAULT_RATE_PER_MINUTE, min_interval=4.5):
+        self.max_per_minute = max(1, int(max_per_minute))
+        self.min_interval = max(1.0, float(min_interval))
+        self._times = []
+        self._last = 0.0
+
+    def wait(self):
+        now = time.time()
+        sleep_for = 0.0
+        since_last = now - self._last
+        if since_last < self.min_interval:
+            sleep_for = self.min_interval - since_last
+        cutoff = now - 60.0
+        self._times = [t for t in self._times if t > cutoff]
+        if len(self._times) >= self.max_per_minute:
+            sleep_for = max(sleep_for, self._times[0] + 60.0 - now)
+        if sleep_for > 0:
+            logger.info(f"  [rate-limit] sleeping {sleep_for:.1f}s to stay <= {self.max_per_minute}/min")
+            time.sleep(sleep_for)
+        now = time.time()
+        self._times.append(now)
+        self._last = now
+
+
+# --------------------------------------------------------------------------
 # Fetch
 # --------------------------------------------------------------------------
 def fetch_pbp(browser, br_id):
@@ -85,6 +132,7 @@ def main():
     dry = '--dry-run' in sys.argv
     limit = None
     ids_file = None
+    rate_per_min = DEFAULT_RATE_PER_MINUTE
     for i, a in enumerate(sys.argv):
         if a == '--limit':
             try:
@@ -94,6 +142,16 @@ def main():
         elif a.startswith('--limit='):
             try:
                 limit = int(a.split('=')[1])
+            except ValueError:
+                pass
+        elif a == '--rate-per-min':
+            try:
+                rate_per_min = int(sys.argv[i + 1])
+            except (IndexError, ValueError):
+                pass
+        elif a.startswith('--rate-per-min='):
+            try:
+                rate_per_min = int(a.split('=')[1])
             except ValueError:
                 pass
         elif a == '--ids-file':
@@ -153,11 +211,17 @@ def main():
     browser.start()
     atexit.register(browser.quit)  # 异常退出也回收浏览器，避免孤儿进程
 
+    # BR 速率硬上限：默认 15/min（实际 4.5s 间隔 ≈13/min，留安全余量）。
+    # 这是用户明确要求，超出会触发 CF 挑战/封禁。
+    limiter = RateLimiter(max_per_minute=rate_per_min)
+    logger.info(f"BR rate limiter active: max {rate_per_min}/min (min interval 4.5s)")
+
     total_events = 0
     ok = failed = 0
     try:
         for gid, br, away, home in games:
             br_id = br or gid
+            limiter.wait()  # 严格遵守 ≤15 BR 请求/分钟
             soup = fetch_pbp(browser, br_id)
             if soup is None:
                 logger.warning(f"  {br_id}: no PBP page/soup, skipping")
@@ -180,7 +244,7 @@ def main():
             total_events += len(rows)
             ok += 1
             logger.info(f"  {br_id}: {len(rows)} events  (cum {total_events})")
-            time.sleep(1.5)
+            # 速率由 limiter.wait() 在下一轮循环开头统一控制，这里不再 sleep
     finally:
         browser.quit()
         conn.close()
