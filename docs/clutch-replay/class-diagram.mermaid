@@ -1,0 +1,133 @@
+classDiagram
+    %% ── 请求 / 结果（clutch_replay_engine/schemas.py）──
+    class ClutchReplayRequest {
+        +str game_id
+        +str season
+        +int period = 4
+        +int clock_max = 300
+        +int margin_max = 5
+        +int pad_events = 2
+        +int frame_rate = 30
+    }
+    class ClutchSegmentPlayer {
+        +str playerid
+        +str player
+        +str team
+    }
+    class ClutchSegment {
+        +int start_event_index
+        +int end_event_index
+        +int start_frame
+        +int end_frame
+        +int period
+        +float clock_start
+        +float clock_end
+        +list~ClutchSegmentPlayer~ players
+        +int margin
+    }
+    class ClutchPlayerStat {
+        +str player_id
+        +str player_name
+        +str team
+        +int poss
+        +float fg_pct
+        +float fg2_pct
+        +float fg3_pct
+        +int oreb
+        +int dreb
+        +int ast
+        +int stl
+        +int tov
+        +int pf
+        +int pts
+        +int catch_shots
+        +int dribble_shots
+        +float dribble_coverage
+    }
+    class ClutchReplayResult {
+        +str game_id
+        +str season
+        +list~ReplayFrame~ frames
+        +ReplayMeta meta
+        +list~ClutchSegment~ clutch_segments
+        +list~ClutchPlayerStat~ clutch_players
+    }
+
+    %% ── 映射器（clutch_replay_engine/mapper.py）──
+    class EventIndexMapper {
+        +build_eventnum_to_index_map(gameid, season) dict
+        +first_frame_for_event_index(frames, ei) int
+        +build_segments(event_indices, frames, pad) list~ClutchSegment~
+    }
+
+    %% ── 聚合服务（clutch_replay_engine/service.py）──
+    class ClutchReplayService {
+        +clutch_replay(req) ClutchReplayResult
+    }
+
+    %% ── 复用的现有引擎 ──
+    class TacticsService {
+        +replay(req) dict
+    }
+    class ReplayFrame {
+        +float t
+        +int event_index
+        +list players
+        +BallSprite ball
+        +list annotations
+    }
+    class ReplayMeta {
+        +int frame_count
+        +int fps
+        +dict teams
+    }
+    class ClutchService {
+        +get_clutch_players_for_game(gameid, season, ...) list
+        +fetch_clutch_events(gameid, season, ...) list
+    }
+    class ClutchQueries {
+        +build_clutch_events_sql(gameid, season, ...) tuple
+        +build_clutch_players_sql(...) tuple
+    }
+
+    %% ── 前端（Layer 4）──
+    class TacticsPlayerEngine {
+        <<window.Tactics 公共 API>>
+        +render(containerId, mode)
+        +setFrames(frames, meta)
+        +seekFrame(idx)
+        +seekProgress(p)
+        +play() / pause()
+        +onTick(cb)
+    }
+    class ClutchReplayPage {
+        <<window.ClutchReplay>>
+        +render(rootId)
+        -renderSidebar(players)
+        -onSegmentClick(seg)
+    }
+    class ClutchReplayTimeline {
+        <<window.ClutchReplay.Timeline>>
+        +mount(containerEl, opts) TimelineHandle
+    }
+    class TimelineHandle {
+        +setProgress(p)
+        +onSeek(cb)
+    }
+
+    %% ── 关系 ──
+    ClutchReplayService --> TacticsService : (1) frames
+    ClutchReplayService --> ClutchService : (2)(3) events/players
+    ClutchReplayService --> EventIndexMapper : (4) map
+    ClutchService --> ClutchQueries : SQL
+    ClutchReplayService ..> ClutchReplayResult : builds
+    ClutchReplayResult "1" *-- "0..*" ClutchSegment : clutch_segments
+    ClutchReplayResult "1" *-- "0..*" ClutchPlayerStat : clutch_players
+    ClutchReplayResult "1" *-- "0..*" ReplayFrame : frames
+    ClutchSegment "1" *-- "1..*" ClutchSegmentPlayer : players
+    ClutchReplayRequest ..> ClutchReplayService : input
+
+    ClutchReplayPage --> TacticsPlayerEngine : 驱动播放/跳转
+    ClutchReplayPage --> ClutchReplayTimeline : mount(自身画高亮)
+    ClutchReplayPage ..> ClutchReplayResult : 消费 frames+segments+players
+    ClutchReplayTimeline ..> TimelineHandle : returns

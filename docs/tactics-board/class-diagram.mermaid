@@ -1,0 +1,174 @@
+classDiagram
+    %% ── 战术模板模型 ──
+    class TacticTemplate {
+        +str id
+        +str name
+        +str description
+        +list~PlayerSpot~ formation
+        +tuple ball_start
+        +list~TacticStep~ steps
+        +list~tuple~ ball_path
+        +dict meta
+        +to_frames(fps) list~ReplayFrame~
+    }
+    class PlayerSpot {
+        +int slot
+        +str label
+        +str team  %% 'home' | 'away'
+        +float x
+        +float y
+    }
+    class TacticStep {
+        +int index
+        +str action  %% screen/cut/pass/dribble/roll/pop
+        +int actor_slot
+        +list~tuple~ path
+        +slot_or_xy ball_to
+        +float duration_s
+    }
+
+    %% ── 回放帧模型 ──
+    class ReplayFrame {
+        +float t
+        +list~PlayerSprite~ players
+        +BallSprite ball
+        +list~Annotation~ annotations
+        +int event_index
+    }
+    class PlayerSprite {
+        +str player_id
+        +str label
+        +str team
+        +str color
+        +float x_px
+        +float y_px
+        +str pos_source  %% real/last_known/default
+    }
+    class BallSprite {
+        +float x_px
+        +float y_px
+        +str holder  %% player_id | null
+    }
+    class Annotation {
+        +str type  %% MAKE/MISS/AST/REB/PF/SUB/TOV
+        +str text
+        +float x_px
+        +float y_px
+    }
+
+    %% ── 请求 / 结果 ──
+    class ReplayRequest {
+        +str game_id
+        +str season
+        +int period
+        +int start_clock
+        +str segment
+        +float speed
+        +int frame_rate
+    }
+    class ReplayResult {
+        +str game_id
+        +str season
+        +list~ReplayFrame~ frames
+        +ReplayMeta meta
+    }
+    class ReplayMeta {
+        +int fps
+        +float duration_s
+        +int frame_count
+        +dict court  %% {w,h}
+        +dict teams  %% {home,away}
+        +int period
+        +tuple clock
+    }
+
+    %% ── 引擎内部 ──
+    class PbPEvent {
+        +int event_index
+        +str game_id
+        +str season
+        +int period
+        +int clock_seconds
+        +str event_type
+        +str subtype
+        +str action_verb
+        +str player
+        +str team
+        +int x
+        +int y
+        +int dist
+    }
+    class GameMeta {
+        +str game_id
+        +str season
+        +list~str~ teams
+        +int period_min
+        +int period_max
+        +int event_count
+        +int xy_count
+    }
+
+    %% ── AI 生成（可插拔）──
+    class TacticGenerator {
+        <<abstract>>
+        +generate_from_natural_language(prompt, constraints) TacticTemplate*
+        +extract_from_pbp(game_id, segment) TacticTemplate*
+    }
+    class StaticTemplateGenerator {
+        +generate_from_natural_language(prompt, constraints) TacticTemplate
+        +extract_from_pbp(game_id, segment) TacticTemplate
+    }
+    class LLMTacticGenerator {
+        +generate_from_natural_language(prompt, constraints) TacticTemplate
+        +extract_from_pbp(game_id, segment) TacticTemplate
+    }
+
+    %% ── 引擎服务类 ──
+    class Coords {
+        +map_xy_to_svg(x, y) tuple
+        +_fold_half(y) float
+    }
+    class TacticsDB {
+        +load_pbp_events(game_id, season) list~PbPEvent~
+        +list_replay_games(season) list~dict~
+        +load_game_meta(game_id, season) GameMeta
+    }
+    class TacticTemplates {
+        +list_templates() list~dict~
+        +get_template(id) TacticTemplate
+    }
+    class ReplayEngine {
+        +build_event_sequence(game_id, season) list~PbPEvent~
+        +resolve_positions(events) list~ResolvedEvent~
+        +build_frames(game_id, season, fps) list~ReplayFrame~
+    }
+    class Animation {
+        +build_frames(events, fps) list~ReplayFrame~
+        +build_frames_from_template(t, fps) list~ReplayFrame~
+        +_lerp(prev, cur, t) Frame
+        +_move_ball(...) BallSprite
+    }
+    class TacticsService {
+        +replay(req) ReplayResult
+        +list_templates() list~dict~
+        +get_template(id) TacticTemplate
+        +generate_tactic(prompt, provider) TacticTemplate
+    }
+
+    %% ── 关系 ──
+    TacticTemplate "1" *-- "5" PlayerSpot : formation
+    TacticTemplate "1" *-- "0..*" TacticStep : steps
+    ReplayResult "1" *-- "1" ReplayMeta : meta
+    ReplayResult "1" *-- "0..*" ReplayFrame : frames
+    ReplayFrame "1" *-- "0..10" PlayerSprite : players
+    ReplayFrame "1" *-- "1" BallSprite : ball
+    ReplayFrame "1" *-- "0..*" Annotation : annotations
+    TacticsService --> ReplayEngine : uses
+    TacticsService --> TacticTemplates : uses
+    TacticsService --> TacticGenerator : uses
+    ReplayEngine --> TacticsDB : reads
+    ReplayEngine --> Coords : maps
+    ReplayEngine --> Animation : interpolates
+    Animation --> Coords : maps
+    TacticGenerator <|-- StaticTemplateGenerator
+    TacticGenerator <|-- LLMTacticGenerator

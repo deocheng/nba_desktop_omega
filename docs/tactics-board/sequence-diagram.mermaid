@@ -1,0 +1,41 @@
+sequenceDiagram
+    autonumber
+    actor U as 用户(前端)
+    participant F as tactics.js (Layer4)
+    participant API as /tactics router (Layer3)
+    participant S as TacticsService (Layer2 门面)
+    participant RE as ReplayEngine
+    participant DB as TacticsDB (core.db)
+    participant C as Coords
+    participant AN as Animation
+    participant TP as TacticTemplates
+
+    Note over U,TP: 流程 A —— 战术模板演示（只读，无 DB）
+    U->>F: 选择模板(load template id)
+    F->>API: GET /tactics/templates/{id}
+    API->>S: get_template(id)
+    S->>TP: get_template(id)
+    TP-->>S: TacticTemplate(formation+steps)
+    S->>AN: build_frames_from_template(t, fps)
+    AN->>C: map_xy_to_svg(x,y) 每路径点
+    AN-->>S: List[ReplayFrame]
+    S-->>API: {code:0,data:{frames,meta}}
+    API-->>F: 帧序列 JSON
+    F->>F: requestAnimationFrame 推进帧 → 渲染 SVG(圆圈+篮球+箭头)
+
+    Note over U,TP: 流程 B —— PBP 动态回放（只读 DB）
+    U->>F: 选比赛+赛季 → 播放
+    F->>API: POST /tactics/replay {game_id,season,...}
+    API->>S: replay(ReplayRequest)
+    S->>RE: build_frames(game_id,season,fps)
+    RE->>DB: load_pbp_events(game_id,season)
+    DB-->>RE: List[PbPEvent] (批量 SELECT)
+    RE->>RE: resolve_positions() (last-known 占位策略)
+    RE->>C: map_xy_to_svg(x,y) 投篮真实坐标
+    RE->>AN: build_frames(events,fps)
+    AN->>AN: _lerp 线性插值 + _move_ball
+    AN-->>RE: List[ReplayFrame]
+    RE-->>S: frames
+    S-->>API: ReplayResult
+    API-->>F: {code:0,data:{frames,meta}}
+    F->>F: rAF 推进 + 事件气泡(✅/❌/AST/REB/PF)
