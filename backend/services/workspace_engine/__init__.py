@@ -20,18 +20,23 @@ from backend.services.workspace_engine.models import (
 from backend.services.workspace_engine.workspace_manager import (
     add_chart,
     add_dataset,
+    add_flow,
     add_formula,
     create,
     delete,
     duplicate,
     get_chart,
+    get_flow,
+    list_flows,
     list_workspaces,
     load,
     remove_chart,
     remove_dataset,
+    remove_flow,
     remove_formula,
     save,
     update_chart,
+    update_flow,
     update_workspace,
 )
 from backend.services.workspace_engine.workspace_serializer import (
@@ -70,6 +75,12 @@ __all__ = [
     "update_chart",
     "remove_chart",
     "get_chart",
+    # analysis flows (v8.3.2)
+    "add_flow",
+    "update_flow",
+    "remove_flow",
+    "get_flow",
+    "list_flows",
     # serializer
     "to_dict",
     "from_dict",

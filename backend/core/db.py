@@ -186,6 +186,46 @@ def temp_table_name() -> str:
     return _TEMP_TABLE
 
 
+# ── Composed (psycopg2.sql) Query ──
+# v8 §6: identifiers must be bound with psycopg2.sql.Identifier, never
+# interpolated as raw strings. Loaders build parameterized sql.Composed
+# objects (constants + sql.Identifier) and execute them through this single
+# entry point — same tracing / pool guarantees as batch_query().
+def batch_query_composed(
+    sql_composed: "object",
+    params: Sequence[Any] | None = None,
+) -> list[dict]:
+    """Execute a psycopg2.sql.Composed (or sql.SQL) SELECT.
+
+    The SQL object is built only from trusted constants and
+    psycopg2.sql.Identifier placeholders, so the string-based forbidden-keyword
+    scan does not apply (there is no raw SQL string to scan). All runtime values
+    are still passed as bound ``%s`` parameters.
+
+    Args:
+        sql_composed: a psycopg2.sql.Composed / sql.SQL object.
+        params: bound parameter values (same contract as batch_query).
+
+    Returns: list[dict] rows.
+    """
+    if _pool is None:
+        init_pool()
+    assert _pool is not None  # narrowed for type checkers
+
+    qid = new_query_id()
+    logger.info("SQL start | qid=%s | composed", qid)
+    conn = _pool.getconn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(sql_composed, tuple(params) if params else ())
+            rows = cur.fetchall()
+        result = [dict(r) for r in rows]
+        logger.info("SQL done  | qid=%s | rows=%d", qid, len(result))
+        return result
+    finally:
+        _pool.putconn(conn)
+
+
 # ── Connectivity Check ──
 def is_port_open() -> bool:
     """Cheap TCP probe (no credentials needed)."""

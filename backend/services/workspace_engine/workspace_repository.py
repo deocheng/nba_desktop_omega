@@ -149,3 +149,29 @@ def remove_chart(chart_id: int) -> bool:
 
 def get_chart(chart_id: int) -> dict | None:
     return workspace_db.select_chart(chart_id)
+
+
+# ── Analysis Flows (v8.3.2) ──
+
+def add_flow(workspace_id: int, name: str, definition: dict) -> int:
+    if get_workspace(workspace_id) is None:
+        raise WorkspaceValidationError(f"Workspace {workspace_id} not found")
+    return workspace_db.insert_flow(workspace_id, name, definition)
+
+
+def update_flow(
+    flow_id: int, name: str | None = None, definition: dict | None = None
+) -> dict | None:
+    return workspace_db.update_flow(flow_id, name, definition)
+
+
+def remove_flow(flow_id: int) -> bool:
+    return workspace_db.delete_flow(flow_id)
+
+
+def get_flow(flow_id: int) -> dict | None:
+    return workspace_db.select_flow(flow_id)
+
+
+def list_flows(workspace_id: int) -> list[dict]:
+    return workspace_db.select_flows(workspace_id)

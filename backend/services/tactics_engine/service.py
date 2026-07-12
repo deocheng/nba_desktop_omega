@@ -14,6 +14,12 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional
 
+# 回放有效帧率上限：配合 animation.MAX_FRAMES_PER_SEGMENT / TARGET_TOTAL_FRAMES
+# 的逐段帧数上限，保证响应体 < 15MB 且播放时长落在 2~4 分钟区间。
+# 前端 rAF 按 meta.fps 推进，故 meta.fps 必须等于实际生成帧率（此处 clamp 后的值）。
+# 说明：帧数由 seg_cap 主导，降低 fps 不会增加帧数，只把播放速度调到更舒适的档位。
+REPLAY_FPS_CAP: int = 20
+
 from backend.services.tactics_engine import (
     ai_generator,
     animation,
@@ -33,20 +39,27 @@ class TacticsService:
 
     # ───────────────────────── PBP 动态回放 ─────────────────────────
     def replay(self, req: schemas.ReplayRequest) -> Dict:
-        """生成一场比赛的逐帧坐标序列（核心）。"""
+        """生成一场比赛的逐帧坐标序列（核心）。
+
+        有效帧率 clamp 到 REPLAY_FPS_CAP，配合 animation 的逐段帧数上限，
+        把响应体压到 < 15MB 且播放时长落在 2~4 分钟；meta.fps 与实际生成帧率一致。
+        """
         events = replay_engine.build_event_sequence(req.game_id, req.season)
         if not events:
             raise LookupError(f"无回放数据: game {req.game_id} season {req.season}")
-        frames = replay_engine.build_frames_from_events(events, req.frame_rate)
-        meta = self._build_meta(req, frames, events)
+        fps = max(1, min(int(req.frame_rate or 30), REPLAY_FPS_CAP))
+        # 回放恒走全场（full_court=True）：双篮筐广播视角 + 同步 PBP 文字解说。
+        res = replay_engine.build_frames_from_events(events, fps, full_court=True)
+        meta = self._build_meta(req, res["frames"], events, fps, full_court=True)
         return {
             "game_id": req.game_id,
             "season": str(req.season),
-            "frames": frames,
+            "frames": res["frames"],
+            "events": res["events"],
             "meta": meta,
         }
 
-    def _build_meta(self, req, frames: List[dict], events) -> Dict:
+    def _build_meta(self, req, frames: List[dict], events, fps: int, full_court: bool = False) -> Dict:
         gmeta = db.load_game_meta(req.game_id, req.season)
         teams: Dict[str, str] = {}
         if gmeta and gmeta.teams:
@@ -56,11 +69,17 @@ class TacticsService:
             }
         first_clock = events[0].clock_seconds if events else 0.0
         last_clock = events[-1].clock_seconds if events else 0.0
+        # 全场回放：court 写 mode='full' + 全场尺寸；战术板模板仍为半场（见 render_template）
+        court = (
+            {"mode": "full", "w": coords.FULL_SVG_W, "h": coords.FULL_SVG_H}
+            if full_court
+            else {"w": coords.SVG_W, "h": coords.SVG_H}
+        )
         return {
-            "fps": req.frame_rate,
+            "fps": fps,
             "duration_s": round(frames[-1]["t"], 2) if frames else 0.0,
             "frame_count": len(frames),
-            "court": {"w": coords.SVG_W, "h": coords.SVG_H},
+            "court": court,
             "teams": teams,
             "period": events[0].period if events else None,
             "clock": [first_clock, last_clock],

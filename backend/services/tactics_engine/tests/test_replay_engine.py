@@ -37,13 +37,14 @@ def test_real_replay_frame_structure(real_frames):
 
 
 def test_real_replay_coords_in_bounds(real_frames):
+    # 回放现恒走全场（full_court=True）：坐标须落在 [0, 940] x [0, 500]
     oob = 0
     for fr in real_frames["frames"]:
         for p in fr["players"]:
-            if not (0.0 <= p["x_px"] <= 500.0 and 0.0 <= p["y_px"] <= 470.0):
+            if not (0.0 <= p["x_px"] <= 940.0 and 0.0 <= p["y_px"] <= 500.0):
                 oob += 1
         b = fr["ball"]
-        if not (0.0 <= b["x_px"] <= 500.0 and 0.0 <= b["y_px"] <= 470.0):
+        if not (0.0 <= b["x_px"] <= 940.0 and 0.0 <= b["y_px"] <= 500.0):
             oob += 1
     assert oob == 0, f"{oob} out-of-bounds coordinates found"
 

@@ -16,17 +16,31 @@ def _season_int(season) -> int:
     return int(season)
 
 
+# PBP 文字解说列名常量（避免字符串散落；本数据源仅 `description` 100% 填充，
+# homedescription/visitordescription 全为 NULL；scorehome/scorevisitor 全 NULL，
+# 记分牌改用 h_pts/a_pts 末次非空向前填充）。列名为固定字面量（非用户输入），
+# 仍走 core_db.batch_query 参数化占位符，不拼表名/不拼值。
+PBP_TEXT_COL = "description"
+PBP_HSCORE_COL = "h_pts"
+PBP_ASCORE_COL = "a_pts"
+
+
 def load_pbp_events(game_id: str, season) -> List[PbPEvent]:
     """批量读取某场全部 br_crawler PBP 事件（按 period ASC, clock DESC, id ASC 时间序）。"""
     sql = """
         SELECT gameid, season, period, clock_seconds,
-               event_type, subtype, action_verb, player, player2_name, team, x, y, dist
+               event_type, subtype, action_verb, player, player2_name, team, x, y, dist,
+               {text_col}, {hscore_col}, {ascore_col}
         FROM play_by_play
         WHERE gameid = %s
           AND season = %s::integer
           AND source = 'br_crawler'
         ORDER BY period ASC, clock_seconds DESC, id ASC
-    """
+    """.format(
+        text_col=PBP_TEXT_COL,
+        hscore_col=PBP_HSCORE_COL,
+        ascore_col=PBP_ASCORE_COL,
+    )
     rows = core_db.batch_query(sql, (str(game_id), _season_int(season)))
     events: List[PbPEvent] = []
     for i, r in enumerate(rows):
@@ -45,6 +59,9 @@ def load_pbp_events(game_id: str, season) -> List[PbPEvent]:
             x=int(r["x"] or 0),
             y=int(r["y"] or 0),
             dist=int(r["dist"] or 0),
+            description=r[PBP_TEXT_COL] or "",
+            h_pts=float(r[PBP_HSCORE_COL] or 0),
+            a_pts=float(r[PBP_ASCORE_COL] or 0),
         ))
     return events
 

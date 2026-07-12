@@ -8,7 +8,9 @@
 严格四层隔离：本模块只做计算，所有 DB 访问经 db.py（core.db.batch_query）。
 
 占位策略（架构 §8.4 / PRD §4.2 硬性）：
-    - 投篮（makes/misses）且 (x,y)≠(0,0) → 真实 coords.map_xy_to_svg，pos_source='real'
+    - 投篮（makes/misses）一律视为投篮：渲染 MAKE/MISS 标注 + 球脱手（holder=None）
+      - 坐标 (x,y)≠(0,0) → 真实 coords.map_xy_to_svg，pos_source='real'
+      - 坐标缺失 (0,0) → 球落向篮筐 coords.RIM_PX（绝不为 (0,0)），pos_source='default'
     - 非投篮且 actor 有历史坐标 → 延续 last-known，pos_source='last_known'
     - actor 首次出现（无历史）→ 球场语义默认位（本方半场底线附近），pos_source='default'
     - 前端不感知 (0,0)；帧 JSON 中所有坐标均为已解析像素
@@ -81,13 +83,23 @@ def _sprite(player: str, role_color: dict, px: Tuple[float, float], pos_source: 
     }
 
 
-def resolve_positions(events: List[PbPEvent]) -> List[ResolvedEvent]:
-    """逐事件解析每位球员像素坐标，落地 last-known 占位策略。"""
+def resolve_positions(events: List[PbPEvent], full_court: bool = False) -> List[ResolvedEvent]:
+    """逐事件解析每位球员像素坐标，落地 last-known 占位策略。
+
+    full_court=False（默认）：半场映射（coords.map_xy_to_svg），供战术板模板
+        与既有单测（Bug1/Bug2 回归）。
+    full_court=True：全场广播视角映射（coords.map_xy_to_svg_full + 双篮筐兜底
+        nearest_rim），PBP 回放恒走此路径。
+    """
     known: Dict[str, dict] = {}            # player -> sprite dict
     team_role: Dict[str, dict] = {}        # team_abbr -> {role, color}
     role_count = {"home": 0, "away": 0}
     default_idx = {"home": 0, "away": 0}
-    ball = {"x_px": coords.SVG_W / 2.0, "y_px": coords.SVG_H - 40.0, "holder": None}
+    # 坐标映射器随 full_court 切换（唯一映射点，确定性、无副作用）
+    mapper = coords.map_xy_to_svg_full if full_court else coords.map_xy_to_svg
+    init_x = coords.FULL_SVG_W / 2.0 if full_court else coords.SVG_W / 2.0
+    init_y = coords.FULL_SVG_H / 2.0 if full_court else coords.SVG_H - 40.0
+    ball = {"x_px": init_x, "y_px": init_y, "holder": None}
 
     resolved: List[ResolvedEvent] = []
     prev_t = 0.0
@@ -107,27 +119,40 @@ def resolve_positions(events: List[PbPEvent]) -> List[ResolvedEvent]:
         rc = team_role.get(team_abbr, {"role": "away", "color": coords.AWAY_COLOR})
 
         actor = ev.player or ""
-        is_shot = ev.action_verb in ("makes", "misses") and (ev.x != 0 or ev.y != 0)
+        # Bug 2 修复：所有 makes/misses 都视为投篮（即使坐标为 (0,0) 也要渲染
+        # MAKE/MISS 标注并让球落向篮筐）；仅「真实坐标」与否影响 pos_source。
+        is_shot_verb = ev.action_verb in ("makes", "misses")
+        has_real_coords = (ev.x != 0 or ev.y != 0)
         actor_px = (coords.SVG_W / 2.0, coords.SVG_H - 40.0)
         actor_pos_source = "default"
 
-        if is_shot:
-            actor_px = coords.map_xy_to_svg(ev.x, ev.y)
-            actor_pos_source = "real"
-            if actor:
-                known[actor] = _sprite(actor, rc, actor_px, "real")
+        if is_shot_verb:
+            if has_real_coords:
+                actor_px = mapper(ev.x, ev.y)
+                actor_pos_source = "real"
+                if actor:
+                    known[actor] = _sprite(actor, rc, actor_px, "real")
+            else:
+                # 坐标缺失（BR 源 PBP 常见）：球落向就近篮筐附近，绝不落在 (0,0)。
+                # full_court → 双筐兜底 nearest_rim；半场 → RIM_PX（(250,462)）。
+                # 注意：不更新 known[actor]，避免射手精灵被瞬移到篮筐。
+                actor_px = coords.nearest_rim(ev.x, ev.y) if full_court else coords.RIM_PX
+                actor_pos_source = "default"
         elif actor:
             if actor in known:
                 sp = known[actor]
                 actor_px = (sp["x_px"], sp["y_px"])
                 actor_pos_source = "last_known"
+                # Bug 1 配套：持球事件也把持球人站位刷新为当前解析站位，
+                # 保证 ball 与 holder 精灵位置一致（球真正跟随持球人移动）。
+                known[actor] = _sprite(actor, rc, actor_px, actor_pos_source)
             else:
                 # 无历史 → 球场语义默认位（本方半场底线附近，按队错位避免重叠）
                 ridx = default_idx[rc["role"]]
                 default_idx[rc["role"]] += 1
                 dx = -180 + (ridx % 9) * 45
                 dy = coords.DEFAULT_HOME_Y if rc["role"] == "home" else coords.DEFAULT_AWAY_Y
-                actor_px = coords.map_xy_to_svg(dx, dy)
+                actor_px = mapper(dx, dy)
                 actor_pos_source = "default"
                 known[actor] = _sprite(actor, rc, actor_px, "default")
 
@@ -153,15 +178,17 @@ def resolve_positions(events: List[PbPEvent]) -> List[ResolvedEvent]:
         annotation = anns
 
         # 篮球状态
-        if is_shot:
+        if is_shot_verb:
             ball = {"x_px": actor_px[0], "y_px": actor_px[1], "holder": None}
         elif actor:
             ball = {"x_px": actor_px[0], "y_px": actor_px[1], "holder": actor}
         # 无 actor 事件（period/timeout/jump ball）：篮球保持上一状态
 
         # 单调全局时间：统一每事件 DEFAULT_EVENT_S（架构 §9 允许「默认 2s」兜底）。
-        # 不依赖真实 clock 差，保证时间线 bounded、deterministic、可观赏
-        # （一场 ~475 事件 × 2s × 30fps ≈ 2.8 万帧，符合架构体量预期）。
+        # 不依赖真实 clock 差，保证时间线 bounded、deterministic、可观赏。
+        # 注：animation.build_frames 对逐段帧数设上限（MAX_FRAMES_PER_SEGMENT /
+        # TARGET_TOTAL_FRAMES），一场 ~600 事件实际仅生成 ≤ ~4000 帧（而非旧估算
+        # 的 ~2.8 万帧），以保证回放响应 < 15MB、可前端加载。
         g_t = prev_t + DEFAULT_EVENT_S
         prev_t, prev_clock, prev_period = g_t, ev.clock_seconds, ev.period
 
@@ -188,15 +215,34 @@ def resolve_positions(events: List[PbPEvent]) -> List[ResolvedEvent]:
     return resolved
 
 
-def build_frames_from_events(events: List[PbPEvent], fps: int = 30) -> List[dict]:
-    """解析事件并生成逐帧序列（委托 animation）。"""
+def build_frames_from_events(events: List[PbPEvent], fps: int = 30, full_court: bool = False) -> Dict[str, list]:
+    """解析事件并生成逐帧序列（委托 animation）。
+
+    返回 dict：``{"frames": [...], "events": [...]}``。
+      - frames：逐帧坐标序列（与现有前端契约一致，坐标已为 SVG 像素）
+      - events：PbPEvent 的精简投影，用于前端同步 PBP 文字解说（节次/时钟/比分）
+        与 frames 同序、按 event_index 对应；轻量文本，不塞进每帧以控体积。
+    """
     from backend.services.tactics_engine.animation import build_frames
 
-    resolved = resolve_positions(events)
-    return build_frames(resolved, fps)
+    resolved = resolve_positions(events, full_court)
+    frames = build_frames(resolved, fps)
+    events_list = [{
+        "event_index": ev.event_index,
+        "period": ev.period,
+        "clock_seconds": ev.clock_seconds,
+        "description": ev.description,
+        "team": ev.team,
+        "action_verb": ev.action_verb,
+        "player": ev.player,
+        "player2": ev.player2,
+        "h_pts": ev.h_pts,
+        "a_pts": ev.a_pts,
+    } for ev in events]
+    return {"frames": frames, "events": events_list}
 
 
-def build_frames(game_id: str, season, fps: int = 30) -> List[dict]:
+def build_frames(game_id: str, season, fps: int = 30, full_court: bool = False) -> Dict[str, list]:
     """便捷：按 game_id/season 直接生成逐帧序列。"""
     events = build_event_sequence(game_id, season)
-    return build_frames_from_events(events, fps)
+    return build_frames_from_events(events, fps, full_court)

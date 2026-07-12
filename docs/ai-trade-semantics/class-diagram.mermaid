@@ -1,0 +1,77 @@
+classDiagram
+    class LLMProvider {
+        <<ABC>>
+        +provider_name: str
+        +parse_trade(text: str, team_abbr: str|None = None) dict
+        +is_available() bool
+    }
+
+    class OllamaProvider {
+        -_base_url: str
+        -_model: str
+        -_timeout: float
+        -_temperature: float
+        -_max_retries: int
+        +parse_trade(text, team_abbr) dict
+        -_post_chat(system: str, user: str) str
+        -_extract_json_blob(raw: str) dict
+    }
+
+    class LLMConfig {
+        +provider: str
+        +ollama_base_url: str
+        +ollama_model: str
+        +timeout: float
+        +temperature: float
+        +throttle_sleep: float
+        +max_retries: int
+        +from_env() LLMConfig
+    }
+
+    class CbaAuxDb {
+        <<module: cba_aux_db>>
+        +parse_trade_semantics(text, team_abbr) TradeSemantics
+        +analyze_trade_semantics(season, force) dict
+        -_extract_counterparties(desc, whitelist) List~str~
+        -_team_directory() Dict
+    }
+
+    class TradeSemantics {
+        +counterparties: List~str~
+        +players_out: List~str~
+        +players_in: List~str~
+        +picks: List~str~
+        +cash: float|None
+        +notes: str
+        +raw_text: str
+    }
+
+    class TradeSemanticsDB {
+        <<write-layer: trade_semantics_db>>
+        +ensure_schema() None
+        +upsert(row: TradeSemanticsRow) None
+        +get_by_source_ref(ref: str) dict|None
+        +exists(ref: str) bool
+    }
+
+    class TradeSemanticsRow {
+        +source_ref: str
+        +counterparties: list
+        +players_out: list
+        +players_in: list
+        +picks: list
+        +cash: float|None
+        +notes: str
+        +model: str
+        +fallback: bool
+    }
+
+    LLMProvider <|-- OllamaProvider : implements
+    OllamaProvider --> LLMConfig : reads env
+    CbaAuxDb --> LLMProvider : LLM-first
+    CbaAuxDb --> TradeSemanticsDB : batch write
+    CbaAuxDb ..> TradeSemantics : builds
+    TradeSemanticsDB ..> TradeSemanticsRow : stores
+
+    note for TradeSemanticsDB "唯一含 psycopg2 的模块\n所有 SQL 参数化收口于此"
+    note for CbaAuxDb "零 import psycopg2\n零内联 SQL 子串"

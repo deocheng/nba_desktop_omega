@@ -1,0 +1,37 @@
+sequenceDiagram
+    actor U as 分析师
+    participant F as Cba.js (L4)
+    participant R as /cba Router (L3)
+    participant D as cba_aux_db (L2)
+    participant E as cba_aux (L2)
+    U->>F: 选球队 + is_all_nba 开关
+    F->>R: GET /cba/team/{abbr}?season=2025-26&is_all_nba=false
+    R->>D: load_team(abbr, season, is_all_nba)
+    D->>E: Team.add_player(Player(...))
+    D-->>R: Team（域对象）
+    loop 每位球员
+        R->>E: team.get_cap_hold(player)
+        R->>E: player.get_max_salary_pct()
+    end
+    R->>E: team.total_salary()
+    R-->>F: {code,data:{players[],team_total,status,rules,approx},message}
+    F->>F: 渲染表 + fmtMoney() 仅展示格式化
+
+---
+
+sequenceDiagram
+    actor U as 分析师
+    participant F as Cba.js (L4)
+    participant R as /cba Router (L3)
+    participant D as cba_aux_db (L2)
+    participant E as cba_aux (L2)
+    U->>F: 勾选多队 → 模拟
+    F->>R: GET /cba/league/summary?season=2025-26
+    R->>D: load_league(season)
+    D->>E: LeagueSimulator.add_team(Team...)
+    D-->>R: LeagueSimulator
+    R->>E: sim.snapshot()
+    E-->>R: [{team,total_salary,status}...]
+    R-->>F: {code,data:{teams[],rules,thresholds},message}
+    F->>F: ECharts 柱状 + markLine 阈值 + 状态着色（颜色映射来自 data，非前端计算）
+    Note over F,R: POST /cba/league/simulate 同理：可选 trade 操作后调用 snapshot()

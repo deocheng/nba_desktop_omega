@@ -47,8 +47,9 @@
     root.innerHTML = buildShell();
 
     // 2) 挂载战术板播放引擎（clutch 模式：仅球场 + 控制条 + 侧栏/高亮插槽）
+    //    复用 tactics 播放引擎，全场双筐（clutch 的 frames 来自 full_court 回放）
     if (window.Tactics && typeof window.Tactics.render === 'function') {
-      window.Tactics.render('clutchPlayerMount', 'clutch');
+      window.Tactics.render('clutchPlayerMount', 'clutch', 'full');
     } else {
       var mount = document.getElementById('clutchPlayerMount');
       if (mount) mount.innerHTML = '<div class="card" style="padding:20px;color:var(--danger)">播放引擎未加载</div>';
@@ -140,8 +141,8 @@
       currentMeta = data.meta || {};
       currentSegments = data.clutch_segments || [];
 
-      // 注入帧序列并启动播放引擎
-      window.Tactics.setFrames(data.frames || [], data.meta || {});
+      // 注入帧序列并启动播放引擎（events 透传以驱动 PBP 解说条；无则留空）
+      window.Tactics.setFrames(data.frames || [], data.meta || {}, data.events || []);
       drawSidebar(data.clutch_players || []);
 
       // 经锁定共享契约 Timeline.mount 渲染高亮轨道（DRY；录像库 video_library.js 亦复用同一组件）

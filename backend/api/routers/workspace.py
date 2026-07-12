@@ -22,21 +22,27 @@ from backend.api.schemas import (
     WorkspaceResponse,
     WorkspaceUpdate,
 )
+from backend.api.routers.analytics_builder_schemas import FlowCreate, FlowResponse, FlowUpdate
 from backend.services.workspace_engine import (
     WorkspaceValidationError,
     add_chart,
     add_dataset,
+    add_flow,
     add_formula,
     create,
     delete,
     duplicate,
     get_chart,
+    get_flow,
+    list_flows,
     list_workspaces,
     load,
     remove_chart,
     remove_dataset,
+    remove_flow,
     remove_formula,
     update_chart,
+    update_flow,
     update_workspace,
 )
 
@@ -166,6 +172,54 @@ def delete_chart_endpoint(workspace_id: int, chart_id: int):
     if not remove_chart(chart_id):
         raise _not_found(workspace_id)
     return None
+
+
+# ── Analysis Flows (v8.3.2) ──
+# All flows endpoints return the project-wide envelope {code, data, message}
+# (v8 §7 shared-knowledge #1). ZERO SQL here — delegation to workspace_manager.
+
+@router.post("/{workspace_id}/flows", status_code=201)
+def create_flow_endpoint(workspace_id: int, payload: FlowCreate):
+    if load(workspace_id) is None:
+        raise _not_found(workspace_id)
+    flow_id = add_flow(workspace_id, payload.name, payload.definition)
+    flow = get_flow(flow_id)
+    return {"code": 0, "data": FlowResponse(**flow).model_dump(), "message": "ok"}
+
+
+@router.get("/{workspace_id}/flows")
+def list_flows_endpoint(workspace_id: int):
+    if load(workspace_id) is None:
+        raise _not_found(workspace_id)
+    flows = [FlowResponse(**f).model_dump() for f in list_flows(workspace_id)]
+    return {"code": 0, "data": flows, "message": "ok"}
+
+
+@router.get("/{workspace_id}/flows/{flow_id}")
+def get_flow_endpoint(workspace_id: int, flow_id: int):
+    flow = get_flow(flow_id)
+    if flow is None or flow.get("workspace_id") != workspace_id:
+        raise _not_found(workspace_id)
+    return {"code": 0, "data": FlowResponse(**flow).model_dump(), "message": "ok"}
+
+
+@router.put("/{workspace_id}/flows/{flow_id}")
+def update_flow_endpoint(workspace_id: int, flow_id: int, payload: FlowUpdate):
+    flow = get_flow(flow_id)
+    if flow is None or flow.get("workspace_id") != workspace_id:
+        raise _not_found(workspace_id)
+    updated = update_flow(flow_id, name=payload.name, definition=payload.definition)
+    return {"code": 0, "data": FlowResponse(**updated).model_dump(), "message": "ok"}
+
+
+@router.delete("/{workspace_id}/flows/{flow_id}")
+def delete_flow_endpoint(workspace_id: int, flow_id: int):
+    flow = get_flow(flow_id)
+    if flow is None or flow.get("workspace_id") != workspace_id:
+        raise _not_found(workspace_id)
+    if not remove_flow(flow_id):
+        raise _not_found(workspace_id)
+    return {"code": 0, "data": {"deleted": True}, "message": "ok"}
 
 
 # ── Export (.nbacore) ──

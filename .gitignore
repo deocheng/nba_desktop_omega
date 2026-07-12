@@ -57,3 +57,8 @@ test_*.py.bak
 *.pkl
 *.pickle
 crawl_status.json
+
+# Cleanup artifacts (2026-07-12 housekeeping)
+.pdf_extract/
+replay_verify.json
+scratch_archive/

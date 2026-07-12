@@ -67,7 +67,7 @@ def build_clutch_players_sql(
     clutch_base AS (
         SELECT
             gameid, eventnum, period, clock_seconds,
-            season, source, team, playerid, player,
+            season, source, team, COALESCE(playerid, br_player_id) AS playerid, player,
             event_type, subtype, description,
             h_pts, a_pts,
             CASE WHEN source = 'BBRef' THEN {parse_margin} ELSE NULL END AS base_margin
@@ -204,7 +204,7 @@ def build_clutch_events_sql(
     clutch_base AS (
         SELECT
             gameid, eventnum, period, clock_seconds,
-            season, source, team, playerid, player,
+            season, source, team, COALESCE(playerid, br_player_id) AS playerid, player,
             h_pts, a_pts,
             CASE WHEN source = 'BBRef' THEN {parse_margin} ELSE NULL END AS base_margin
         FROM dedup

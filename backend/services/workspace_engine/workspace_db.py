@@ -60,9 +60,18 @@ CREATE TABLE IF NOT EXISTS workspace_charts (
     chart_config JSONB NOT NULL DEFAULT '{}'::jsonb,
     created_at   TIMESTAMP NOT NULL DEFAULT now()
 );
+CREATE TABLE IF NOT EXISTS analysis_flows (
+    id            SERIAL PRIMARY KEY,
+    workspace_id  INTEGER NOT NULL,
+    name          TEXT NOT NULL DEFAULT 'flow',
+    definition_json JSONB NOT NULL,
+    created_at    TIMESTAMP NOT NULL DEFAULT now(),
+    updated_at    TIMESTAMP NOT NULL DEFAULT now()
+);
 CREATE INDEX IF NOT EXISTS ix_ws_datasets_ws ON workspace_datasets(workspace_id);
 CREATE INDEX IF NOT EXISTS ix_ws_formulas_ws ON workspace_formulas(workspace_id);
 CREATE INDEX IF NOT EXISTS ix_ws_charts_ws   ON workspace_charts(workspace_id);
+CREATE INDEX IF NOT EXISTS ix_analysis_flows_ws ON analysis_flows(workspace_id);
 """
 
 
@@ -225,6 +234,9 @@ def delete_workspace(workspace_id: int) -> bool:
             )
             cur.execute(
                 "DELETE FROM workspace_charts WHERE workspace_id = %s", (workspace_id,)
+            )
+            cur.execute(
+                "DELETE FROM analysis_flows WHERE workspace_id = %s", (workspace_id,)
             )
             cur.execute("DELETE FROM workspaces WHERE id = %s", (workspace_id,))
             deleted = cur.rowcount
@@ -456,6 +468,105 @@ def copy_links(target_id: int, source_id: int) -> None:
                 "WHERE workspace_id = %s",
                 (target_id, source_id),
             )
+            cur.execute(
+                "INSERT INTO analysis_flows (workspace_id, name, definition_json) "
+                "SELECT %s, name, definition_json FROM analysis_flows "
+                "WHERE workspace_id = %s",
+                (target_id, source_id),
+            )
         conn.commit()
+    finally:
+        _put(conn)
+
+
+# ── Analysis Flows (v8.3.2) ──
+
+def insert_flow(workspace_id: int, name: str, definition: dict) -> int:
+    ensure_schema()
+    conn = _conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO analysis_flows (workspace_id, name, definition_json) "
+                "VALUES (%s, %s, %s) RETURNING id",
+                (workspace_id, name, Json(definition)),
+            )
+            row = cur.fetchone()
+        conn.commit()
+        return row["id"]
+    finally:
+        _put(conn)
+
+
+def update_flow(
+    flow_id: int,
+    name: str | None = None,
+    definition: dict | None = None,
+) -> dict | None:
+    ensure_schema()
+    sets: list[str] = []
+    params: list[Any] = []
+    if name is not None:
+        sets.append("name = %s")
+        params.append(name)
+    if definition is not None:
+        sets.append("definition_json = %s")
+        params.append(Json(definition))
+    if not sets:
+        return select_flow(flow_id)
+    sets.append("updated_at = now()")
+    params.append(flow_id)
+    conn = _conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"UPDATE analysis_flows SET {', '.join(sets)} "
+                f"WHERE id = %s RETURNING *",
+                tuple(params),
+            )
+            row = cur.fetchone()
+        conn.commit()
+        return dict(row) if row else None
+    finally:
+        _put(conn)
+
+
+def delete_flow(flow_id: int) -> bool:
+    ensure_schema()
+    conn = _conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM analysis_flows WHERE id = %s", (flow_id,))
+            n = cur.rowcount
+        conn.commit()
+        return n > 0
+    finally:
+        _put(conn)
+
+
+def select_flow(flow_id: int) -> dict | None:
+    ensure_schema()
+    conn = _conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT * FROM analysis_flows WHERE id = %s", (flow_id,))
+            row = cur.fetchone()
+        return dict(row) if row else None
+    finally:
+        _put(conn)
+
+
+def select_flows(workspace_id: int) -> list[dict]:
+    ensure_schema()
+    conn = _conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, workspace_id, name, updated_at "
+                "FROM analysis_flows WHERE workspace_id = %s ORDER BY id",
+                (workspace_id,),
+            )
+            rows = cur.fetchall()
+        return [dict(r) for r in rows]
     finally:
         _put(conn)

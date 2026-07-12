@@ -43,6 +43,46 @@ AWAY_COLOR: str = "#ef4444"  # 红（客队）
 DEFAULT_HOME_Y: float = 50.0
 DEFAULT_AWAY_Y: float = 85.0
 
+# 篮筐像素坐标（半场 SVG）：viewBox "0 0 500 470"，篮筐圆心 (250, 462)。
+# 用于投篮坐标缺失（(0,0)）时的兜底落点，保证球「落篮下」且绝不为 (0,0)。
+RIM_PX = (SVG_W / 2.0, 462.0)
+
+# ── 全场（广播视角）SVG 尺寸：保持 94:50 真实比例，1:1 像素 ──
+# 双篮筐分列左右两端（左端 (0,250)、右端 (940,250)）。
+FULL_SVG_W: int = 940   # 94 ft × 10 = 940 单位
+FULL_SVG_H: int = 500   # 50 ft × 10 = 500 单位
+
+# 双篮筐像素（全场广播视角）：左端 (0,250)、右端 (940,250)
+RIM_PX_LEFT = (0.0, FULL_SVG_H / 2.0)            # (0.0, 250.0)
+RIM_PX_RIGHT = (FULL_SVG_W, FULL_SVG_H / 2.0)    # (940.0, 250.0)
+
+
+def map_xy_to_svg_full(x: float, y: float) -> "tuple[float, float]":
+    """NBA (x, y) → 全场 SVG 像素（广播视角，篮筐在左右两端）。
+
+    x ∈ [-250, 250] 横向；y ∈ [0, 940] 纵向（0=左底线，940=右底线）。
+      sx = y * (FULL_SVG_W / FULL_COURT_Y)  → y=0→左端(0)，y=940→右端(940)
+      sy = (x + 250) * (FULL_SVG_H / 500)  → x=-250→顶(0)，x=250→底(500)
+
+    源为全场帧，实测有少量越界（如 y<0 落在底线后），先 clamp 到合法场地范围
+    （与半场 map_xy_to_svg 经 _fold_half 的 clamp 对齐），保证结果全部落在
+    [0, 940] × [0, 500]，无越界。对名义范围内输入（设计边界表）无影响。
+    确定性、无副作用。
+    """
+    xc = max(-250.0, min(float(x), 250.0))
+    yc = max(0.0, min(float(y), FULL_COURT_Y))
+    sx = yc * (FULL_SVG_W / FULL_COURT_Y)
+    sy = (xc + 250.0) * (FULL_SVG_H / 500.0)
+    return (sx, sy)
+
+
+def nearest_rim(x: float, y: float) -> "tuple[float, float]":
+    """坐标缺失/(0,0) 投篮的兜底落点：按 shooter 所在半场选就近篮筐。
+
+    y < 470（左半场）→ 左筐；否则 → 右筐。绝不返回 (0, 0)。
+    """
+    return RIM_PX_LEFT if float(y) < COURT_HALF_Y else RIM_PX_RIGHT
+
 
 def _fold_half(y: float) -> float:
     """将全场 y 折叠到攻击半场 [0, COURT_HALF_Y]。

@@ -1,0 +1,160 @@
+classDiagram
+    %% ===== 领域模型 =====
+    class PlayerAsset {
+        +str player_id
+        +str player_name
+        +str team_abbr
+        +str season
+        +int salary            %% 当前赛季薪资（美元整数，从 salary_YYYY_YY 取）
+        +int guaranteed        %% 保障额（匹配用，决策③）
+        +bool is_partial
+        +bool is_two_way       %% 双向合同标记（决策④，预处理回填）
+        +str opt_type          %% 'team_option'|'player_option'|null
+        +dict salary_by_season
+        +dict guaranteed_by_season
+        +dict opt_by_season
+        +bool is_byc()
+        +int matching_out_value()  %% 送出端计入额（BYC 取50%）
+        +int matching_in_value()   %% 接收端计入额（BYC 取100%）
+    }
+
+    class TeamTradeLeg {
+        +str team_abbr
+        +str season
+        +list~PlayerAsset~ outgoing
+        +list~PlayerAsset~ incoming
+        +int cash_sent
+        +MatchResult validate(SalaryRuleSet rs, LeagueSalaryRules r, datetime as_of)
+    }
+
+    class TradeProposal {
+        +str league
+        +str season
+        +datetime as_of
+        +list~TeamTradeLeg~ legs
+        +TradeGraph to_graph()
+        +bool is_balanced()
+    }
+
+    class TradeGraph {
+        +str league
+        +str season
+        +dict~str,TeamTradeLeg~ legs_by_team
+        +add_leg(TeamTradeLeg leg)
+        +list~TeamTradeLeg~ teams()
+        +validate_all(SalaryRuleSet rs, LeagueSalaryRules r, datetime as_of) list~MatchResult~
+    }
+
+    %% ===== 规则引擎（可插拔）=====
+    class SalaryRuleSet {
+        <<abstract>>
+        +str league
+        +LeagueSalaryRules load_rules(str season)
+        +MatchResult check_match(TeamTradeLeg leg, LeagueSalaryRules r)
+        +list~ValidationIssue~ check_byc(TeamTradeLeg leg, LeagueSalaryRules r)
+        +list~ValidationIssue~ check_tpe(TeamTradeLeg leg, LeagueSalaryRules r)
+        +list~ValidationIssue~ check_hard_cap(TeamTradeLeg leg, LeagueSalaryRules r)
+        +list~ValidationIssue~ check_apron(TeamTradeLeg leg, LeagueSalaryRules r)
+        +list~ValidationIssue~ check_aggregation(TeamTradeLeg leg, LeagueSalaryRules r)
+        +list~ValidationIssue~ check_freeze(TeamTradeLeg leg, datetime as_of, LeagueSalaryRules r)
+    }
+
+    class NBARuleSet {
+        +str league = "NBA"
+        +MatchResult check_match(TeamTradeLeg leg, LeagueSalaryRules r)
+        +list~ValidationIssue~ check_byc(TeamTradeLeg leg, LeagueSalaryRules r)
+        +list~ValidationIssue~ check_tpe(TeamTradeLeg leg, LeagueSalaryRules r)
+        +list~ValidationIssue~ check_apron(TeamTradeLeg leg, LeagueSalaryRules r)
+        -int _salary_band_out(int x)
+        -int _max_inbound(int outbound, str post_cap_status)
+    }
+
+    class LeagueSalaryRules {
+        +str season
+        +int salary_cap
+        +int luxury_tax
+        +int first_apron
+        +int second_apron
+        +int minimum_team_salary
+        +int mle_non_tax
+        +int mle_tax
+        +int mle_room
+        +dict freeze_calendar
+    }
+
+    class MatchResult {
+        +str team_abbr
+        +str season
+        +bool legal
+        +list~ValidationIssue~ issues
+        +int outbound_guaranteed
+        +int inbound_guaranteed
+        +int max_inbound_allowed
+        +int deficit
+        +dict tpe_generated
+    }
+
+    class ValidationIssue {
+        +str rule_code   %% SALARY_MATCH|BYC|TPE|HARD_CAP|APRON|AGG|FREEZE
+        +str severity    %% error|warn
+        +str message
+        +int amount_delta
+    }
+
+    class CapImpact {
+        +str team_abbr
+        +int payroll_before
+        +int payroll_after
+        +str tax_status_before
+        +str tax_status_after
+        +str apron_status_before
+        +str apron_status_after
+        +bool within_second_apron
+    }
+
+    %% ===== 引擎服务 =====
+    class TaxEngine {
+        +CapImpact compute(str team_abbr, TradeGraph g, LeagueSalaryRules r)
+        +str tax_status(int payroll, LeagueSalaryRules r)
+        +str apron_status(int payroll, LeagueSalaryRules r)
+    }
+
+    class MatchSuggester {
+        +list~Suggestion~ suggest(TeamTradeLeg leg, SalaryRuleSet rs, list~PlayerAsset~ pool)
+        -Suggestion _greedy_add(TeamTradeLeg leg, list~PlayerAsset~ pool)
+        -Suggestion _greedy_remove(TeamTradeLeg leg, list~PlayerAsset~ pool)
+    }
+
+    class ProposalGenerator {
+        +list~TradeProposal~ generate(str target_player, str initiator, SalaryRuleSet rs, LeagueSalaryRules r)
+    }
+
+    class TimelineService {
+        +PlayerTimeline player_timeline(str player_id, str season)
+        +TeamTimeline team_timeline(str team_abbr, str season)
+    }
+
+    class Suggestion {
+        +str team_abbr
+        +list~str~ add_player_ids
+        +list~str~ remove_player_ids
+        +bool passes
+        +int residual_deficit
+    }
+
+    %% ===== 关系 =====
+    TradeProposal "1" *-- "1" TradeGraph : builds
+    TradeGraph "1" *-- "n" TeamTradeLeg : contains
+    TeamTradeLeg "1" *-- "n" PlayerAsset : outgoing/incoming
+    NBARuleSet --|> SalaryRuleSet : implements
+    SalaryRuleSet ..> LeagueSalaryRules : loads
+    SalaryRuleSet ..> MatchResult : produces
+    MatchResult "1" *-- "n" ValidationIssue : contains
+    TaxEngine ..> CapImpact : produces
+    TaxEngine ..> TradeGraph : reads
+    MatchSuggester ..> TeamTradeLeg : evaluates
+    MatchSuggester ..> SalaryRuleSet : uses
+    MatchSuggester ..> Suggestion : produces
+    ProposalGenerator ..> TradeGraph : builds
+    ProposalGenerator ..> SalaryRuleSet : uses
+    TimelineService ..> PlayerAsset : reads

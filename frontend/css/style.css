@@ -952,6 +952,18 @@ body {
 .v81-sub { font-size: 11px; color: var(--text-dim); font-weight: 400; margin-left: 4px; }
 .v81-empty { padding: 30px; text-align: center; color: var(--text-dim); font-size: 13px; }
 
+/* v8.2-C — Peak / Age Curve / Similar Evolution */
+.chart-box { width: 100%; min-height: 380px; }
+.sim-bar { height: 10px; border-radius: 6px; background: linear-gradient(90deg, var(--accent), var(--info)); }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 999px;
+  background: var(--bg-dark, #f1f5f9); border: 1px solid var(--border, #e1e8f0);
+  font-size: 13px; font-weight: 600;
+}
+.chip-x { cursor: pointer; color: var(--text-dim); font-weight: 700; }
+.chip-x:hover { color: var(--danger); }
+
 .v81-reb-rows { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
 .v81-reb-row { display: grid; grid-template-columns: 92px 1fr 56px; align-items: center; gap: 10px; }
 .v81-reb-label { font-size: 12px; color: var(--text-dim); }
@@ -1467,6 +1479,28 @@ body {
 .tactics-speed button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 .tactics-progress { flex: 1; accent-color: var(--accent); }
 .tactics-time { font-family: var(--mono, monospace); font-size: 12px; color: var(--text-dim); min-width: 48px; text-align: right; }
+
+/* ── PBP 文字解说条（随帧同步节次 / 时钟 / 比分 / 解说）── */
+.tactics-pbp-bar {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px;
+}
+.tactics-pbp-score {
+  font-family: var(--mono, monospace);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-bright);
+  letter-spacing: .3px;
+}
+.tactics-pbp-desc {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.45;
+  min-height: 18px;
+}
 
 /* ── Fusion Clutch Replay (clutch-replay page) ── */
 .clutch-layout {

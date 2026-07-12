@@ -18,6 +18,18 @@ from backend.services.tactics_engine.schemas import TacticTemplate
 # 事件标注显示时长（秒），超出后淡出
 ANNOT_HOLD_S: float = 1.5
 
+# 逐段帧数硬上限：控制回放总体积，避免一场 ~600 事件比赛产生数万帧。
+# 旧逻辑每段 n_frames = round(dur * fps) = round(2.0 * 30) = 60 帧，导致
+# ~36k 帧 / ~89MB 的响应体，浏览器加载失败。
+# 前端 rAF 基于 meta.fps 推进，并不要求每段 60 张预计算帧；8 张已足够线性
+# 插值下顺滑播放，且严格保持帧结构（t/players/ball/annotations/event_index）。
+MAX_FRAMES_PER_SEGMENT: int = 8
+
+# 整体帧数软上限：自适应下调逐段帧数，保证「任意场次」总帧数 <= TARGET_TOTAL_FRAMES
+# （事件更多的比赛自动更稀，但播放依旧连贯）。用于满足回放响应 < 15MB 的硬指标。
+# 总帧数 ≈ n_segments * seg_cap + 1，故 seg_cap 自适应为 (TARGET-1) // n_segments。
+TARGET_TOTAL_FRAMES: int = 4000
+
 
 def _lerp(a: Tuple[float, float], b: Tuple[float, float], t: float) -> Tuple[float, float]:
     """线性插值；t∈[0,1]。"""
@@ -45,12 +57,23 @@ def build_frames(events: List, fps: int = 30) -> List[dict]:
     fps = max(1, int(fps))
     n = len(events)
     times = [e.global_t for e in events]
+    # 自适应逐段帧数上限：保证总帧数不超过 TARGET_TOTAL_FRAMES（与事件数无关）。
+    # 旧逻辑每段无上限 -> 一场 ~600 事件比赛 ~36k 帧 / ~89MB，前端加载失败。
+    # 通过 seg_cap 把每段帧数压到 MAX_FRAMES_PER_SEGMENT 以内，并进一步按事件数
+    # 自适应收紧，确保任意场次总帧数 <= TARGET_TOTAL_FRAMES（硬指标 < 15MB）。
+    n_segments = max(1, n - 1)
+    seg_cap = MAX_FRAMES_PER_SEGMENT
+    if TARGET_TOTAL_FRAMES and n_segments > 0:
+        # 总帧数 ≈ n_segments * seg_cap + 1，故 seg_cap 上限为 (TARGET-1)//n_segments
+        seg_cap = min(seg_cap, max(1, (TARGET_TOTAL_FRAMES - 1) // n_segments))
     frames: List[dict] = []
 
     for i in range(n - 1):
         e0, e1 = events[i], events[i + 1]
         dur = max(0.0, times[i + 1] - times[i])
-        n_frames = max(1, int(round(dur * fps)))
+        # 每段帧数 = min(round(dur*fps), seg_cap)：既保留线性插值的连贯，
+        # 又把体量压到满足 < 15MB 的硬指标（帧结构不变，前端零改动即可消费）。
+        n_frames = max(1, min(int(round(dur * fps)), seg_cap))
         for f in range(0, n_frames + 1):
             if i > 0 and f == 0:
                 continue  # 跳过与上段末帧重复的帧
@@ -69,12 +92,23 @@ def build_frames(events: List, fps: int = 30) -> List[dict]:
                     players.append(dict(sn0[k]))
                 else:
                     players.append(dict(sn1[k]))
-            # 篮球插值
-            b0, b1 = e0.ball, e1.ball
-            bx = b0["x_px"] + (b1["x_px"] - b0["x_px"]) * frac
-            by = b0["y_px"] + (b1["y_px"] - b0["y_px"]) * frac
-            ball = {"x_px": round(bx, 2), "y_px": round(by, 2),
-                    "holder": b1.get("holder")}
+            # 篮球插值：按「段起始持球人」e0.ball["holder"] 的精灵插值位置跟踪，
+            # 而非直接 e0.ball → e1.ball（否则球会飞向非持球 actor）。
+            # holder 为 None（投篮出手后 / loose ball）时停在段起始篮球位置。
+            b0 = e0.ball
+            holder = b0.get("holder")
+            if holder and holder in sn0 and holder in sn1:
+                p0, p1 = sn0[holder], sn1[holder]
+                bx = p0["x_px"] + (p1["x_px"] - p0["x_px"]) * frac
+                by = p0["y_px"] + (p1["y_px"] - p0["y_px"]) * frac
+            elif holder and holder in sn0:
+                bx, by = sn0[holder]["x_px"], sn0[holder]["y_px"]
+            elif holder and holder in sn1:
+                bx, by = sn1[holder]["x_px"], sn1[holder]["y_px"]
+            else:
+                # 无持球人（出手/loose ball）→ 球停在段起始点，不飞向他人
+                bx, by = b0["x_px"], b0["y_px"]
+            ball = {"x_px": round(bx, 2), "y_px": round(by, 2), "holder": holder}
             # 标注：事件 i 的标注在 ANNOT_HOLD_S 内持续显示（支持多气泡）
             annotations: List[dict] = []
             for a in (e0.annotation or []):

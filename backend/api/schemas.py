@@ -339,7 +339,7 @@ class TrendResponse(BaseModel):
 class GameRow(BaseModel):
     """A single game in an entity's schedule (with context)."""
     game_id: str
-    game_date: str
+    game_date: str | None = None
     opponent: str | None = None
     is_home: bool = False
     result: str | None = None  # 'W' | 'L' | 'T' | None

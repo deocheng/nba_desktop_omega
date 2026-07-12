@@ -67,6 +67,28 @@ FROM team_payroll
 WHERE season = %s AND team_abbr = ANY(%s)
 """
 
+# 交易读取（transaction_type = 'Traded'，参数化；team_abbr 走 %s）
+_SQL_TRADES_ALL = """
+SELECT id, transaction_date, team_abbr, description
+FROM transactions
+WHERE transaction_type = 'Traded'
+ORDER BY transaction_date
+"""
+
+_SQL_TRADES_TEAM = """
+SELECT id, transaction_date, team_abbr, description
+FROM transactions
+WHERE transaction_type = 'Traded' AND team_abbr = %s
+ORDER BY transaction_date
+"""
+
+# 球队目录（缩写 <-> 全名 白名单，供交易 counterparties 解析）
+_SQL_TEAM_DIRECTORY = """
+SELECT DISTINCT team_abbr, team_name
+FROM team_payroll
+ORDER BY team_abbr
+"""
+
 # ── 专用写连接池（与只读 batch_query 池隔离） ──
 _write_pool: Optional[ThreadedConnectionPool] = None
 
@@ -219,6 +241,42 @@ def load_team_payrolls(
             },
         }
     return out
+
+
+def get_team_directory() -> List[dict]:
+    """读取球队目录（team_abbr + team_name）去重集，作为交易解析白名单。
+
+    只读 batch_query；无用户输入，SQL 常量写死。
+    """
+    return core_db.batch_query(_SQL_TEAM_DIRECTORY)
+
+
+def get_team_player_rows(
+    team_abbrs: List[str], season: str
+) -> List[dict]:
+    """按球队批量读取 player_contracts 原始行（含 age 与 salary_* 列）。
+
+    复用 ``_SQL_TEAM_PLAYERS`` 常量，返回 RealDict 行（不转 PlayerAsset），
+    供 cba_aux_db 做 age -> yos 映射。只读 batch_query，参数化 ANY。
+    """
+    if not team_abbrs:
+        return []
+    return core_db.batch_query(_SQL_TEAM_PLAYERS, (season, list(team_abbrs)))
+
+
+def get_trades(team_abbr: Optional[str] = None) -> List[dict]:
+    """读取交易记录（transaction_type = 'Traded'）。
+
+    Args:
+        team_abbr: 可选球队缩写过滤；为 None 时返回全部交易。
+
+    Returns:
+        每行 dict：id, transaction_date, team_abbr, description
+        （按 transaction_date 升序）。只读 batch_query，team_abbr 走 %s 参数。
+    """
+    if team_abbr is None:
+        return core_db.batch_query(_SQL_TRADES_ALL)
+    return core_db.batch_query(_SQL_TRADES_TEAM, (team_abbr,))
 
 
 # ── 写路径（专用写池 + 参数化 SQL） ──

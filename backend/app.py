@@ -28,9 +28,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from backend.api.routers import (
-    batch, charts, clutch, clutch_replay, context, crawler, data_import, export,
-    games, intelligence, leaderboard, metrics, monitor, players, system, teams,
-    trade, tactics, video_library, vs, workspace,
+    analytics_builder, batch, career, cba_aux, charts, clutch, clutch_replay,
+    context, crawler, data_import, draft, export, games, intelligence, leaderboard,
+    metrics, monitor, players, system, teams, trade, tactics, video_library, vs,
+    workspace,
 )
 from backend.core import config
 from backend.core.db import close_pool, init_pool, ping
@@ -129,11 +130,15 @@ def create_app() -> FastAPI:
     app.include_router(intelligence.router)
     app.include_router(workspace.router)
     app.include_router(data_import.router)
+    app.include_router(draft.router)
     app.include_router(clutch.router)
     app.include_router(clutch_replay.router)
+    app.include_router(career.router)
+    app.include_router(cba_aux.router)
     app.include_router(trade.router)
     app.include_router(tactics.router)
     app.include_router(video_library.router)
+    app.include_router(analytics_builder.router)
 
     # Phase 4: mount frontend static files (Layer 4 — pure render)
     from pathlib import Path

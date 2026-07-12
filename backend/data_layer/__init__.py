@@ -32,6 +32,8 @@ from backend.data_layer.temp_loader import (
 from backend.data_layer.joins import (
     load_player_gamelog_with_game_context,
     load_player_season_stats_with_bio,
+    join_player_weight,
+    select_weight_cols,
 )
 from backend.data_layer.entity_loader import (
     load_player_games_aggregated,
@@ -105,6 +107,9 @@ __all__ = [
     # Phase 1 — join loaders
     "load_player_gamelog_with_game_context",
     "load_player_season_stats_with_bio",
+    # A2 — parameterized weight JOIN-at-read helper
+    "join_player_weight",
+    "select_weight_cols",
     # v8 Entity Detail — aggregation + season discovery
     "load_player_games_aggregated",
     "load_player_seasons",

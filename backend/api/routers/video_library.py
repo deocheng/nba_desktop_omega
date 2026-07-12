@@ -74,7 +74,7 @@ def get_playback(gameid: str, season: str = "2025", perspective: str = "viewer")
 
 @router.post("/source")
 def post_source(req: schemas.UpsertVideoSourceRequest):
-    """Add or update a video source for one game (UPSERT, dedicated write pool)."""
+    """Add or replace a video source for one game (UPSERT, dedicated write pool)."""
     try:
         result = _svc.upsert_video_source(req)
         return {"code": 0, "data": result.model_dump(), "message": "ok"}
@@ -86,12 +86,12 @@ def post_source(req: schemas.UpsertVideoSourceRequest):
 
 @router.delete("/source/{gameid}")
 def delete_source(gameid: str, season: str = "2025"):
-    """Delete the video source for one game."""
+    """Remove the video source for one game."""
     try:
         deleted = _svc.delete_video_source(gameid, season)
         return {"code": 0, "data": {"deleted": deleted}, "message": "ok"}
     except Exception as exc:  # noqa: BLE001
-        return {"code": 50000, "data": None, "message": f"delete failed: {exc}"}
+        return {"code": 50000, "data": None, "message": f"removal failed: {exc}"}
 
 
 @router.post("/bulk")

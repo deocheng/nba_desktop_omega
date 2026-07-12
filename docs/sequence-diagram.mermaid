@@ -1,0 +1,37 @@
+sequenceDiagram
+    autonumber
+    participant FE as 前端 tactics.js (Layer 4)
+    participant RT as /tactics/replay (router, 纯编排)
+    participant SV as TacticsService.replay
+    participant DB as db.load_pbp_events (Layer 1, 参数化SQL)
+    participant RE as resolve_positions(full_court=True)
+    participant AN as animation.build_frames
+    participant CB as 解说条 updateCommentary
+
+    Note over FE: 加载回放 loadGame(gid, season)
+    FE->>RT: POST /tactics/replay {game_id, season, frame_rate}
+    RT->>SV: replay(ReplayRequest)
+    SV->>DB: SELECT gameid,season,period,clock_seconds,event_type,subtype,<br/>action_verb,player,player2_name,team,x,y,dist,description,h_pts,a_pts<br/>FROM play_by_play WHERE gameid=%s AND season=%s::int AND source='br_crawler'<br/>ORDER BY period ASC, clock_seconds DESC, id ASC
+    DB-->>SV: List[PbPEvent] (含 description / h_pts / a_pts)
+    SV->>RE: resolve_positions(events, full_court=True)
+    RE->>RE: 投篮→map_xy_to_svg_full / (0,0)→full_court_rim(y)<br/>非投篮→mp(default) ; 篮球初值(470,250)
+    RE-->>SV: List[ResolvedEvent] (全场 px ∈ [0,940]x[0,500])
+    SV->>AN: build_frames(resolved, fps)
+    AN-->>SV: frames (仅像素插值, 帧数≤5000)
+    SV->>SV: 收集 events: 前向填充 score_h/score_a<br/>events[i] = {event_index, period, clock_seconds, description, team, action_verb, player, player2, score_h, score_a}
+    SV-->>RT: {frames, events, meta:{court:{mode:"full",w:940,h:500}, fps, ...}}
+    RT-->>FE: {code:0, data:{frames, events, meta}}
+
+    FE->>FE: setFrames(frames, meta, events)<br/>meta.court.mode=="full" → buildCourt('full') → drawFullCourt()
+    loop requestAnimationFrame (tick / seek / progress)
+        FE->>FE: renderFrame(帧 px) — 仅消费 x_px/y_px
+        FE->>CB: updateCommentary(events, frames[cur].event_index)
+        CB->>CB: 取 events 中 event_index <= cur 的最大一条<br/>渲染 description + "Q{period} {M:SS} | {score_h}-{score_a}"
+        CB-->>FE: 仅更新文字节点 (不重绘球场)
+    end
+
+    Note over FE,RT: 战术板模板 (对比, 不受影响)
+    FE->>SV: render_template(id, fps)
+    SV->>AN: build_frames_from_template(tpl) — map_xy_to_svg (半场 500x470)
+    SV-->>FE: {frames (半场 px), meta:{w:500,h:470}}
+    FE->>FE: setFrames → buildCourt('half') → 现有半场底图

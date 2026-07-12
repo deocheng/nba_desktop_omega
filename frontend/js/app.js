@@ -106,10 +106,16 @@ function nav(page) {
   if (page === 'intelligence') loadIntelligencePage();
   if (page === 'workspace') loadWorkspacePage();
   if (page === 'clutch') loadClutchPage();
+  if (page === 'peak') loadPeakPage();
+  if (page === 'age-curve') loadAgeCurvePage();
+  if (page === 'similar-evolution') loadSimilarEvoPage();
   if (page === 'trade') loadTradePage();
   if (page === 'tactics') loadTacticsPage();
   if (page === 'clutch-replay') loadClutchReplayPage();
   if (page === 'video-library') loadVideoLibraryPage();
+  if (page === 'analytics-builder') loadAnalyticsBuilderPage();
+  if (page === 'cba') loadCbaPage();
+  if (page === 'draft') loadDraftPage();
   setTimeout(resizeAllCharts, 50);
 }
 
@@ -117,6 +123,27 @@ function nav(page) {
 function loadClutchPage() {
   if (window.Clutch && typeof window.Clutch.render === 'function') {
     window.Clutch.render('clutchRoot');
+  }
+}
+
+// ── Peak Page (v8.2-C) ──
+function loadPeakPage() {
+  if (window.Peak && typeof window.Peak.render === 'function') {
+    window.Peak.render('peakRoot');
+  }
+}
+
+// ── Age Curve Page (v8.2-C) ──
+function loadAgeCurvePage() {
+  if (window.AgeCurve && typeof window.AgeCurve.render === 'function') {
+    window.AgeCurve.render('ageCurveRoot');
+  }
+}
+
+// ── Similar Evolution Page (v8.2-C) ──
+function loadSimilarEvoPage() {
+  if (window.SimilarEvo && typeof window.SimilarEvo.render === 'function') {
+    window.SimilarEvo.render('similarEvoRoot');
   }
 }
 
@@ -146,6 +173,114 @@ function loadVideoLibraryPage() {
   if (window.VideoLibrary && typeof window.VideoLibrary.renderList === 'function') {
     window.VideoLibrary.renderList('videoLibraryRoot');
   }
+}
+
+// ── Analytics Builder Page (v8.3.2) ──
+function loadAnalyticsBuilderPage() {
+  if (window.AnalyticsBuilder && typeof window.AnalyticsBuilder.render === 'function') {
+    window.AnalyticsBuilder.render('analyticsBuilderRoot');
+  }
+}
+
+// ── CBA Aux Page (v8.3.2+ · T01/T02) ──
+function loadCbaPage() {
+  if (window.Cba && typeof window.Cba.render === 'function') {
+    window.Cba.render('cbaRoot');
+  }
+}
+
+// ── Draft History Page (A1-4: BR-link graceful degradation) ──
+// Read-only render of /draft/history. No aggregation / coordinate math — the
+// backend returns weight (A2 JOIN-at-read) + an in_dim_players flag that tells
+// us whether the player's BBR id resolves to a master player. When it does not,
+// we render "无资料" instead of a clickable dead BR link.
+let currentDraftSeason = null;
+
+function populateDraftSeasons() {
+  const sel = document.getElementById('draftSeasonSelect');
+  if (!sel || sel.children.length > 0) return;
+  const thisYear = new Date().getFullYear();
+  const opts = [];
+  for (let y = thisYear; y >= 1947; y--) {
+    opts.push(`<option value="${y}">${y}</option>`);
+  }
+  sel.innerHTML = opts.join('');
+  sel.value = String(thisYear);
+}
+
+function loadDraftPage() {
+  populateDraftSeasons();
+  const sel = document.getElementById('draftSeasonSelect');
+  const season = sel ? Number(sel.value) : null;
+  currentDraftSeason = season;
+
+  const tbody = document.getElementById('draftTableBody');
+  if (tbody) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--text-dim);">
+      <div class="spinner"></div> ${I18N.t('draft.loading')}
+    </td></tr>`;
+  }
+
+  let url = '/draft/history?limit=5000';
+  if (season) {
+    url += '&season=' + season;
+  }
+
+  api(url).then(d => renderDraft(d)).catch(e => {
+    const tb = document.getElementById('draftTableBody');
+    if (tb) {
+      tb.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--danger);">
+        ${I18N.t('draft.failedToLoad')}: ${escapeHtml(e.message)}
+      </td></tr>`;
+    }
+  });
+}
+
+function renderDraft(data) {
+  const tbody = document.getElementById('draftTableBody');
+  if (!tbody) return;
+  const rows = (data && data.rows) || [];
+  const countEl = document.getElementById('draftCount');
+  if (countEl) countEl.textContent = (data && data.count != null ? data.count : rows.length);
+
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--text-dim);">
+      ${I18N.t('common.noData')}
+    </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => {
+    const pid = r.player_id || '';
+    const name = escapeHtml(r.player_name || r.player_name_orig || pid || I18N.t('common.unknown'));
+    const round = r.round != null ? r.round : '—';
+    const pick = r.pick_overall != null ? r.pick_overall : '—';
+    const team = escapeHtml(r.team_abbr || '—');
+    const wLbs = (r.weight_lbs != null) ? r.weight_lbs : '—';
+    const wKg = (r.weight_kg != null) ? r.weight_kg : '—';
+
+    // A1-4: degrade BR link to "无资料" when player not in dim_players.
+    let brCell;
+    if (r.in_dim_players) {
+      const brUrl = 'https://www.basketball-reference.com/players/'
+        + encodeURIComponent(pid.charAt(0).toLowerCase())
+        + '/' + encodeURIComponent(pid.toLowerCase()) + '.html';
+      brCell = `<a href="${brUrl}" target="_blank" rel="noopener" style="color:var(--accent); text-decoration:none;">↗ BR</a>`;
+    } else {
+      brCell = `<span class="badge badge-dim" style="background:var(--bg-dark); color:var(--text-dim);">${I18N.t('draft.noData')}</span>`;
+    }
+
+    return `<tr>
+      <td>${r.season != null ? r.season : '—'}</td>
+      <td style="text-align:center;">${round}</td>
+      <td style="text-align:right; font-family:var(--mono);">${pick}</td>
+      <td><span class="badge badge-blue">${team}</span></td>
+      <td style="font-weight:600;">${name}</td>
+      <td style="text-align:right; font-family:var(--mono);">${wLbs}</td>
+      <td style="text-align:right; font-family:var(--mono);">${wKg}</td>
+      <td style="text-align:center;">${brCell}</td>
+    </tr>`;
+  }).join('');
 }
 
 // ── Server Status ──

@@ -130,12 +130,15 @@ class ReplayMeta(BaseModel):
 
 
 class ReplayResult(BaseModel):
-    """回放结果（帧序列 + 元数据）。"""
+    """回放结果（帧序列 + 元数据 + PBP 文字解说）。"""
 
     game_id: str
     season: str
     frames: List[ReplayFrame] = Field(default_factory=list)
     meta: ReplayMeta
+    # PBP 文字解说（PbPEvent 的精简投影），与 frames 同序、按 event_index 对应。
+    # 顶层独立数组，不塞进每帧，控制响应体体积（< 15MB 红线）。
+    events: List[dict] = Field(default_factory=list)
 
 
 class TacticGenerateRequest(BaseModel):
@@ -163,6 +166,11 @@ class PbPEvent(BaseModel):
     x: int = 0
     y: int = 0
     dist: int = 0
+    # PBP 文字解说（数据源仅 `description` 100% 填充；homedescription/visitordescription
+    # 在本数据源全为 NULL）。h_pts/a_pts 仅得分行非空，前端做末次非空向前填充。
+    description: str = ""
+    h_pts: float = 0.0
+    a_pts: float = 0.0
 
 
 class GameMeta(BaseModel):

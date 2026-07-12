@@ -1,6 +1,9 @@
 """NBACore v8 §2 Layer 3 — API routers package."""
 from backend.api.routers import (
+    analytics_builder,
     batch,
+    career,
+    cba_aux,
     charts,
     clutch,
     clutch_replay,
@@ -24,7 +27,10 @@ from backend.api.routers import (
 )
 
 __all__ = [
+    "analytics_builder",
     "batch",
+    "career",
+    "cba_aux",
     "charts",
     "clutch",
     "clutch_replay",
