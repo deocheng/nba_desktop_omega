@@ -1,0 +1,83 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# v8 Runtime artifacts
+.cache/
+.env
+*.log
+
+# Build
+dist/
+build/
+*.spec.bak
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Docker
+*.pid
+
+# PyInstaller build artifacts
+build/
+dist/
+*.spec.bak
+NBACore.spec.bak
+__pycache__/
+
+# IDE / Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temp / scratch scripts
+_check_*.py
+_temp_*.py
+test_*.py.bak
+
+# Workbuddy / AI assistant memory
+.workbuddy/
+
+# Database files (if any)
+*.db
+*.sqlite
+*.sqlite3
+
+# Data files
+*.csv
+*.csv.gz
+*.parquet
+*.pkl
+*.pickle
+crawl_status.json
+
+# Cleanup artifacts (2026-07-12 housekeeping)
+.pdf_extract/
+replay_verify.json
+scratch_archive/
+
+# ── Secrets / 凭据（P0-1 加固：禁止提交明文机密）──
+*.out
+*_cookies.json
+br_cookies/
+.uc_br_profile/
+.uc_pbp_profile/
+pg_hba.conf.bak.*
+# 注意: .env 已在上方忽略；真实 DB_PASSWORD 仅存于 .env（本地、gitignored）
+
+# ── 原始爬虫归档 / 大体积数据（绝不入库）──
+# raw_archive 是双爬虫原始落盘（BR html / ESPN json），现 ~1.8GB 且持续增长
+raw_archive/
+# pbp_raw 是旧版 BR PBP 原始 HTML 落盘（759 个 .html / ~287MB），非源码
+pbp_raw/
+# 派生报告（PDF 等）不入源码库
+*.pdf
+# Node 依赖（若前端子项目存在）
+node_modules/

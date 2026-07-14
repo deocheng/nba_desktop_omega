@@ -1,0 +1,31 @@
+classDiagram
+    class games {
+        +text game_id  "BR id (season 2025/2026) / numeric (legacy)"
+        +bigint nba_api_id  "numeric join key; nullable for new crawler rows"
+        +varchar br_crawled_id  "BR id persistent copy (2025 source)"
+        +text boxscore_url  "BR boxscore URL (2026 source)"
+        +date game_date
+        +varchar home_team_abbr
+        +varchar away_team_abbr
+        +int home_pts
+        +int away_pts
+        +bool pbp_saved
+        +bool pbp_imported
+    }
+    class player_gamelog {
+        +text gameid  "numeric NBA-API id"
+        +text player_id
+        +int pts
+        +int reb
+        +int ast
+    }
+    class play_by_play {
+        +text gameid  "numeric NBA-API id"
+        +int event_num
+        +text description
+    }
+    games "1" --> "0..*" player_gamelog : nba_api_id = gameid
+    games "1" --> "0..*" play_by_play : nba_api_id = gameid
+    note for games "API surface key = game_id (BR for 2025/2026)\njoin truth source = nba_api_id"
+    note for player_gamelog "legacy join used numeric game_id directly;\nnow resolved via nba_api_id"
+    note for play_by_play "legacy join used numeric game_id directly;\nnow resolved via nba_api_id"

@@ -1,0 +1,57 @@
+{
+  "rules": {
+    "base_cap": 168000000,
+    "luxury_tax_line": 204120000,
+    "first_apron": 210120000,
+    "second_apron": 221620000,
+    "min_team_salary": 151200000
+  },
+  "teams": {
+    "Golden State Warriors": {
+      "name": "Golden State Warriors",
+      "roster": {
+        "Stephen Curry": {
+          "name": "Stephen Curry",
+          "salary": 62000000,
+          "yos": 17,
+          "is_all_nba": true,
+          "contract_years_left": 2,
+          "bird_rights_with_team": "Golden State Warriors"
+        },
+        "Anthony Davis": {
+          "name": "Anthony Davis",
+          "salary": 45000000,
+          "yos": 13,
+          "is_all_nba": true,
+          "contract_years_left": 2,
+          "bird_rights_with_team": "Golden State Warriors"
+        }
+      },
+      "cap_holds": {},
+      "is_repeat_luxury_payer": false
+    },
+    "Los Angeles Lakers": {
+      "name": "Los Angeles Lakers",
+      "roster": {
+        "LeBron James": {
+          "name": "LeBron James",
+          "salary": 50000000,
+          "yos": 23,
+          "is_all_nba": true,
+          "contract_years_left": 1,
+          "bird_rights_with_team": "Los Angeles Lakers"
+        },
+        "Draymond Green": {
+          "name": "Draymond Green",
+          "salary": 28000000,
+          "yos": 13,
+          "is_all_nba": false,
+          "contract_years_left": 3,
+          "bird_rights_with_team": "Los Angeles Lakers"
+        }
+      },
+      "cap_holds": {},
+      "is_repeat_luxury_payer": false
+    }
+  }
+}

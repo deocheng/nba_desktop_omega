@@ -1,0 +1,71 @@
+sequenceDiagram
+    autonumber
+    actor U as 用户(前端)
+    participant F as video_library.js (Layer4)
+    participant TL as ClutchReplay.Timeline (复用)
+    participant T as TacticsPlayerEngine (window.Tactics, 复用)
+    participant API as /video-library router (Layer3)
+    participant S as VideoLibraryService (Layer2 聚合)
+    participant VL as VideoLibraryDB (写池/读)
+    participant CR as ClutchReplayService (复用)
+    participant TE as TacticsService (复用)
+    participant OM as OffsetMapper
+    participant VID as HTML5 <video>
+
+    Note over U,VID: 流程 A —— 录像库列表（已有/无录像徽标）
+    U->>F: 选赛季/球队/日期 → 打开录像库
+    F->>API: GET /video-library/games?season=&team=&date=
+    API->>S: list_games(req)
+    S->>VL: list_games_with_flag(season, team, date)  (core.db.batch_query SELECT)
+    VL-->>S: 比赛目录 LEFT JOIN game_videos
+    S-->>API: VideoLibraryListResult(games+has_video)
+    API-->>F: {code:0, data:...}
+    F->>F: 渲染列表 + 🎬/— 徽标
+
+    Note over U,VID: 流程 B —— 播放页（核心：录像 ↔ PBP 时间线对齐）
+    U->>F: 点击「有录像」行 → 播放
+    F->>API: GET /video-library/play/{gameid}?season=
+    API->>S: get_playback(gameid, season, 'viewer')
+    S->>VL: get_video_source(gameid, season)
+    VL-->>S: VideoSourceRow(video_url/local_path, offset)
+    S->>CR: clutch_replay(ReplayRequest) → frames, meta, clutch_segments, clutch_players
+    CR->>TE: replay(ReplayRequest)
+    TE-->>CR: frames[], meta
+    CR-->>S: 融合结果
+    S->>OM: build_timeline(events, frames, offset) → timeline[]
+    S->>OM: attach_video_time(clutch_segments, timeline) → 各段 video_time
+    OM-->>S: 完整映射
+    S-->>API: PlaybackResponse(video_ref, offset, frames, meta, timeline, segments)
+    API-->>F: {code:0, data:...}
+    F->>T: setFrames(frames, meta)
+    F->>TL: mount(timelineRoot, {segments, frameCount, onSeek})
+    F->>VID: src = video_ref (URL 直连 / /video-library/media/{id} 本地)
+    F->>F: 初始化 SyncController(timeline[])
+    U->>F: 拖动/点击 Timeline
+    F->>TL: onSeek(p)
+    TL->>F: p (0-1000)
+    F->>VID: currentTime = sync.videoTimeAt(p)  (查表/二分查找)
+    F->>T: seekProgress(p)
+    U->>VID: 播放录像（真实片段）
+    VID-->>F: timeupdate(currentTime)
+    F->>F: sync.onVideoTimeUpdate(): p' = sync.progressAt(currentTime)
+    F->>T: seekProgress(p')
+    F->>TL: setProgress(p')
+
+    Note over U,VID: 流程 C —— 添加/编辑录像来源（写库，专用写池）
+    U->>F: 填表单 → 保存
+    F->>API: POST /video-library/source {gameid, season, source, video_url/local_path, offset}
+    API->>S: upsert_video_source(req)
+    S->>VL: upsert_video_source(req)  (参数化 INSERT ... ON CONFLICT, 专用写池)
+    VL-->>S: VideoSourceRow
+    S-->>API: {code:0, data:...}
+    API-->>F: 刷新列表徽标
+
+    Note over U,VID: 流程 D —— P2 AI 重新分析（仅契约/占位，501）
+    U->>F: 「AI 重新分析」(灰显)
+    F->>API: POST /video-library/ai/analyze {gameid, season, provider:'llm'}
+    API->>S: analyze(gameid, season, 'llm')
+    S->>GameAnalyzer: LLMAnalyzer.analyze()
+    GameAnalyzer-->>S: 抛出 NotImplementedError → 501
+    S-->>API: {code:50100, message:'not enabled'}
+    API-->>F: toast('AI 重新分析即将上线（P2）')

@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title data-i18n="appTitle">NBACore Studio v8 — Context System</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script src="js/i18n.js"></script>
+</head>
+<body>
+<div class="app">
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="logo">
+      <div class="logo-icon">
+        <img src="/assets/logos/nba.svg" alt="NBA" style="width:28px;height:28px;">
+      </div>
+      <div class="logo-text">
+        <h1 data-i18n="logoText">NBA<span>Core</span></h1>
+        <p data-i18n="logoSubtitle">Context System v8</p>
+      </div>
+    </div>
+    <div class="nav">
+      <div class="nav-section" data-i18n="nav.analysis">Analysis</div>
+      <div class="nav-item active" data-page="vs" onclick="nav('vs')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3l4 4-4 4"/><path d="M21 7H7"/><path d="M7 21l-4-4 4-4"/><path d="M3 17h14"/></svg>
+        <span data-i18n="nav.playerVS">Player VS</span>
+      </div>
+      <div class="nav-item" data-page="rankings" onclick="nav('rankings')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span data-i18n="nav.rankings">Rankings</span>
+      </div>
+      <div class="nav-item" data-page="teams" onclick="nav('teams')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span data-i18n="nav.teams">Teams</span>
+      </div>
+      <div class="nav-item" data-page="games" onclick="nav('games')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span data-i18n="nav.games">Games</span>
+      </div>
+      <div class="nav-item" data-page="context" onclick="nav('context')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        <span data-i18n="nav.playerContext">Player Context</span>
+      </div>
+      <div class="nav-item" data-page="growth" onclick="nav('growth')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        <span data-i18n="nav.playerGrowth">Player Growth</span>
+      </div>
+      <div class="nav-item" data-page="draft" onclick="nav('draft')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span data-i18n="nav.draft">选秀数据</span>
+      </div>
+      <div class="nav-item" data-page="intelligence" onclick="nav('intelligence')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/><path d="M16 12a4 4 0 1 0-8 0"/></svg>
+        <span>Player Intelligence</span>
+      </div>
+      <div class="nav-item" data-page="workspace" onclick="nav('workspace')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        <span>Workspace</span>
+      </div>
+      <div class="nav-item" data-page="clutch" onclick="nav('clutch')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/></svg>
+        <span>关键时刻</span>
+      </div>
+      <div class="nav-item" data-page="peak" onclick="nav('peak')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+        <span>巅峰榜 Peak</span>
+      </div>
+      <div class="nav-item" data-page="age-curve" onclick="nav('age-curve')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+        <span>年龄曲线</span>
+      </div>
+      <div class="nav-item" data-page="similar-evolution" onclick="nav('similar-evolution')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M9 6h6a3 3 0 0 1 3 3v6"/></svg>
+        <span>相似进化</span>
+      </div>
+      <div class="nav-item" data-page="clutch-replay" onclick="nav('clutch-replay')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M10 8l6 4-6 4V8z" fill="currentColor" stroke="none"/></svg>
+        <span>融合回放</span>
+      </div>
+      <div class="nav-item" data-page="trade" onclick="nav('trade')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16V4M7 4L3 8M7 4l4 4"/><path d="M17 8v12M17 20l4-4M17 20l-4-4"/></svg>
+        <span>交易模拟器 v1</span>
+      </div>
+      <div class="nav-item" data-page="cba" onclick="nav('cba')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span>CBA 规则 · cba_aux</span>
+      </div>
+      <div class="nav-item" data-page="tactics" onclick="nav('tactics')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3v18"/><path d="M5.5 5.5c3 3 3 10 0 13"/><path d="M18.5 5.5c-3 3-3 10 0 13"/></svg>
+        <span>战术板 v1</span>
+      </div>
+      <div class="nav-item" data-page="video-library" onclick="nav('video-library')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none"/></svg>
+        <span>录像库</span>
+      </div>
+      <div class="nav-item" data-page="analytics-builder" onclick="nav('analytics-builder')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><path d="M10 6.5h4a3 3 0 0 1 3 3V14"/></svg>
+        <span>分析构建器</span>
+      </div>
+      <div class="nav-section" data-i18n="nav.system">System</div>
+      <div class="nav-item" data-page="crawler" onclick="nav('crawler')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 10v6M4.22 4.22l4.24 4.24m7.08 7.08l4.24 4.24M1 12h6m10 0h6M4.22 19.78l4.24-4.24m7.08-7.08l4.24-4.24"/></svg>
+        <span data-i18n="nav.crawler">Crawler</span>
+      </div>
+      <div class="nav-item" data-page="dataimport" onclick="nav('dataimport')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <span data-i18n="nav.dataImport">CSV Import</span>
+      </div>
+      <div class="nav-item" data-page="system" onclick="nav('system')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span data-i18n="nav.systemMgmt">System</span>
+      </div>
+      <div class="nav-item" onclick="location.reload()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        <span data-i18n="nav.reload">Reload</span>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="lang-switcher" onclick="I18N.toggleLang()" title="Switch Language">
+        <span id="langToggle">🌐 EN/中</span>
+      </div>
+      <div class="server-status" id="serverStatus">
+        <span class="status-dot"></span>
+        <span class="status-text" data-i18n="serverStatus.connecting">Connecting...</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="main">
+    <!-- VS Page -->
+    <div id="page-vs" class="page active">
+      <div class="page-header">
+        <h2 data-i18n="vs.title">Player VS Comparison</h2>
+        <div class="form-row">
+          <label class="label" data-i18n="common.season">Season:</label>
+          <select class="select" id="seasonSelect" onchange="onSeasonChange()">
+          </select>
+        </div>
+      </div>
+
+      <!-- Player Selectors -->
+      <div class="vs-selector">
+        <div class="player-picker">
+          <div class="picker-label" data-i18n="vs.player1">Player 1</div>
+          <div class="picker-search">
+            <input class="input" id="player1Search" placeholder="Search player..." data-i18n-placeholder="common.searchPlayer" oninput="searchPlayer(1)" onfocus="showDropdown(1)" onblur="hideDropdownDelay(1)">
+            <div class="dropdown" id="player1Dropdown"></div>
+          </div>
+          <div class="player-card" id="player1Card">
+            <div class="player-empty" data-i18n="vs.selectToBegin">Select a player to begin</div>
+          </div>
+        </div>
+
+        <div class="vs-divider">
+          <span class="vs-badge">VS</span>
+        </div>
+
+        <div class="player-picker">
+          <div class="picker-label" data-i18n="vs.player2">Player 2</div>
+          <div class="picker-search">
+            <input class="input" id="player2Search" placeholder="Search player..." data-i18n-placeholder="common.searchPlayer" oninput="searchPlayer(2)" onfocus="showDropdown(2)" onblur="hideDropdownDelay(2)">
+            <div class="dropdown" id="player2Dropdown"></div>
+          </div>
+          <div class="player-card" id="player2Card">
+            <div class="player-empty" data-i18n="vs.selectToBegin">Select a player to begin</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Metric Selector -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title" data-i18n="vs.metrics">Metrics</div>
+          <div class="form-row" style="margin:0;">
+            <button class="btn btn-sm" onclick="selectAllMetrics()" data-i18n="common.selectAll">Select All</button>
+            <button class="btn btn-sm" onclick="clearMetrics()" data-i18n="common.clear">Clear</button>
+          </div>
+        </div>
+        <div class="metric-grid" id="metricGrid">
+          <div class="metric-loading"><div class="spinner"></div> <span data-i18n="vs.loadingMetrics">Loading metrics...</span></div>
+        </div>
+      </div>
+
+      <!-- Compare Button -->
+      <div style="text-align:center; margin: 20px 0;">
+        <button class="btn btn-primary btn-lg" id="compareBtn" onclick="runCompare()" disabled data-i18n="vs.comparePlayers">
+          Compare Players
+        </button>
+      </div>
+
+      <!-- VS Results -->
+      <div id="vsResults" style="display:none;">
+        <!-- Stats Table -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title" data-i18n="vs.statComparison">Stat Comparison</div>
+            <div class="form-row" style="margin:0;">
+              <button class="btn btn-sm" onclick="exportVS('json')">JSON</button>
+              <button class="btn btn-sm" onclick="exportVS('csv')">CSV</button>
+            </div>
+          </div>
+          <div class="tbl-wrap">
+            <table class="tbl" id="vsTable">
+              <thead>
+                <tr>
+                  <th style="width:40%;" data-i18n="common.metric">Metric</th>
+                  <th style="width:30%; text-align:right;" id="vsTableP1" data-i18n="vs.player1">Player 1</th>
+                  <th style="width:30%; text-align:right;" id="vsTableP2" data-i18n="vs.player2">Player 2</th>
+                </tr>
+              </thead>
+              <tbody id="vsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="grid-2col chart-grid">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title" data-i18n="vs.radarChart">Radar Chart</div>
+            </div>
+            <div id="radarChart" class="chart-container chart-radar"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title" data-i18n="vs.barComparison">Bar Comparison</div>
+            </div>
+            <div id="barChart" class="chart-container chart-bar"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rankings Page -->
+    <div id="page-rankings" class="page">
+      <div class="page-header">
+        <h2 data-i18n="rankings.title">Player Rankings</h2>
+        <div class="form-row">
+          <label class="label" data-i18n="rankings.source">Source:</label>
+          <select class="select" id="rankSourceSelect" onchange="onRankSourceChange()">
+            <option value="metric" data-i18n="rankings.metricEngine">Metric Engine</option>
+            <option value="per_game" data-i18n="rankings.perGameStats">Per Game Stats</option>
+            <option value="advanced" data-i18n="rankings.advancedStats">Advanced Stats</option>
+          </select>
+          <label class="label" id="rankMetricLabel" data-i18n="common.metric">Metric:</label>
+          <select class="select" id="rankMetricSelect" onchange="loadRankings()">
+          </select>
+          <label class="label" data-i18n="common.season">Season:</label>
+          <select class="select" id="rankSeasonSelect" onchange="loadRankings()">
+          </select>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title" id="rankTitle" data-i18n="rankings.topPlayers">Top Players</div>
+          <div class="card-badge" id="rankCount">—</div>
+          <div class="form-row" style="margin:0;">
+            <button class="btn btn-sm" onclick="exportRankings('json')">JSON</button>
+            <button class="btn btn-sm" onclick="exportRankings('csv')">CSV</button>
+          </div>
+        </div>
+        <div class="tbl-wrap" style="max-height:600px;">
+          <table class="tbl" id="rankTable">
+            <thead id="rankTableHead">
+              <tr>
+                <th style="width:60px;">#</th>
+                <th data-i18n="common.player">Player</th>
+                <th style="width:120px; text-align:right;" data-i18n="common.value">Value</th>
+                <th style="width:100px; text-align:right;" data-i18n="common.percentile">Percentile</th>
+              </tr>
+            </thead>
+            <tbody id="rankTableBody">
+              <tr><td colspan="4" style="text-align:center; padding:30px; color:var(--text-dim);">
+                <div class="spinner"></div> <span data-i18n="common.loading">Loading...</span>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Context Page -->
+    <div id="page-context" class="page">
+      <div class="page-header">
+        <h2 data-i18n="context.title">Player Context</h2>
+        <div class="form-row">
+          <label class="label" data-i18n="common.player">Player:</label>
+          <div class="picker-search" style="width:240px; position:relative;">
+            <input class="input" id="ctxPlayerSearch" placeholder="Search player..." data-i18n-placeholder="common.searchPlayer" oninput="searchContextPlayer()" onfocus="showContextDropdown()" onblur="hideContextDropdownDelay()">
+            <div class="dropdown" id="ctxPlayerDropdown"></div>
+          </div>
+          <label class="label" data-i18n="common.season">Season:</label>
+          <select class="select" id="ctxSeasonSelect" onchange="onCtxSeasonChange()">
+          </select>
+        </div>
+      </div>
+
+      <div id="ctxResults" style="display:none;">
+        <!-- Tabs -->
+        <div class="ctx-tabs">
+          <div class="ctx-tab active" data-tab="context" onclick="switchCtxTab('context')" data-i18n="context.context">Context</div>
+          <div class="ctx-tab" data-tab="vs" onclick="switchCtxTab('vs')" data-i18n="context.vsCompare">VS Compare</div>
+        </div>
+
+        <!-- Tab Content: Context -->
+        <div id="ctx-tab-context" class="ctx-tab-content active">
+          <!-- Similar Players -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title" data-i18n="context.similarPlayers">Similar Players</div>
+              <div class="form-row" style="margin:0;">
+                <label class="label" data-i18n="context.positionFilter">Position filter:</label>
+                <input type="checkbox" id="ctxPosFilter" checked onchange="loadContext()">
+              </div>
+            </div>
+            <div class="tbl-wrap" style="max-height:400px;">
+              <table class="tbl" id="similarTable">
+                <thead>
+                  <tr>
+                    <th style="width:60px;">#</th>
+                    <th data-i18n="common.player">Player</th>
+                    <th data-i18n="context.teamPosition">Team / Position</th>
+                    <th style="text-align:right; width:80px;" data-i18n="context.similarity">Similarity</th>
+                    <th style="width:160px; text-align:right;" data-i18n="common.actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="similarTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Role Evolution -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title" data-i18n="context.roleEvolution">Role Evolution</div>
+              <div class="card-badge" id="evolutionSeasons">—</div>
+            </div>
+            <div class="metric-grid" id="evolutionGrid" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));">
+            </div>
+            <div style="margin-top:12px; display:flex; gap:20px; flex-wrap:wrap;">
+              <div class="stat-chip"><span class="chip-label" data-i18n="context.overallShift">Overall Shift</span><span class="chip-value" id="overallShift">—</span></div>
+              <div class="stat-chip"><span class="chip-label" data-i18n="context.topGrowth">Top Growth</span><span class="chip-value" id="topGrowth">—</span></div>
+              <div class="stat-chip"><span class="chip-label" data-i18n="context.topDecline">Top Decline</span><span class="chip-value" id="topDecline">—</span></div>
+            </div>
+          </div>
+
+          <!-- Trend Chart -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title" data-i18n="context.careerTrend">Career Trend</div>
+              <div class="form-row" style="margin:0;">
+                <label class="label" data-i18n="common.metric">Metric:</label>
+                <select class="select" id="trendMetricSelect" onchange="loadTrend()">
+                </select>
+              </div>
+            </div>
+            <div id="trendChart" class="chart-container" style="height:320px;"></div>
+            <div style="margin-top:12px; display:flex; gap:20px; flex-wrap:wrap;">
+              <div class="stat-chip"><span class="chip-label" data-i18n="context.direction">Direction</span><span class="chip-value" id="trendDir">—</span></div>
+              <div class="stat-chip"><span class="chip-label" data-i18n="context.slopePerSeason">Slope / season</span><span class="chip-value" id="trendSlope">—</span></div>
+              <div class="stat-chip"><span class="chip-label">R²</span><span class="chip-value" id="trendR2">—</span></div>
+              <div class="stat-chip"><span class="chip-label" data-i18n="context.nextSeason">Next season</span><span class="chip-value" id="trendPred">—</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab Content: VS Compare -->
+        <div id="ctx-tab-vs" class="ctx-tab-content">
+          <!-- VS Selector -->
+          <div class="ctx-vs-selector">
+            <div class="ctx-vs-player">
+              <div class="ctx-vs-label" data-i18n="context.player1Current">Player 1 (Current)</div>
+              <div class="player-card ctx-vs-card player-1 has-player" id="ctxVsPlayer1Card">
+                <div class="player-empty" data-i18n="context.selectFirst">Select a player first</div>
+              </div>
+            </div>
+            <div class="ctx-vs-divider">
+              <span class="vs-badge">VS</span>
+            </div>
+            <div class="ctx-vs-player">
+              <div class="ctx-vs-label" data-i18n="context.player2">Player 2</div>
+              <div class="picker-search" style="position:relative; margin-bottom:10px;">
+                <input class="input" id="ctxVsPlayer2Search" placeholder="Search player to compare..." data-i18n-placeholder="context.searchToCompare" oninput="searchCtxVsPlayer2()" onfocus="showCtxVsPlayer2Dropdown()" onblur="hideCtxVsPlayer2DropdownDelay()">
+                <div class="dropdown" id="ctxVsPlayer2Dropdown"></div>
+              </div>
+              <div class="player-card ctx-vs-card" id="ctxVsPlayer2Card">
+                <div class="player-empty" data-i18n="context.selectToCompare">Select a player to compare</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Metric Selector -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title" data-i18n="vs.metrics">Metrics</div>
+              <div class="form-row" style="margin:0;">
+                <button class="btn btn-sm" onclick="ctxVsSelectAllMetrics()" data-i18n="common.selectAll">Select All</button>
+                <button class="btn btn-sm" onclick="ctxVsClearMetrics()" data-i18n="common.clear">Clear</button>
+              </div>
+            </div>
+            <div class="metric-grid" id="ctxVsMetricGrid">
+              <div class="metric-loading"><div class="spinner"></div> <span data-i18n="vs.loadingMetrics">Loading metrics...</span></div>
+            </div>
+          </div>
+
+          <!-- Compare Button -->
+          <div style="text-align:center; margin: 20px 0;">
+            <button class="btn btn-primary btn-lg" id="ctxVsCompareBtn" onclick="runCtxVsCompare()" disabled data-i18n="vs.comparePlayers">
+              Compare Players
+            </button>
+          </div>
+
+          <!-- VS Results -->
+          <div id="ctxVsResults" style="display:none;">
+            <!-- Stats Table -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title" data-i18n="vs.statComparison">Stat Comparison</div>
+              </div>
+              <div class="tbl-wrap">
+                <table class="tbl" id="ctxVsTable">
+                  <thead>
+                    <tr>
+                      <th style="width:40%;" data-i18n="common.metric">Metric</th>
+                      <th style="width:30%; text-align:right;" id="ctxVsTableP1" data-i18n="vs.player1">Player 1</th>
+                      <th style="width:30%; text-align:right;" id="ctxVsTableP2" data-i18n="vs.player2">Player 2</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ctxVsTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Charts Grid -->
+            <div class="grid-2col chart-grid">
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-title" data-i18n="vs.radarChart">Radar Chart</div>
+                </div>
+                <div id="ctxVsRadarChart" class="chart-container chart-radar"></div>
+              </div>
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-title" data-i18n="vs.barComparison">Bar Comparison</div>
+                </div>
+                <div id="ctxVsBarChart" class="chart-container chart-bar"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="ctxEmpty" class="card" style="text-align:center; padding:40px; color:var(--text-dim);" data-i18n="context.selectPlayerFirst">
+        Select a player to see their context analysis
+      </div>
+    </div>
+
+    <!-- Growth Page -->
+    <div id="page-growth" class="page">
+      <div class="page-header">
+        <h2 data-i18n="growth.title">Player Growth Report</h2>
+        <div class="form-row">
+          <label class="label" data-i18n="common.player">Player:</label>
+          <div class="picker-search" style="width:280px; position:relative;">
+            <input class="input" id="growthPlayerSearch" placeholder="Search player (try LeBron James)..." data-i18n-placeholder="growth.searchPlaceholder" oninput="searchGrowthPlayer()" onfocus="showGrowthDropdown()" onblur="hideGrowthDropdownDelay()">
+            <div class="dropdown" id="growthPlayerDropdown"></div>
+          </div>
+          <button class="btn btn-primary" onclick="loadLeBronExample()" style="margin-left:8px;" data-i18n="growth.lebronExample">LeBron Example</button>
+        </div>
+      </div>
+
+      <div id="growthResults" style="display:none;">
+        <!-- Player Bio Header -->
+        <div class="card">
+          <div style="display:flex; align-items:flex-start; gap:24px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:300px;">
+              <h2 id="growthPlayerName" style="margin:0 0 4px 0; font-size:28px;">—</h2>
+              <div id="growthPlayerPos" style="color:var(--text-dim); margin-bottom:12px;">—</div>
+              <div style="display:flex; gap:20px; flex-wrap:wrap;">
+                <div><span style="color:var(--text-dim);">身高:</span> <strong id="growthHeight">—</strong></div>
+                <div><span style="color:var(--text-dim);">体重:</span> <strong id="growthWeight">—</strong></div>
+                <div><span style="color:var(--text-dim);">生日:</span> <strong id="growthBirth">—</strong></div>
+                <div><span style="color:var(--text-dim);">生涯:</span> <strong id="growthCareer">—</strong></div>
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:12px; min-width:400px;">
+              <div class="stat-chip" style="flex-direction:column; align-items:flex-start; padding:12px 16px;">
+                <span class="chip-label">总场次</span>
+                <span class="chip-value" id="growthTotalGames" style="font-size:24px;">—</span>
+              </div>
+              <div class="stat-chip" style="flex-direction:column; align-items:flex-start; padding:12px 16px;">
+                <span class="chip-label">总得分</span>
+                <span class="chip-value" id="growthTotalPts" style="font-size:24px;">—</span>
+              </div>
+              <div class="stat-chip" style="flex-direction:column; align-items:flex-start; padding:12px 16px;">
+                <span class="chip-label">进攻篮板</span>
+                <span class="chip-value" id="growthTotalOReb" style="font-size:24px;">—</span>
+              </div>
+              <div class="stat-chip" style="flex-direction:column; align-items:flex-start; padding:12px 16px;">
+                <span class="chip-label">防守篮板</span>
+                <span class="chip-value" id="growthTotalDReb" style="font-size:24px;">—</span>
+              </div>
+              <div class="stat-chip" style="flex-direction:column; align-items:flex-start; padding:12px 16px;">
+                <span class="chip-label">总助攻</span>
+                <span class="chip-value" id="growthTotalAst" style="font-size:24px;">—</span>
+              </div>
+              <div class="stat-chip" style="flex-direction:column; align-items:flex-start; padding:12px 16px;">
+                <span class="chip-label">总抢断</span>
+                <span class="chip-value" id="growthTotalSteals" style="font-size:24px;">—</span>
+              </div>
+              <div class="stat-chip" style="flex-direction:column; align-items:flex-start; padding:12px 16px;">
+                <span class="chip-label">总封盖</span>
+                <span class="chip-value" id="growthTotalBlocks" style="font-size:24px;">—</span>
+              </div>
+              <div class="stat-chip" style="flex-direction:column; align-items:flex-start; padding:12px 16px;">
+                <span class="chip-label">总犯规</span>
+                <span class="chip-value" id="growthTotalFouls" style="font-size:24px;">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Career Milestones -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title" data-i18n="growth.careerMilestones">Career Milestones</div>
+          </div>
+          <div id="growthMilestones" style="display:flex; gap:12px; overflow-x:auto; padding-bottom:8px;">
+          </div>
+        </div>
+
+        <!-- Scoring & Usage Trajectory -->
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">得分趋势</div>
+            </div>
+            <div id="growthScoringChart" class="chart-container" style="height:320px;"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">效率 & 使用率</div>
+            </div>
+            <div id="growthPerChart" class="chart-container" style="height:320px;"></div>
+          </div>
+        </div>
+
+        <!-- Rebounds & Assists -->
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">篮板 & 助攻</div>
+            </div>
+            <div id="growthRebAstChart" class="chart-container" style="height:320px;"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">胜利贡献 & VORP</div>
+            </div>
+            <div id="growthWsChart" class="chart-container" style="height:320px;"></div>
+          </div>
+        </div>
+
+        <!-- Position Evolution -->
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">位置分布</div>
+              <div class="card-badge">按出场场次</div>
+            </div>
+            <div id="growthPosPieChart" class="chart-container" style="height:320px;"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">各位置表现对比</div>
+            </div>
+            <div id="growthPosRadarChart" class="chart-container" style="height:320px;"></div>
+          </div>
+        </div>
+
+        <!-- Shooting Profile -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">投篮热区变化 & 出手比例变化</div>
+          </div>
+          <div id="growthShootingChart" class="chart-container" style="height:360px;"></div>
+        </div>
+
+        <!-- Physical Trajectory -->
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">身高体重变化</div>
+            </div>
+            <div id="growthPhysChart" class="chart-container" style="height:280px;"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">命中率变化</div>
+            </div>
+            <div id="growthShootingPctChart" class="chart-container" style="height:280px;"></div>
+          </div>
+        </div>
+
+        <!-- Advanced Rates & Minutes -->
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">进阶效率比率</div>
+            </div>
+            <div id="growthAdvancedChart" class="chart-container" style="height:280px;"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">出场时间变化</div>
+            </div>
+            <div id="growthMinutesChart" class="chart-container" style="height:280px;"></div>
+          </div>
+        </div>
+
+        <!-- v8.1 Deep Analysis Section -->
+        <div class="v81-section">
+          <div class="v81-section-title">
+            <span>v8.1 球员深度分析 · Player Deep Analysis</span>
+            <span class="badge badge-blue">Metric Expansion</span>
+          </div>
+          <div class="v81-grid-3">
+            <div id="rebCard"></div>
+            <div id="playCard"></div>
+            <div id="defCard"></div>
+          </div>
+          <div class="grid-2col chart-grid">
+            <div id="teamShareChart"></div>
+            <div id="shotChart"></div>
+          </div>
+          <div id="careerDefCard"></div>
+        </div>
+
+        <!-- Season by Season Table -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">逐赛季数据</div>
+            <div class="card-badge" id="growthSeasonCount">—</div>
+          </div>
+          <div class="tbl-wrap" style="max-height:500px;">
+            <table class="tbl" id="growthSeasonTable">
+              <thead>
+                <tr>
+                  <th>赛季</th>
+                  <th>年龄</th>
+                  <th>球队</th>
+                  <th>位置</th>
+                  <th style="text-align:right;">场次</th>
+                  <th style="text-align:right;">得分</th>
+                  <th style="text-align:right;">篮板</th>
+                  <th style="text-align:right;">助攻</th>
+                  <th style="text-align:right;">PER</th>
+                  <th style="text-align:right;">USG%</th>
+                  <th style="text-align:right;">WS</th>
+                  <th style="text-align:right;">TS%</th>
+                </tr>
+              </thead>
+              <tbody id="growthSeasonTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Position Detail Table -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">各位置数据汇总</div>
+          </div>
+          <div class="tbl-wrap" style="max-height:400px;">
+            <table class="tbl" id="growthPosTable">
+              <thead>
+                <tr>
+                  <th>位置</th>
+                  <th style="text-align:right;">赛季数</th>
+                  <th style="text-align:right;">总场次</th>
+                  <th style="text-align:right;">场均得分</th>
+                  <th style="text-align:right;">场均篮板</th>
+                  <th style="text-align:right;">场均助攻</th>
+                  <th style="text-align:right;">平均PER</th>
+                  <th style="text-align:right;">平均USG%</th>
+                </tr>
+              </thead>
+              <tbody id="growthPosTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="growthEmpty" class="card" style="text-align:center; padding:60px; color:var(--text-dim);">
+        <div style="font-size:48px; margin-bottom:16px;">📈</div>
+        <h3 style="margin:0 0 8px 0; color:var(--text);" data-i18n="growth.emptyTitle">球员成长报告</h3>
+        <p data-i18n="growth.emptyDesc">选择一名球员，查看其生涯逐年的身高、体重、年龄、得分、位置变化等完整成长轨迹</p>
+        <p style="margin-top:12px;" data-i18n="growth.emptyTip">试试点击上方的 <strong>"LeBron Example"</strong> 按钮查看示例</p>
+      </div>
+    </div>
+
+    <!-- Teams Page -->
+    <div id="page-teams" class="page">
+      <div class="page-header">
+        <h2 data-i18n="teams.title">Teams</h2>
+        <div class="form-row">
+          <label class="label" data-i18n="common.season">Season:</label>
+          <select class="select" id="teamsSeasonSelect" onchange="loadTeamsPage()">
+          </select>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" data-tab="teams-list" onclick="switchTeamsTab('list')" data-i18n="teams.teamsList">Teams List</div>
+        <div class="tab" data-tab="teams-detail" onclick="switchTeamsTab('detail')" id="teamsDetailTab" data-i18n="teams.teamDetail">Team Detail</div>
+      </div>
+
+      <!-- Teams List Tab -->
+      <div id="teams-list" class="tab-content active">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title" data-i18n="teams.allTeams">All Teams</div>
+            <div class="card-badge" id="teamsCount">—</div>
+          </div>
+          <div class="tbl-wrap" style="max-height:600px;">
+            <table class="tbl" id="teamsTable">
+              <thead>
+                <tr>
+                  <th style="width:46px; text-align:center;">#</th>
+                  <th style="width:42px;"></th>
+                  <th data-i18n="teams.teamName">Team</th>
+                  <th style="width:90px; text-align:center;">W-L</th>
+                  <th style="width:90px; text-align:center;">Win%</th>
+                </tr>
+              </thead>
+              <tbody id="teamsTableBody">
+                <tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-dim);">
+                  <div class="spinner"></div> <span data-i18n="common.loading">Loading...</span>
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Team Detail Tab -->
+      <div id="teams-detail" class="tab-content">
+        <div id="teamDetailEmpty" class="card" style="text-align:center; padding:40px; color:var(--text-dim);" data-i18n="teams.selectToView">
+          Select a team from the list to view details
+        </div>
+        <div id="teamDetailContent" style="display:none;">
+          <div class="team-detail-header">
+            <div class="team-detail-logo" id="teamDetailLogo"></div>
+            <div class="team-detail-info">
+              <h3 id="teamDetailName" style="margin:0; font-size:24px;" data-i18n="teams.teamName">Team Name</h3>
+              <div id="teamDetailAbbr" style="color:var(--text-dim); font-size:14px; margin-top:4px;">—</div>
+            </div>
+          </div>
+
+          <div class="team-detail-tabs">
+            <button class="team-detail-tab active" data-tab="history" onclick="switchTeamDetailTab('history')">🏆 球队历史</button>
+            <button class="team-detail-tab" data-tab="legends" onclick="switchTeamDetailTab('legends')">⭐ 队史名人</button>
+            <button class="team-detail-tab" data-tab="roster" onclick="switchTeamDetailTab('roster')">📋 赛季阵容</button>
+            <button class="team-detail-tab" data-tab="stats" onclick="switchTeamDetailTab('stats')">📊 球队数据</button>
+          </div>
+
+          <!-- Team History Tab -->
+          <div id="teamTabHistory" class="team-detail-tab-content active">
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">📈 历年战绩趋势</div>
+                <span class="card-badge" id="teamHistoryCount">—</span>
+              </div>
+              <div id="teamHistoryChart" class="chart-container" style="height:350px;"></div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">🏆 赛季详情</div>
+              </div>
+              <div class="tbl-wrap" style="max-height:400px; overflow-y:auto;">
+                <table class="tbl" id="teamHistoryTable">
+                  <thead>
+                    <tr>
+                      <th>赛季</th>
+                      <th style="text-align:center;">战绩</th>
+                      <th style="text-align:right;">胜率</th>
+                      <th style="text-align:right;">得分</th>
+                      <th style="text-align:right;">助攻</th>
+                      <th style="text-align:right;">篮板</th>
+                      <th style="text-align:center;">季后赛</th>
+                    </tr>
+                  </thead>
+                  <tbody id="teamHistoryBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Team Legends Tab -->
+          <div id="teamTabLegends" class="team-detail-tab-content">
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">⭐ 队史传奇球员</div>
+                <span class="card-badge" id="teamLegendsCount">—</span>
+              </div>
+              <div class="tbl-wrap" style="max-height:500px; overflow-y:auto;">
+                <table class="tbl" id="teamLegendsTable">
+                  <thead>
+                    <tr>
+                      <th>排名</th>
+                      <th>球员</th>
+                      <th style="width:90px; text-align:center;">位置</th>
+                      <th style="width:90px; text-align:center;">效力赛季</th>
+                      <th style="width:90px; text-align:right;">场均得分</th>
+                      <th style="width:90px; text-align:right;">场均篮板</th>
+                      <th style="width:90px; text-align:right;">场均助攻</th>
+                      <th style="width:90px; text-align:center;">全明星</th>
+                    </tr>
+                  </thead>
+                  <tbody id="teamLegendsBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Team Roster Tab -->
+          <div id="teamTabRoster" class="team-detail-tab-content">
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">📋 赛季阵容名单</div>
+                <div style="display:flex; gap:8px;">
+                  <select id="teamRosterSeasonSelect" class="input" onchange="loadTeamRoster()" style="width:120px;"></select>
+                </div>
+              </div>
+              <div class="tbl-wrap" style="max-height:500px; overflow-y:auto;">
+                <table class="tbl" id="teamRosterTable">
+                  <thead>
+                    <tr>
+                      <th>球员</th>
+                      <th style="width:80px; text-align:center;">位置</th>
+                      <th style="width:80px; text-align:center;">出场</th>
+                      <th style="width:80px; text-align:center;">首发</th>
+                      <th style="width:90px; text-align:right;">场均得分</th>
+                      <th style="width:90px; text-align:right;">场均篮板</th>
+                      <th style="width:90px; text-align:right;">场均助攻</th>
+                      <th style="width:90px; text-align:right;">场均时间</th>
+                    </tr>
+                  </thead>
+                  <tbody id="teamRosterBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Team Stats Tab -->
+          <div id="teamTabStats" class="team-detail-tab-content">
+            <div class="grid-2col chart-grid">
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-title" data-i18n="teams.teamRadar">Team Radar</div>
+                </div>
+                <div id="teamRadarChart" class="chart-container chart-radar"></div>
+              </div>
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-title" data-i18n="teams.recordRank">Record &amp; Rank</div>
+                </div>
+                <div id="teamStandings" style="padding:10px 0;">
+                  <div class="spinner"></div> <span data-i18n="common.loading">Loading...</span>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title" data-i18n="teams.perGameStats">Per Game Stats</div>
+              </div>
+              <div class="tbl-wrap">
+                <table class="tbl" id="teamStatsTable">
+                  <thead>
+                    <tr>
+                      <th>Stat</th>
+                      <th style="width:150px; text-align:right;" data-i18n="common.value">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody id="teamStatsBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Crawler Page -->
+    <div id="page-crawler" class="page">
+      <div class="page-header">
+        <h2 data-i18n="crawler.title">数据爬取 · Crawler</h2>
+        <div class="form-row">
+          <span class="badge" id="crawlerStatusBadge" data-i18n="crawler.checking">Checking...</span>
+        </div>
+      </div>
+
+      <!-- Data Overview Section -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header">
+          <div class="card-title">📊 数据概况 · Table Overview</div>
+          <span class="card-badge" id="crawlerTableCount"></span>
+        </div>
+        <div id="crawlerTableOverview" style="max-height:300px; overflow-y:auto; font-size:12px;">
+          <div style="text-align:center; padding:20px; color:var(--text-dim);">
+            <div class="spinner"></div> 加载中...
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2col">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title" data-i18n="crawler.quickActions">Quick Actions</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px; padding:10px 0;">
+            <button class="btn btn-primary" onclick="startCrawl('check')" data-i18n="crawler.checkEnv">Check Environment</button>
+            <button class="btn" onclick="startCrawl('daily')" data-i18n="crawler.dailyUpdate">Daily Update</button>
+            <button class="btn" onclick="startCrawl('backfill')" data-i18n="crawler.backfill7days">Backfill (7 days)</button>
+            <button class="btn" onclick="startCrawl('list_tables')" data-i18n="crawler.listTables">List Available Tables</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title" data-i18n="crawler.customCrawl">Custom Crawl</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:12px; padding:10px 0;">
+            <div>
+              <label class="label" data-i18n="crawler.mode">Mode:</label>
+              <select class="select" id="crawlModeSelect">
+                <option value="single" data-i18n="crawler.singleTable">Single Table</option>
+                <option value="full_season" data-i18n="crawler.fullSeason">Full Season</option>
+                <option value="backfill" data-i18n="crawler.backfill">Backfill</option>
+              </select>
+            </div>
+            <div id="crawlTableRow">
+              <label class="label" data-i18n="crawler.table">Table:</label>
+              <select class="select" id="crawlTableSelect">
+                <option value="">— 选择表 —</option>
+              </select>
+            </div>
+            <div id="crawlSeasonRow">
+              <label class="label" data-i18n="common.season">Season:</label>
+              <input class="input" id="crawlSeasonInput" placeholder="e.g. 2025" type="number" value="2025">
+            </div>
+            <div id="crawlDaysRow" style="display:none;">
+              <label class="label" data-i18n="crawler.days">Days:</label>
+              <input class="input" id="crawlDaysInput" placeholder="e.g. 7" type="number" value="7">
+            </div>
+            <button class="btn btn-primary" onclick="startCustomCrawl()" data-i18n="crawler.startCrawl">Start Crawl</button>
+            <button class="btn btn-danger" id="crawlStopBtn" onclick="stopCrawl()" style="display:none;" data-i18n="crawler.stopCrawl">Stop Crawl</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title" data-i18n="crawler.crawlerLogs">Crawler Logs</div>
+          <div class="form-row" style="margin:0;">
+            <button class="btn btn-sm" onclick="clearCrawlLog()" data-i18n="crawler.clear">Clear</button>
+          </div>
+        </div>
+        <div id="crawlLogContainer" style="max-height:400px; overflow-y:auto; background:var(--bg-dark); border-radius:8px; padding:12px; font-family:var(--mono); font-size:12px; line-height:1.6;">
+          <div style="color:var(--text-dim);" data-i18n="crawler.noLogs">No logs yet. Start a crawl to see output here.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Import Page -->
+    <div id="page-dataimport" class="page">
+      <div class="page-header">
+        <h2 data-i18n="dataImport.title">CSV Data Import</h2>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title" data-i18n="dataImport.uploadCsv">Upload CSV</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:14px; padding:12px 0;">
+          <div>
+            <label class="label" data-i18n="dataImport.file">CSV File:</label>
+            <input class="input" type="file" id="importFile" accept=".csv,text/csv">
+          </div>
+          <div>
+            <label class="label" data-i18n="dataImport.targetTable">Target Table:</label>
+            <select class="select" id="importTableSelect"></select>
+          </div>
+          <div>
+            <label class="label" data-i18n="dataImport.mode">Mode:</label>
+            <select class="select" id="importModeSelect">
+              <option value="append" data-i18n="dataImport.append">Append</option>
+              <option value="replace" data-i18n="dataImport.replace">Replace (truncate first)</option>
+            </select>
+          </div>
+          <div>
+            <button class="btn btn-primary" id="importUploadBtn" onclick="uploadCsv()" data-i18n="dataImport.startImport">Start Import</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <div class="card-header">
+          <div class="card-title" data-i18n="dataImport.result">Import Result</div>
+        </div>
+        <div id="importResult" style="padding:12px 0; color:var(--text-dim);" data-i18n="dataImport.noResult">No import run yet.</div>
+      </div>
+    </div>
+
+    <!-- Games Page -->
+    <div id="page-games" class="page">
+      <div class="page-header">
+        <h2 data-i18n="games.title">Games</h2>
+        <div class="form-row">
+          <label class="label" data-i18n="common.season">Season:</label>
+          <select class="select" id="gamesSeasonSelect" onchange="loadGamesPage()">
+          </select>
+          <label class="label" data-i18n="games.page">Page:</label>
+          <button class="btn btn-sm" id="gamesPrevBtn" onclick="gamesPrevPage()" data-i18n="games.prev">← Prev</button>
+          <span class="page-info" id="gamesPageInfo">1 / —</span>
+          <button class="btn btn-sm" id="gamesNextBtn" onclick="gamesNextPage()" data-i18n="games.next">Next →</button>
+        </div>
+      </div>
+
+      <!-- Game List View -->
+      <div id="gamesListView">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title" data-i18n="games.gameSchedule">Game Schedule</div>
+            <div class="card-badge" id="gamesCount">—</div>
+          </div>
+          <div class="tbl-wrap" style="max-height:650px;">
+            <table class="tbl" id="gamesTable">
+              <thead>
+                <tr>
+                  <th style="width:140px;" data-i18n="games.date">Date</th>
+                  <th style="width:120px; text-align:right;" data-i18n="games.home">Home</th>
+                  <th style="width:80px; text-align:center;" data-i18n="games.score">Score</th>
+                  <th style="width:120px;" data-i18n="games.away">Away</th>
+                </tr>
+              </thead>
+              <tbody id="gamesTableBody">
+                <tr><td colspan="4" style="text-align:center; padding:30px; color:var(--text-dim);">
+                  <div class="spinner"></div> <span data-i18n="common.loading">Loading...</span>
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Game Detail View (hidden by default) -->
+      <div id="gameDetailView" style="display:none;">
+        <div class="page-header">
+          <button class="btn btn-sm" onclick="showGamesList()" data-i18n="games.backToGames">← Back to Games</button>
+          <h2 id="gameDetailTitle" data-i18n="games.gameDetail">Game Detail</h2>
+        </div>
+
+        <!-- Game Summary Card -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title" id="gameDetailScore">—</div>
+            <div class="card-badge" id="gameDetailMeta">—</div>
+          </div>
+          <div id="gameQuartersRow" style="display:flex; gap:12px; padding:12px; flex-wrap:wrap;"></div>
+        </div>
+
+        <!-- Radar Chart -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title" data-i18n="games.teamRadarComparison">Team Radar Comparison</div>
+          </div>
+          <div id="gameRadarChart" class="chart-container chart-radar" style="min-height: 480px; height: calc(60vh - 100px); max-height: 700px;"></div>
+        </div>
+
+        <!-- Team Stats Table -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title" data-i18n="games.detailedTeamStats">Detailed Team Stats</div>
+          </div>
+          <div class="tbl-wrap">
+            <table class="tbl" id="gameStatsTable">
+              <thead id="gameStatsHead"></thead>
+              <tbody id="gameStatsBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Player Performance Timeline -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title" data-i18n="games.playerPerformanceTimeline">Player Performance Timeline (by Period)</div>
+            <div class="card-badge" id="gamePlayersCount">—</div>
+          </div>
+          <div id="gamePlayersTimeline" style="padding:12px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- System Page -->
+    <div id="page-system" class="page">
+      <div class="page-header">
+        <h2 data-i18n="system.title">System Management</h2>
+        <div class="form-row">
+          <label class="label" data-i18n="common.season">Season:</label>
+          <select class="select" id="sysSeasonSelect" onchange="loadSystemPage()">
+          </select>
+        </div>
+      </div>
+
+      <div class="grid-3col">
+        <div class="card stat-card">
+          <div class="stat-card-label" data-i18n="system.dbStatus">DB Status</div>
+          <div class="stat-card-value" id="sysDbStatus">—</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-card-label" data-i18n="system.tableCount">Table Count</div>
+          <div class="stat-card-value" id="sysTableCount">—</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-card-label" data-i18n="system.totalRecords">Total Records</div>
+          <div class="stat-card-value" id="sysTotalRecords">—</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title" data-i18n="system.databaseTables">Database Tables</div>
+        </div>
+        <div class="tbl-wrap" style="max-height:400px;">
+          <table class="tbl" id="sysTablesTable">
+            <thead>
+              <tr>
+                <th data-i18n="system.tableName">Table Name</th>
+                <th style="width:150px; text-align:right;" data-i18n="system.rowCount">Row Count</th>
+              </tr>
+            </thead>
+            <tbody id="sysTablesBody">
+              <tr><td colspan="2" style="text-align:center; padding:30px; color:var(--text-dim);">
+                <div class="spinner"></div> <span data-i18n="common.loading">Loading...</span>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="sysTableDataCard" class="card" style="display:none;">
+        <div class="card-header">
+          <div class="card-title" id="sysTableDataTitle" data-i18n="system.tableData">Table Data</div>
+          <div class="form-row" style="margin:0;">
+            <button class="btn btn-sm" id="sysDataPrevBtn" onclick="sysDataPrevPage()" data-i18n="games.prev">← Prev</button>
+            <span class="page-info" id="sysDataPageInfo">1 / —</span>
+            <button class="btn btn-sm" id="sysDataNextBtn" onclick="sysDataNextPage()" data-i18n="games.next">Next →</button>
+          </div>
+        </div>
+        <div class="tbl-wrap" style="max-height:450px;">
+          <table class="tbl" id="sysDataTable">
+            <thead id="sysDataTableHead"></thead>
+            <tbody id="sysDataTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Intelligence Page (v8.2) -->
+    <div id="page-intelligence" class="page">
+      <div id="intelRoot"></div>
+    </div>
+
+    <!-- Workspace Page (v8.3) -->
+    <div id="page-workspace" class="page">
+      <div id="workspaceRoot"></div>
+    </div>
+    <!-- Clutch Time Page -->
+    <div id="page-clutch" class="page">
+      <div id="clutchRoot"></div>
+    </div>
+    <!-- Peak Page -->
+    <div id="page-peak" class="page">
+      <div id="peakRoot"></div>
+    </div>
+    <!-- Age Curve Page -->
+    <div id="page-age-curve" class="page">
+      <div id="ageCurveRoot"></div>
+    </div>
+    <!-- Similar Evolution Page -->
+    <div id="page-similar-evolution" class="page">
+      <div id="similarEvoRoot"></div>
+    </div>
+    <!-- Clutch Replay (Fusion) Page -->
+    <div id="page-clutch-replay" class="page">
+      <div id="clutchReplayRoot"></div>
+    </div>
+    <div id="page-trade" class="page">
+      <div id="tradeRoot"></div>
+    </div>
+    <div id="page-tactics" class="page">
+      <div id="tacticsRoot"></div>
+    </div>
+    <div id="page-video-library" class="page">
+      <div id="videoLibraryRoot"></div>
+    </div>
+    <!-- Analytics Builder Page (v8.3.2) -->
+    <div id="page-analytics-builder" class="page">
+      <div class="page-header">
+        <h2>分析构建器 · Analytics Builder</h2>
+        <span class="badge badge-blue">v8.3.2</span>
+      </div>
+      <div id="analyticsBuilderRoot"></div>
+    </div>
+
+    <!-- CBA Aux Page (v8.3.2+ · T01/T02) -->
+    <div id="page-cba" class="page">
+      <div id="cbaRoot"></div>
+    </div>
+
+    <!-- Draft History Page (A1-4 — BR-link graceful degradation) -->
+    <div id="page-draft" class="page">
+      <div class="page-header">
+        <h2 data-i18n="draft.title">选秀数据 · Draft History</h2>
+        <div class="form-row">
+          <label class="label" data-i18n="draft.season">选秀赛季:</label>
+          <select class="select" id="draftSeasonSelect" onchange="loadDraftPage()"></select>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title" data-i18n="draft.picks">选秀名单</div>
+          <div class="card-badge" id="draftCount">—</div>
+        </div>
+        <div class="tbl-wrap" style="max-height:680px;">
+          <table class="tbl" id="draftTable">
+            <thead>
+              <tr>
+                <th data-i18n="draft.season">赛季</th>
+                <th style="width:70px; text-align:center;" data-i18n="draft.round">轮</th>
+                <th style="width:80px; text-align:right;" data-i18n="draft.pick">顺位</th>
+                <th data-i18n="draft.team">球队</th>
+                <th data-i18n="draft.player">球员</th>
+                <th style="width:110px; text-align:right;" data-i18n="draft.weightLbs">体重(lbs)</th>
+                <th style="width:110px; text-align:right;" data-i18n="draft.weightKg">体重(kg)</th>
+                <th style="width:120px; text-align:center;" data-i18n="draft.brData">BR 资料</th>
+              </tr>
+            </thead>
+            <tbody id="draftTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="toastContainer"></div>
+
+<!-- v8 Entity Detail Overlay (player / team dedicated pages) -->
+<div id="entityOverlay" class="entity-overlay" style="display:none;">
+  <div class="entity-overlay-backdrop" onclick="closeEntityOverlay()"></div>
+  <div class="entity-overlay-panel">
+    <div class="entity-overlay-header">
+      <div class="entity-overlay-title" id="entityOverlayTitle"></div>
+      <button class="entity-overlay-close" onclick="closeEntityOverlay()" aria-label="Close">✕</button>
+    </div>
+    <div class="entity-overlay-body" id="entityOverlayBody"></div>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+<script src="js/components/intelligence.js"></script>
+<script src="js/components/workspace.js"></script>
+<script src="js/components/ReboundingCard.js"></script>
+<script src="js/components/PlaymakingCard.js"></script>
+<script src="js/components/DefenseProfileCard.js"></script>
+<script src="js/components/ShotProfileChart.js"></script>
+<script src="js/components/TeamContributionChart.js"></script>
+<script src="js/components/CareerDefenseSummary.js"></script>
+<script src="js/components/entity_detail.js"></script>
+<script src="js/components/clutch.js"></script>
+<script src="js/components/peak.js"></script>
+<script src="js/components/age_curve.js"></script>
+<script src="js/components/similar_evolution.js"></script>
+<script src="js/components/trade.js"></script>
+<script src="js/components/tactics.js"></script>
+<script src="js/components/clutch_replay.js"></script>
+<script src="js/components/video_library.js"></script>
+<script src="js/components/ab_nodes.js"></script>
+<script src="js/components/ab_canvas.js"></script>
+<script src="js/components/ab_properties.js"></script>
+<script src="js/components/ab_runner.js"></script>
+<script src="js/components/analytics_builder.js"></script>
+<script src="js/components/cba.js"></script>
+</body>
+</html>

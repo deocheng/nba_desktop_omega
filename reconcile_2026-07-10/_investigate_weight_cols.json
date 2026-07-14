@@ -1,0 +1,1019 @@
+{
+  "dim_players_columns": [
+    [
+      "player_id",
+      "character varying"
+    ],
+    [
+      "player_name",
+      "text"
+    ],
+    [
+      "full_name",
+      "text"
+    ],
+    [
+      "pronunciation",
+      "text"
+    ],
+    [
+      "position",
+      "text"
+    ],
+    [
+      "shoots",
+      "text"
+    ],
+    [
+      "height_display",
+      "text"
+    ],
+    [
+      "height_cm",
+      "integer"
+    ],
+    [
+      "weight_lbs",
+      "integer"
+    ],
+    [
+      "weight_kg",
+      "integer"
+    ],
+    [
+      "birth_date",
+      "date"
+    ],
+    [
+      "birth_city",
+      "text"
+    ],
+    [
+      "birth_state_country",
+      "text"
+    ],
+    [
+      "nationality",
+      "text"
+    ],
+    [
+      "college",
+      "text"
+    ],
+    [
+      "high_school",
+      "text"
+    ],
+    [
+      "recruiting_rank",
+      "text"
+    ],
+    [
+      "draft_info",
+      "text"
+    ],
+    [
+      "experience",
+      "text"
+    ],
+    [
+      "nba_debut",
+      "text"
+    ],
+    [
+      "source_url",
+      "text"
+    ],
+    [
+      "scraped_at",
+      "timestamp without time zone"
+    ],
+    [
+      "year_from",
+      "integer"
+    ],
+    [
+      "year_to",
+      "integer"
+    ]
+  ],
+  "dim_players_weight_related": [
+    "weight_lbs",
+    "weight_kg"
+  ],
+  "player_weight_history_columns": [
+    [
+      "player_id",
+      "text"
+    ],
+    [
+      "player_name",
+      "text"
+    ],
+    [
+      "weight_lbs",
+      "integer"
+    ],
+    [
+      "weight_kg",
+      "integer"
+    ],
+    [
+      "height",
+      "text"
+    ],
+    [
+      "born",
+      "text"
+    ],
+    [
+      "scraped_at",
+      "timestamp without time zone"
+    ],
+    [
+      "position",
+      "text"
+    ],
+    [
+      "shoots",
+      "text"
+    ]
+  ],
+  "player_weight_history_rowcount": 5473,
+  "player_weight_history_sample": [
+    [
+      "player_id",
+      "player_name",
+      "weight_lbs",
+      "weight_kg",
+      "height",
+      "born",
+      "scraped_at",
+      "position",
+      "shoots"
+    ],
+    [
+      [
+        "addisra01",
+        "Rafael Addison",
+        215,
+        98,
+        null,
+        null,
+        "2026-06-20 07:13:15.434238",
+        null,
+        null
+      ],
+      [
+        "barkecl01",
+        "Cliff Barker",
+        185,
+        84,
+        null,
+        null,
+        "2026-06-23 17:04:16.652968",
+        null,
+        null
+      ],
+      [
+        "beardra01",
+        "Ralph Beard",
+        175,
+        79,
+        null,
+        null,
+        "2026-06-23 18:43:39.316851",
+        null,
+        null
+      ],
+      [
+        "borrela01",
+        "Lazaro Borrell",
+        220,
+        100,
+        null,
+        null,
+        "2026-06-23 19:28:34.994317",
+        null,
+        null
+      ],
+      [
+        "borsaik01",
+        "Ike Borsavage",
+        220,
+        100,
+        null,
+        null,
+        "2026-06-23 19:28:47.673840",
+        null,
+        null
+      ]
+    ]
+  ],
+  "all_weight_columns": [
+    [
+      "dim_players",
+      "weight_kg",
+      "integer"
+    ],
+    [
+      "dim_players",
+      "weight_lbs",
+      "integer"
+    ],
+    [
+      "draft_combine",
+      "weight_lbs",
+      "numeric"
+    ],
+    [
+      "player_bio",
+      "weight_kg",
+      "integer"
+    ],
+    [
+      "player_bio",
+      "weight_lbs",
+      "integer"
+    ],
+    [
+      "player_directory",
+      "weight_lbs",
+      "integer"
+    ],
+    [
+      "player_weight_history",
+      "weight_kg",
+      "integer"
+    ],
+    [
+      "player_weight_history",
+      "weight_lbs",
+      "integer"
+    ]
+  ],
+  "candidate_tables": {
+    "all_star_selections": {
+      "exists": true,
+      "rowcount": 2058,
+      "columns": [
+        "player",
+        "player_id",
+        "team",
+        "season",
+        "lg",
+        "replaced"
+      ],
+      "has_player_id": true,
+      "has_br_player_id": false,
+      "player_like_columns": [
+        "player",
+        "player_id"
+      ]
+    },
+    "dim_draft_history": {
+      "exists": true,
+      "rowcount": 8446,
+      "columns": [
+        "season",
+        "league",
+        "round",
+        "pick_overall",
+        "pick_in_round",
+        "team_abbr",
+        "player_id",
+        "player_name",
+        "college",
+        "seasons_played",
+        "games",
+        "minutes_played",
+        "total_points",
+        "total_rebounds",
+        "total_assists",
+        "fg_pct",
+        "fg3_pct",
+        "ft_pct",
+        "mp_per_game",
+        "pts_per_game",
+        "trb_per_game",
+        "ast_per_game",
+        "ws",
+        "ws_per_48",
+        "bpm",
+        "vorp",
+        "source_url",
+        "scraped_at",
+        "player_id_orig"
+      ],
+      "has_player_id": true,
+      "has_br_player_id": false,
+      "player_like_columns": [
+        "player_id",
+        "player_name",
+        "player_id_orig"
+      ]
+    },
+    "dim_draft_history_bak_20260712": {
+      "exists": true,
+      "rowcount": 8446,
+      "columns": [
+        "season",
+        "league",
+        "round",
+        "pick_overall",
+        "pick_in_round",
+        "team_abbr",
+        "player_id",
+        "player_name",
+        "college",
+        "seasons_played",
+        "games",
+        "minutes_played",
+        "total_points",
+        "total_rebounds",
+        "total_assists",
+        "fg_pct",
+        "fg3_pct",
+        "ft_pct",
+        "mp_per_game",
+        "pts_per_game",
+        "trb_per_game",
+        "ast_per_game",
+        "ws",
+        "ws_per_48",
+        "bpm",
+        "vorp",
+        "source_url",
+        "scraped_at",
+        "player_id_orig"
+      ],
+      "has_player_id": true,
+      "has_br_player_id": false,
+      "player_like_columns": [
+        "player_id",
+        "player_name",
+        "player_id_orig"
+      ]
+    },
+    "dim_players": {
+      "exists": true,
+      "rowcount": 5476,
+      "columns": [
+        "player_id",
+        "player_name",
+        "full_name",
+        "pronunciation",
+        "position",
+        "shoots",
+        "height_display",
+        "height_cm",
+        "weight_lbs",
+        "weight_kg",
+        "birth_date",
+        "birth_city",
+        "birth_state_country",
+        "nationality",
+        "college",
+        "high_school",
+        "recruiting_rank",
+        "draft_info",
+        "experience",
+        "nba_debut",
+        "source_url",
+        "scraped_at",
+        "year_from",
+        "year_to"
+      ],
+      "has_player_id": true,
+      "has_br_player_id": false,
+      "player_like_columns": [
+        "player_id",
+        "player_name"
+      ]
+    },
+    "end_of_season_teams": {
+      "exists": true,
+      "rowcount": 6777,
+      "columns": [
+        "season",
+        "lg",
+        "type",
+        "number_tm",
+        "player",
+        "player_id",
+        "position",
+        "age",
+        "pts_max",
+        "pts_won",
+        "share",
+        "x1st_tm",
+        "x2nd_tm",
+        "x3rd_tm"
+      ],
+      "has_player_id": true,
+      "has_br_player_id": false,
+      "player_like_columns": [
+        "player",
+        "player_id"
+      ]
+    },
+    "fact_player_season_stats": {
+      "exists": true,
+      "rowcount": 45073,
+      "columns": [
+        "season",
+        "lg",
+        "player",
+        "player_id",
+        "age",
+        "team",
+        "pos",
+        "g",
+        "gs",
+        "mp",
+        "fg",
+        "fga",
+        "fg_percent",
+        "x3p",
+        "x3pa",
+        "x3p_percent",
+        "x2p",
+        "x2pa",
+        "x2p_percent",
+        "e_fg_percent",
+        "ft",
+        "fta",
+        "ft_percent",
+        "orb",
+        "drb",
+        "trb",
+        "ast",
+        "stl",
+        "blk",
+        "tov",
+        "pf",
+        "pts",
+        "trp_dbl",
+        "per",
+        "ts_percent",
+        "x3p_ar",
+        "f_tr",
+        "orb_percent",
+        "drb_percent",
+        "trb_percent",
+        "ast_percent",
+        "stl_percent",
+        "blk_percent",
+        "tov_percent",
+        "usg_percent",
+        "ows",
+        "dws",
+        "ws",
+        "ws_48",
+        "obpm",
+        "dbpm",
+        "bpm",
+        "vorp",
+        "fg_per_100_poss",
+        "fga_per_100_poss",
+        "x3p_per_100_poss",
+        "x3pa_per_100_poss",
+        "x2p_per_100_poss",
+        "x2pa_per_100_poss",
+        "ft_per_100_poss",
+        "fta_per_100_poss",
+        "orb_per_100_poss",
+        "drb_per_100_poss",
+        "trb_per_100_poss",
+        "ast_per_100_poss",
+        "stl_per_100_poss",
+        "blk_per_100_poss",
+        "tov_per_100_poss",
+        "pf_per_100_poss",
+        "pts_per_100_poss",
+        "o_rtg",
+        "d_rtg",
+        "season_type",
+        "id"
+      ],
+      "has_player_id": true,
+      "has_br_player_id": false,
+      "player_like_columns": [
+        "player",
+        "player_id"
+      ]
+    },
+    "player_award_shares": {
+      "exists": true,
+      "rowcount": 3527,
+      "columns": [
+        "season",
+        "award",
+        "player",
+        "player_id",
+        "age",
+        "first",
+        "pts_won",
+        "pts_max",
+        "share",
+        "winner"
+      ],
+      "has_player_id": true,
+      "has_br_player_id": false,
+      "player_like_columns": [
+        "player",
+        "player_id"
+      ]
+    },
+    "player_career_totals": {
+      "exists": true,
+      "rowcount": 4874,
+      "columns": [
+        "id",
+        "player_name",
+        "games",
+        "pts_total",
+        "trb_total",
+        "ast_total",
+        "stl_total",
+        "blk_total",
+        "tov_total",
+        "pf_total",
+        "fg_total",
+        "fga_total",
+        "fg3_total",
+        "fga3_total",
+        "ft_total",
+        "fta_total",
+        "orb_total",
+        "drb_total",
+        "pts_per_game",
+        "trb_per_game",
+        "ast_per_game",
+        "stl_per_game",
+        "blk_per_game",
+        "fg_pct",
+        "fg3_pct",
+        "ft_pct",
+        "created_at"
+      ],
+      "has_player_id": false,
+      "has_br_player_id": false,
+      "player_like_columns": [
+        "player_name"
+      ]
+    },
+    "player_contracts": {
+      "exists": true,
+      "rowcount": 648,
+      "columns": [
+        "team_abbr",
+        "season",
+        "player_id",
+        "player_name",
+        "age",
+        "salary_2025_26",
+        "salary_2026_27",
+        "salary_2027_28",
+        "salary_2028_29",
+        "salary_2029_30",
+        "salary_2030_31",
+        "opt_2025_26",
+        "opt_2026_27",
+        "opt_2027_28",
+        "opt_2028_29",
+        "opt_2029_30",
+        "opt_2030_31",
+        "guaranteed",
+        "is_partial",
+        "notes",
+        "source_url",
+        "scraped_at",
+        "is_two_way"
+      ],
+      "has_player_id": true,
+      "has_br_player_id": false,
+      "player_like_columns": [
+        "player_id",
+        "player_name"
+      ]
+    },
+    "player_contracts_league": {
+      "exists": true,
+      "rowcount": 537,
+      "columns": [
+        "player_id",
+        "player_name",
+        "team_abbr",
+        "season",
+        "salary_2025_26",
+        "salary_2026_27",
+        "salary_2027_28",
+        "salary_2028_29",
+        "salary_2029_30",
+        "salary_2030_31",
+        "opt_2025_26",
+        "opt_2026_27",
+        "opt_2027_28",
+        "opt_2028_29",
+        "opt_2029_30",
+        "opt_2030_31",
+        "guaranteed",
+        "source_url",
+        "scraped_at"
+      ],
+      "has_player_id": true,
+      "has_br_player_id": false,
+      "player_like_columns": [
+        "player_id",
+        "player_name"
+      ]
+    },
+    "player_gamelog": {
+      "exists": true,
+      "rowcount": 1911004,
+      "columns": [
+        "id",
+        "gameid",
+        "player",
+        "team",
+        "season",
+        "fg",
+        "fga",
+        "fg3",
+        "fga3",
+        "ft",
+        "fta",
+        "orb",
+        "drb",
+        "trb",
+        "ast",
+        "stl",
+        "blk",
+        "tov",
+        "pf",
+        "pts",
+        "plus_minus",
+        "fg_pct",
+        "ft_pct",
+        "fg3_pct",
+        "created_at",
+        "nba_player_id",
+        "fbpts",
+        "fbptsa",
+        "fbptsm",
+        "pip",
+        "pipa",
+        "pipm",
+        "blka",
+        "tech_fouls",
+        "court_status",
+        "seconds_played",
+        "fgm",
+        "tpm",
+        "tpa",
+        "ftm",
+        "oreb",
+        "dreb",
+        "reb",
+        "team_id",
+        "team_abbreviation",
+        "player_id",
+        "player_name",
+        "start_position",
+        "minutes",
+        "jersey_num",
+        "position",
+        "player_status",
+        "game_id_full",
+        "br_player_id"
+      ],
+      "has_player_id": true,
+      "has_br_player_id": true,
+      "player_like_columns": [
+        "player",
+        "nba_player_id",
+        "player_id",
+        "player_name",
+        "player_status",
+        "br_player_id"
+      ]
+    },
+    "player_gamelog_dup2026_bak": {
+      "exists": true,
+      "rowcount": 1411,
+      "columns": [
+        "id",
+        "gameid",
+        "player",
+        "team",
+        "season",
+        "fg",
+        "fga",
+        "fg3",
+        "fga3",
+        "ft",
+        "fta",
+        "orb",
+        "drb",
+        "trb",
+        "ast",
+        "stl",
+        "blk",
+        "tov",
+        "pf",
+        "pts",
+        "plus_minus",
+        "fg_pct",
+        "ft_pct",
+        "fg3_pct",
+        "created_at",
+        "nba_player_id",
+        "fbpts",
+        "fbptsa",
+        "fbptsm",
+        "pip",
+        "pipa",
+        "pipm",
+        "blka",
+        "tech_fouls",
+        "court_status",
+        "seconds_played",
+        "fgm",
+        "tpm",
+        "tpa",
+        "ftm",
+        "oreb",
+        "dreb",
+        "reb",
+        "team_id",
+        "team_abbreviation",
+        "player_id",
+        "player_name",
+        "start_position",
+        "minutes",
+        "jersey_num",
+        "position",
+        "player_status",
+        "game_id_full",
+        "br_player_id"
+      ],
+      "has_player_id": true,
+      "has_br_player_id": true,
+      "player_like_columns": [
+        "player",
+        "nba_player_id",
+        "player_id",
+        "player_name",
+        "player_status",
+        "br_player_id"
+      ]
+    },
+    "player_id_bridge": {
+      "exists": true,
+      "rowcount": 9321,
+      "columns": [
+        "nba_player_id",
+        "player_name",
+        "br_player_id",
+        "match_strategy"
+      ],
+      "has_player_id": false,
+      "has_br_player_id": true,
+      "player_like_columns": [
+        "nba_player_id",
+        "player_name",
+        "br_player_id"
+      ]
+    },
+    "player_name_unified": {
+      "exists": true,
+      "rowcount": 7497,
+      "columns": [
+        "id",
+        "abbreviation",
+        "full_name",
+        "last_name",
+        "career_name",
+        "draft_name",
+        "match_score",
+        "source",
+        "created_at"
+      ],
+      "has_player_id": false,
+      "has_br_player_id": false,
+      "player_like_columns": []
+    },
+    "player_play_by_play": {
+      "exists": true,
+      "rowcount": 18254,
+      "columns": [
+        "season",
+        "lg",
+        "player",
+        "player_id",
+        "age",
+        "team",
+        "pos",
+        "g",
+        "gs",
+        "mp",
+        "pg_percent",
+        "sg_percent",
+        "sf_percent",
+        "pf_percent",
+        "c_percent",
+        "on_court_plus_minus_per_100_poss",
+        "net_plus_minus_per_100_poss",
+        "bad_pass_turnover",
+        "lost_ball_turnover",
+        "shooting_foul_committed",
+        "offensive_foul_committed",
+        "shooting_foul_drawn",
+        "offensive_foul_drawn",
+        "points_generated_by_assists",
+        "and1",
+        "fga_blocked"
+      ],
+      "has_player_id": true,
+      "has_br_player_id": false,
+      "player_like_columns": [
+        "player",
+        "player_id"
+      ]
+    },
+    "player_salaries_historical": {
+      "exists": true,
+      "rowcount": 12386,
+      "columns": [
+        "id",
+        "player_name",
+        "salary",
+        "season",
+        "team_abbr",
+        "position",
+        "age",
+        "source",
+        "imported_at"
+      ],
+      "has_player_id": false,
+      "has_br_player_id": false,
+      "player_like_columns": [
+        "player_name"
+      ]
+    },
+    "player_season_info": {
+      "exists": true,
+      "rowcount": 33339,
+      "columns": [
+        "season",
+        "lg",
+        "player",
+        "player_id",
+        "age",
+        "team",
+        "pos",
+        "experience"
+      ],
+      "has_player_id": true,
+      "has_br_player_id": false,
+      "player_like_columns": [
+        "player",
+        "player_id"
+      ]
+    },
+    "player_season_splits": {
+      "exists": true,
+      "rowcount": 1032183,
+      "columns": [
+        "id",
+        "season",
+        "player_name",
+        "team_abbr",
+        "split_type",
+        "games",
+        "pts",
+        "reb",
+        "ast",
+        "fg_pct",
+        "fg3_pct",
+        "ft_pct",
+        "plus_minus",
+        "created_at",
+        "split_category",
+        "mp",
+        "fg",
+        "fga",
+        "fg3",
+        "fga3",
+        "ft",
+        "fta",
+        "orb",
+        "drb",
+        "stl",
+        "blk",
+        "tov",
+        "pf",
+        "player_id"
+      ],
+      "has_player_id": true,
+      "has_br_player_id": false,
+      "player_like_columns": [
+        "player_name",
+        "player_id"
+      ]
+    },
+    "player_shooting": {
+      "exists": true,
+      "rowcount": 24353,
+      "columns": [
+        "season",
+        "lg",
+        "player",
+        "player_id",
+        "age",
+        "team",
+        "pos",
+        "g",
+        "gs",
+        "mp",
+        "fg_percent",
+        "avg_dist_fga",
+        "percent_fga_from_x2p_range",
+        "percent_fga_from_x0_3_range",
+        "percent_fga_from_x3_10_range",
+        "percent_fga_from_x10_16_range",
+        "percent_fga_from_x16_3p_range",
+        "percent_fga_from_x3p_range",
+        "fg_percent_from_x2p_range",
+        "fg_percent_from_x0_3_range",
+        "fg_percent_from_x3_10_range",
+        "fg_percent_from_x10_16_range",
+        "fg_percent_from_x16_3p_range",
+        "fg_percent_from_x3p_range",
+        "percent_assisted_x2p_fg",
+        "percent_assisted_x3p_fg",
+        "percent_dunks_of_fga",
+        "num_of_dunks",
+        "percent_corner_3s_of_3pa",
+        "corner_3_point_percent",
+        "num_heaves_attempted",
+        "num_heaves_made",
+        "season_type"
+      ],
+      "has_player_id": true,
+      "has_br_player_id": false,
+      "player_like_columns": [
+        "player",
+        "player_id"
+      ]
+    },
+    "player_weight_history": {
+      "exists": true,
+      "rowcount": 5473,
+      "columns": [
+        "player_id",
+        "player_name",
+        "weight_lbs",
+        "weight_kg",
+        "height",
+        "born",
+        "scraped_at",
+        "position",
+        "shoots"
+      ],
+      "has_player_id": true,
+      "has_br_player_id": false,
+      "player_like_columns": [
+        "player_id",
+        "player_name"
+      ]
+    }
+  },
+  "caliber_check": {
+    "name_like_player": 39,
+    "has_player_id_col": 39,
+    "union_name_or_player_id": 45,
+    "base_candidate_count": 18,
+    "base_candidates": [
+      "all_star_selections",
+      "dim_draft_history",
+      "dim_players",
+      "end_of_season_teams",
+      "fact_player_season_stats",
+      "player_award_shares",
+      "player_career_totals",
+      "player_contracts",
+      "player_contracts_league",
+      "player_gamelog",
+      "player_id_bridge",
+      "player_name_unified",
+      "player_play_by_play",
+      "player_salaries_historical",
+      "player_season_info",
+      "player_season_splits",
+      "player_shooting",
+      "player_weight_history"
+    ]
+  }
+}

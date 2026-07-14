@@ -1,0 +1,42 @@
+classDiagram
+    class coords {
+        +int FULL_SVG_W = 940
+        +int FULL_SVG_H = 500
+        +tuple RIM_PX_LEFT = (0,250)
+        +tuple RIM_PX_RIGHT = (940,250)
+        +map_xy_to_svg(x,y) 半场(保留)
+        +map_xy_to_svg_full(x,y) 全场
+        +nearest_rim(x,y) 双筐兜底
+    }
+    class PbPEvent {
+        +int event_index
+        +str description
+        +float h_pts
+        +float a_pts
+    }
+    class ReplayResult {
+        +list frames
+        +list events
+        +ReplayMeta meta
+    }
+    class replay_engine {
+        +resolve_positions(events, full_court=False)
+        +build_frames_from_events(events, fps, full_court) dict
+        +build_frames(game_id, season, fps, full_court) dict
+    }
+    class TacticsService {
+        +replay(req) dict 注入 events + court
+    }
+    class Tactics_FE {
+        <<window.Tactics>>
+        +render(containerId, mode, courtMode)
+        +drawFullCourt()
+        +setCourtMode(mode)
+        +updateCaption(idx, frame)
+        +onTick(cb)
+    }
+    replay_engine --> coords : 选 mapper
+    TacticsService --> replay_engine : full_court=True
+    replay_engine ..> PbPEvent : 投影 events[]
+    ReplayResult "1" *-- "0..*" PbPEvent : events(精简dict)
+    Tactics_FE --> coords : 仅消费帧px(零计算)

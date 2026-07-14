@@ -1,0 +1,32 @@
+sequenceDiagram
+    autonumber
+    actor U as 用户(前端)
+    participant F as clutch_replay.js (Layer4)
+    participant T as TacticsPlayerEngine (window.Tactics)
+    participant API as /clutch-replay router (Layer3)
+    participant S as ClutchReplayService (Layer2 聚合)
+    participant TE as TacticsService
+    participant CE as clutch_engine
+    participant M as EventIndexMapper
+
+    U->>F: 选赛季+比赛 → 加载融合回放
+    F->>API: POST /clutch-replay/replay {game_id, season}
+    API->>S: clutch_replay(req)
+    S->>TE: replay(ReplayRequest) → frames[], meta
+    TE-->>S: 帧序列(每帧含 event_index)
+    S->>CE: fetch_clutch_events(gameid, season, br_crawler_only) → clutch 事件(eventnum)
+    CE-->>S: clutch_events[]
+    S->>CE: get_clutch_players_for_game(gameid, season) → 侧栏统计
+    CE-->>S: clutch_players[]
+    S->>M: build_eventnum_to_index_map(gameid, season)
+    M-->>S: {eventnum: event_index}
+    S->>M: build_segments(映射后 event_index, frames, pad)
+    M-->>S: clutch_segments[] (event→frame 映射完成)
+    S-->>API: ClutchReplayResult{frames, meta, clutch_segments, clutch_players}
+    API-->>F: {code:0, data:...}
+    F->>T: setFrames(frames, meta) + onTick(同步高亮/侧栏)
+    F->>F: 在 Timeline 上画 clutch 高亮段(投影到 0-1000)
+    F->>F: 渲染右侧 clutch_players 侧栏
+    U->>F: 点击高亮段
+    F->>T: seekFrame(seg.start_frame) → 游标跳转 + 侧栏联动该回合
+    T->>T: rAF 推进帧 + SVG 渲染(复用 tactics 渲染)

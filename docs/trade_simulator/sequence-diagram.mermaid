@@ -1,0 +1,39 @@
+sequenceDiagram
+    actor U as 用户(前端 TradeBuilder)
+    participant FE as js/components/trade.js
+    participant API as /trade/validate (routers/trade.py)
+    participant SVC as TradeService (service.py)
+    participant DB as TradeData (db.py)
+    participant TG as TradeGraph (trade_graph.py)
+    participant RS as NBARuleSet (nba_rules.py)
+    participant TX as TaxEngine (tax_engine.py)
+
+    U->>FE: 选择赛季/联赛 + 增删多队(3+)球员
+    FE->>API: POST /trade/validate {league, season, legs[], as_of}
+    API->>API: 参数校验 + 薄编排（仅组装请求）
+    API->>SVC: validate(proposal)
+    SVC->>DB: load LeagueSalaryRules(season)  %% 读 league_salary_rules
+    SVC->>DB: load PlayerAssets(team[], season)  %% batch_query
+    DB-->>SVC: rules + assets
+    SVC->>TG: TradeGraph.build(proposal, assets)
+    loop 对每个参与队(多队独立校验, 决策①)
+        SVC->>RS: check_match(leg, rules)        %% 用 guaranteed 计(决策③)
+        RS-->>SVC: MatchResult(legal, issues, deficit)
+        SVC->>RS: check_byc(leg, rules)
+        SVC->>RS: check_tpe(leg, rules)
+        SVC->>RS: check_hard_cap(leg, rules)
+        SVC->>RS: check_apron(leg, rules)        %% 第二土豪线→硬帽
+        SVC->>RS: check_aggregation(leg, rules)
+        SVC->>RS: check_freeze(leg, as_of, rules)
+    end
+    SVC->>TX: compute_cap_impact(graph, rules)   %% TRADE-03
+    TX-->>SVC: CapImpact[每队 before/after]
+    SVC-->>API: {results[], cap_impact[]}
+    API-->>FE: 200 JSON
+    FE->>U: 渲染校验面板/税档视图/建议区
+
+    note over U,TX: 配套接口(同层编排)
+    FE->>API: POST /trade/suggest  → SVC.suggest → MatchSuggester (TRADE-02)
+    FE->>API: POST /trade/generate → SVC.generate  → ProposalGenerator (TRADE-07)
+    FE->>API: GET  /trade/timeline/player/{id} → SVC.player_timeline (TRADE-08/09)
+    FE->>API: GET  /trade/rules/{season}        → SVC.get_rules (TRADE-05/11)

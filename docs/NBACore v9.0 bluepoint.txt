@@ -1,0 +1,883 @@
+# NBACore v9.0
+
+# Open Basketball Intelligence Platform
+
+# Long-Term Vision & Architecture Roadmap
+
+> Version: 9.0
+> Status: Long-term Strategic Planning Document
+> Project Type: Open Source Basketball Analytics Infrastructure
+
+---
+
+# 1. Vision Overview
+
+## 1.1 Project Evolution
+
+NBACore 初始目标：
+
+> NBA 数据分析工具
+
+经过 v8.x 发展：
+
+> 篮球数据分析平台
+
+v9.0 长期目标：
+
+> 开源篮球智能分析基础设施（Open Basketball Intelligence Platform）
+
+---
+
+# 2. Core Philosophy
+
+## 2.1 Not a Database, but an Analytical Infrastructure
+
+NBACore 不追求：
+
+* 收集所有篮球数据
+* 成为唯一数据来源
+* 替代官方数据库
+
+NBACore 提供：
+
+* 数据组织能力
+* 数据分析能力
+* 模型创建能力
+* 可视化能力
+* AI辅助能力
+
+核心理念：
+
+```
+拥有数据的人
+        |
+        |
+使用 NBACore
+        |
+        |
+获得分析能力
+```
+
+---
+
+# 3. Long-Term Architecture
+
+最终架构：
+
+```
+                 NBACore v9.0
+
+
+                      |
+
+        Basketball Intelligence Layer
+
+
+                      |
+
+ -------------------------------------------------
+
+ |              |              |                 |
+
+Data Layer   Model Layer   AI Layer      Visualization
+
+
+                      |
+
+ -------------------------------------------------
+
+Competition System
+
+Player Identity
+
+Data Ownership
+
+Provenance System
+
+
+```
+
+---
+
+# 4. Fundamental Design Principles
+
+---
+
+# Principle 1
+
+# Competition First
+
+## 不存在绝对统一的篮球数据
+
+NBA、FIBA、NCAA、高中篮球：
+
+不是同一种环境。
+
+系统必须保存：
+
+```
+Performance
+
++
+
+Competition Context
+
++
+
+Rules Environment
+
+```
+
+---
+
+## Competition Object
+
+示例：
+
+```json
+{
+"name":"NBA",
+
+"ruleset":
+
+{
+
+"quarter":12,
+
+"shot_clock":24,
+
+"three_point_distance":7.24
+
+}
+
+}
+```
+
+---
+
+## 支持环境
+
+未来：
+
+```
+Professional
+
+- NBA
+- EuroLeague
+- CBA
+
+
+International
+
+- FIBA World Cup
+- Olympics
+
+
+Development
+
+- NCAA
+- High School
+- Youth League
+
+```
+
+---
+
+# Principle 2
+
+# Player As Universal Connection
+
+跨联赛唯一稳定对象：
+
+不是数据。
+
+而是球员。
+
+模型：
+
+```
+Competition
+
+        |
+
+Performance
+
+        |
+
+Player Identity
+
+        |
+
+Career Timeline
+
+```
+
+---
+
+示例：
+
+一个球员：
+
+```
+Youth
+
+↓
+
+High School
+
+↓
+
+NCAA
+
+↓
+
+Professional
+
+↓
+
+National Team
+
+```
+
+形成：
+
+Player Timeline
+
+---
+
+# Principle 3
+
+# Data Ownership
+
+NBACore 不拥有所有数据。
+
+数据属于：
+
+* 球员
+* 球队
+* 研究者
+* 社区
+
+系统提供：
+
+```
+Storage Interface
+
++
+
+Analysis Tools
+
++
+
+Privacy Control
+
+```
+
+---
+
+# Principle 4
+
+# Data Provenance
+
+任何数据必须知道：
+
+```
+Where
+
+Who
+
+When
+
+Confidence
+
+Verification
+
+```
+
+---
+
+数据结构：
+
+```json
+{
+
+"value":113,
+
+
+"source":
+
+"player_upload",
+
+
+"confidence":
+
+0.95,
+
+
+"verified":
+
+true
+
+}
+
+```
+
+---
+
+# 5. Major Future Modules
+
+---
+
+# v9.1 Basketball Ontology System
+
+## Goal
+
+建立篮球数据语义层。
+
+解决：
+
+不同来源：
+
+```
+PTS
+
+Points
+
+Score
+
+得分
+
+```
+
+最终理解为：
+
+```
+Basketball Concept:
+
+Points
+
+```
+
+---
+
+支持：
+
+* 数据字段映射
+* 统计定义
+* 规则解释
+
+---
+
+# v9.2 Competition Rules Engine
+
+## Goal
+
+让规则成为分析变量。
+
+支持：
+
+NBA：
+
+```
+12 minute quarter
+
+3 second defense
+
+```
+
+FIBA：
+
+```
+10 minute quarter
+
+Different spacing
+
+```
+
+NCAA：
+
+```
+Different timing
+
+```
+
+---
+
+应用：
+
+球员跨联赛比较。
+
+---
+
+# v9.3 Player Intelligence Framework
+
+## Goal
+
+建立球员生命周期模型。
+
+包括：
+
+```
+Player Identity
+
++
+
+Career Timeline
+
++
+
+Performance Timeline
+
++
+
+Optional Development Data
+
+```
+
+---
+
+# 6. Bio Timeline System
+
+## Philosophy
+
+身体数据不是 NBACore 的事实数据库。
+
+而是：
+
+用户拥有的数据扩展。
+
+---
+
+支持：
+
+## Public Data
+
+来源：
+
+* Media Guide
+* Public Dataset
+
+可信度：
+
+Medium
+
+---
+
+## Private Data
+
+来源：
+
+* Player
+* Agent
+* Team
+
+可信度：
+
+High
+
+---
+
+数据：
+
+```json
+{
+
+"height":203,
+
+"weight":110,
+
+"wingspan":220,
+
+
+"source":
+
+"team_internal"
+
+}
+
+```
+
+---
+
+# 7. Development Intelligence Framework
+
+## Long-term Goal
+
+研究：
+
+```
+Early Mature Player
+
+vs
+
+Late Bloom Player
+
+```
+
+---
+
+但是：
+
+不主动预测。
+
+原因：
+
+需要：
+
+* 身体数据
+* 训练数据
+* 医疗数据
+* 成长记录
+
+这些属于个人资产。
+
+---
+
+NBACore 提供：
+
+接口。
+
+不提供：
+
+伪科学结论。
+
+---
+
+# 8. v9.4 AI Basketball Analyst
+
+## Goal
+
+AI成为分析助手。
+
+不是替代分析师。
+
+---
+
+AI能力：
+
+## Data Explanation
+
+解释：
+
+为什么这个指标变化。
+
+---
+
+## Model Generation
+
+根据需求生成：
+
+Formula
+
+Node Graph
+
+---
+
+## Report Generation
+
+生成：
+
+* Scouting Report
+* Player Comparison
+* Historical Analysis
+
+---
+
+前提：
+
+```
+Reliable Data
+
+↓
+
+Transparent Model
+
+↓
+
+AI Explanation
+
+```
+
+---
+
+# 9. v9.5 Community Ecosystem
+
+## Goal
+
+建立开源篮球分析生态。
+
+包括：
+
+---
+
+## Formula Marketplace
+
+分享：
+
+* MVP模型
+* 防守模型
+* 球员评分模型
+
+---
+
+## Dataset Sharing
+
+分享：
+
+* 历史比赛
+* 联赛数据
+* 研究数据
+
+---
+
+## Analysis Template
+
+分享：
+
+* Dashboard
+* Reports
+* Workflows
+
+---
+
+# 10. Local First Architecture
+
+核心原则：
+
+私人数据默认属于用户。
+
+支持：
+
+```
+Local Database
+
+Private Workspace
+
+Encrypted Dataset
+
+Optional Sharing
+
+```
+
+---
+
+适合：
+
+* 球员团队
+* 球探
+* 学校球队
+* 研究机构
+
+---
+
+# 11. AI + Open Source Strategy
+
+未来 NBACore 不竞争：
+
+```
+Data Ownership
+
+```
+
+而竞争：
+
+```
+Analysis Capability
+
+```
+
+---
+
+生态：
+
+```
+Data Providers
+
+        |
+
+NBACore
+
+        |
+
+Researchers
+
+        |
+
+Teams
+
+        |
+
+Players
+
+```
+
+---
+
+# 12. Development Roadmap
+
+---
+
+## Phase 1
+
+## Foundation
+
+目标：
+
+完成：
+
+```
+Data Asset
+
+Formula Engine
+
+Visualization
+
+Import System
+
+```
+
+---
+
+## Phase 2
+
+## Open Platform
+
+加入：
+
+```
+Multi League
+
+Competition Layer
+
+Plugin System
+
+```
+
+---
+
+## Phase 3
+
+## Intelligence Platform
+
+加入：
+
+```
+AI Analyst
+
+Model Generation
+
+Player Intelligence
+
+```
+
+---
+
+## Phase 4
+
+## Basketball Knowledge Network
+
+最终：
+
+```
+Global Basketball Data
+
++
+
+Community Models
+
++
+
+AI Analysis
+
+```
+
+---
+
+# 13. What NBACore Will Not Do
+
+明确边界：
+
+## 不保证所有数据真实
+
+提供：
+
+可信度系统。
+
+---
+
+## 不替代专业球探
+
+提供：
+
+分析工具。
+
+---
+
+## 不公开私人数据
+
+提供：
+
+权限系统。
+
+---
+
+## 不制造伪科学预测
+
+提供：
+
+透明模型。
+
+---
+
+# 14. Ultimate Vision
+
+NBACore 最终目标：
+
+不是成为最大的篮球数据库。
+
+而是成为：
+
+> 世界上最开放、透明、可扩展的篮球分析基础设施。
+
+让：
+
+球员拥有自己的数据。
+
+球队拥有自己的模型。
+
+研究者拥有自己的实验环境。
+
+社区共享篮球知识。
+
+AI帮助人类理解篮球。
+
+---
+
+# Final Statement
+
+篮球数据最终价值不是数据本身。
+
+而是：
+
+```
+Data
+
+↓
+
+Understanding
+
+↓
+
+Knowledge
+
+↓
+
+Better Basketball Decisions
+
+```
+
+NBACore 的使命：
+
+让每一个拥有篮球数据的人，都拥有分析篮球的能力。
+
+---

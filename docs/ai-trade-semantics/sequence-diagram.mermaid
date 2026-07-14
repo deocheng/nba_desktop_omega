@@ -1,0 +1,29 @@
+sequenceDiagram
+    participant Caller
+    participant P as cba_aux_db.parse_trade_semantics
+    participant Prov as OllamaProvider
+    participant Oll as Ollama /api/chat
+    participant Rx as _extract_counterparties
+
+    Caller->>P: parse_trade_semantics(text, team_abbr)
+    P->>Prov: parse_trade(text, team_abbr)
+    activate Prov
+    Prov->>Oll: POST /api/chat (system+user prompt)
+    Oll-->>Prov: message.content (thinking + JSON)
+    Prov->>Prov: _extract_json_blob(content)
+    alt JSON 解析成功
+        Prov-->>P: dict{...}
+    else 超时/连接失败/JSON 异常
+        Prov--x P: raise
+    end
+    deactivate Prov
+
+    alt LLM 成功
+        P->>P: TradeSemantics(**dict, raw_text=text)
+        P-->>Caller: TradeSemantics
+    else 任何异常被捕获
+        P->>Rx: _extract_counterparties(text, whitelist)
+        Rx-->>P: [abbr, ...]
+        P->>P: TradeSemantics(counterparties=regex, 其余空, raw_text=text, fallback=True)
+        P-->>Caller: TradeSemantics（正则兜底，行为等同旧版）
+    end

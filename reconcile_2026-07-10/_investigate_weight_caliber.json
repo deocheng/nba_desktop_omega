@@ -1,0 +1,63 @@
+{
+  "coverage": {
+    "dim_players": {
+      "total": 5476,
+      "weight_lbs": 5473,
+      "weight_kg": 5473
+    },
+    "player_weight_history": {
+      "total": 5473,
+      "weight_lbs": 5473,
+      "weight_kg": 5473
+    }
+  },
+  "missing_weight_tables": [
+    "all_star_selections",
+    "dim_draft_history",
+    "dim_draft_history_bak_20260712",
+    "draft_pick_history",
+    "draft_picks",
+    "end_of_season_teams",
+    "fact_player_season_stats",
+    "player_advanced",
+    "player_award_shares",
+    "player_career_totals",
+    "player_contracts",
+    "player_contracts_league",
+    "player_game_details",
+    "player_gamelog",
+    "player_gamelog_dup2026_bak",
+    "player_id_bridge",
+    "player_name_map",
+    "player_name_unified",
+    "player_per_100_poss",
+    "player_per_36_minutes",
+    "player_per_game",
+    "player_play_by_play",
+    "player_salaries_historical",
+    "player_season_info",
+    "player_season_splits",
+    "player_shooting",
+    "player_totals",
+    "playoff_player_advanced",
+    "playoff_player_per_100",
+    "playoff_player_per_36",
+    "playoff_player_per_game",
+    "playoff_player_shooting",
+    "playoff_player_totals",
+    "v_player_env_metrics",
+    "v_player_growth_tracking",
+    "v_player_onoff_rating",
+    "v_player_per_100_poss",
+    "v_player_per_36_min",
+    "v_player_per_game",
+    "v_player_role_tags",
+    "v_player_tactical_profile"
+  ],
+  "already_have_weight_tables": [
+    "dim_players",
+    "player_bio",
+    "player_directory",
+    "player_weight_history"
+  ]
+}

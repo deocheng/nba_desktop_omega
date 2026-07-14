@@ -1,0 +1,69 @@
+classDiagram
+    class SalaryCapRules {
+        +int base_cap
+        +int luxury_tax_line
+        +int first_apron
+        +int second_apron
+        +int min_team_salary
+        +__post_init__()
+    }
+    class Player {
+        +str name
+        +int salary
+        +int yos
+        +bool is_all_nba
+        +int contract_years_left
+        +str bird_rights_with_team
+        +float get_max_salary_pct()
+    }
+    class Team {
+        +str name
+        +Dict~str,Player~ roster
+        +Dict~str,int~ cap_holds
+        +bool is_repeat_luxury_payer
+        +add_player(p)
+        +int total_salary()
+        +int get_cap_hold(p)
+        +to_dict()
+        +from_dict(d)
+    }
+    class LeagueSimulator {
+        +Dict~str,Team~ teams
+        +SalaryCapRules rules
+        +add_team(t)
+        +season_summary()
+        +save_league(path)
+        +load_league(path)
+        +dict snapshot()  «NEW 追加»
+        -str _team_status(total)  «NEW 追加»
+    }
+    class CbaAuxRouter {
+        «FastAPI L3»
+        +GET /cba/rules
+        +GET /cba/team/{abbr}
+        +GET /cba/player/{abbr}/{name}
+        +GET /cba/league/summary
+        +POST /cba/league/simulate
+        +GET /cba/league/export
+    }
+    class CbaAuxDbAdapter {
+        +load_salary_rules(season)
+        +load_player(abbr,name,season,is_all_nba)  «EXT 追加参数»
+        +load_team(abbr,season,is_all_nba)  «EXT 追加参数»
+        +load_league(season)
+    }
+    class CbaFrontend {
+        «window.Cba L4»
+        +render(id)
+        +renderRules()
+        +renderTeam()
+        +renderLeague()
+    }
+    LeagueSimulator "1" *-- "0..30" Team : teams
+    Team "1" *-- "0..*" Player : roster
+    CbaAuxRouter ..> CbaAuxDbAdapter : 调 L2
+    CbaAuxRouter ..> LeagueSimulator : 调 L2
+    CbaAuxDbAdapter ..> Player : 构造
+    CbaAuxDbAdapter ..> Team : 构造
+    CbaAuxDbAdapter ..> SalaryCapRules : 构造
+    CbaFrontend ..> CbaAuxRouter : api() /cba/*

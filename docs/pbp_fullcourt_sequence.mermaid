@@ -1,0 +1,29 @@
+sequenceDiagram
+    participant FE as 前端 tactics.js
+    participant API as /tactics/replay (router, 不改)
+    participant SVC as TacticsService.replay
+    participant ENG as replay_engine
+    participant DB as db.load_pbp_events
+    participant CO as coords
+    participant AN as animation.build_frames
+    participant CB as onTick→updateCaption
+
+    FE->>API: POST {game_id, season, frame_rate}
+    API->>SVC: replay(req)
+    SVC->>ENG: build_frames_from_events(events, fps, full_court=True)
+    ENG->>DB: SELECT ... description, h_pts, a_pts (参数化)
+    DB-->>ENG: PbPEvent(含 description/h_pts/a_pts)
+    ENG->>ENG: resolve_positions(events, full_court=True)
+    ENG->>CO: map_xy_to_svg_full / nearest_rim (双筐)
+    CO-->>ENG: 像素 (全场 [0,940]×[0,500])
+    ENG->>AN: build_frames(resolved) 纯像素插值
+    AN-->>ENG: frames[]
+    ENG-->>SVC: {frames, events(投影PbPEvent)}
+    SVC-->>API: {frames, events, meta{court:{mode:full,w:940,h:500}}}
+    API-->>FE: {code,data,message}
+    FE->>FE: state.events = data.events; setCourtMode('full')
+    loop 每帧 (rAF)
+        FE->>CB: onTick(idx, frame)
+        CB->>CB: 在 events 中找 event_index<=frame.event_index 最大条
+        CB-->>FE: 更新解说条文字 + 记分牌(向前填充 h_pts/a_pts)
+    end

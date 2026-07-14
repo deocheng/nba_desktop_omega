@@ -1,0 +1,105 @@
+{
+  "pid_match": {
+    "all_star_selections": {
+      "player_id_type": "text",
+      "has_br_player_id": false,
+      "join_key": "player_id",
+      "total": 2058,
+      "matched": 2058,
+      "rate": 100.0
+    },
+    "dim_draft_history": {
+      "player_id_type": "character varying",
+      "has_br_player_id": false,
+      "join_key": "player_id",
+      "total": 8446,
+      "matched": 4445,
+      "rate": 52.62846317783566
+    },
+    "end_of_season_teams": {
+      "player_id_type": "text",
+      "has_br_player_id": false,
+      "join_key": "player_id",
+      "total": 6777,
+      "matched": 6777,
+      "rate": 100.0
+    },
+    "fact_player_season_stats": {
+      "player_id_type": "text",
+      "has_br_player_id": false,
+      "join_key": "player_id",
+      "total": 45073,
+      "matched": 33339,
+      "rate": 73.9666762807002
+    },
+    "player_award_shares": {
+      "player_id_type": "text",
+      "has_br_player_id": false,
+      "join_key": "player_id",
+      "total": 3527,
+      "matched": 3526,
+      "rate": 99.97164729231642
+    },
+    "player_contracts": {
+      "player_id_type": "character varying",
+      "has_br_player_id": false,
+      "join_key": "player_id",
+      "total": 648,
+      "matched": 641,
+      "rate": 98.91975308641975
+    },
+    "player_contracts_league": {
+      "player_id_type": "character varying",
+      "has_br_player_id": false,
+      "join_key": "player_id",
+      "total": 537,
+      "matched": 533,
+      "rate": 99.25512104283054
+    },
+    "player_gamelog": {
+      "player_id_type": "bigint",
+      "has_br_player_id": true,
+      "join_key": "br_player_id",
+      "total": 1911004,
+      "matched": 1757463,
+      "rate": 91.96542759722115
+    },
+    "player_play_by_play": {
+      "player_id_type": "text",
+      "has_br_player_id": false,
+      "join_key": "player_id",
+      "total": 18254,
+      "matched": 18254,
+      "rate": 100.0
+    },
+    "player_season_info": {
+      "player_id_type": "text",
+      "has_br_player_id": false,
+      "join_key": "player_id",
+      "total": 33339,
+      "matched": 33339,
+      "rate": 100.0
+    },
+    "player_season_splits": {
+      "player_id_type": "character varying",
+      "has_br_player_id": false,
+      "join_key": "player_id",
+      "total": 1032183,
+      "matched": 951817,
+      "rate": 92.21397756018071
+    },
+    "player_shooting": {
+      "player_id_type": "text",
+      "has_br_player_id": false,
+      "join_key": "player_id",
+      "total": 24353,
+      "matched": 18254,
+      "rate": 74.95585759454687
+    }
+  },
+  "gamelog_br_key": {
+    "matched": 1757463,
+    "total": 1757463,
+    "rate": 100.0
+  }
+}

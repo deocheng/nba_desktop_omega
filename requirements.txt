@@ -1,0 +1,19 @@
+# NBACore Studio v8 - Production Dependencies
+# Pinned for reproducible builds
+
+fastapi==0.115.6
+python-multipart==0.0.20
+uvicorn[standard]==0.34.0
+gunicorn==23.0.0
+psycopg2-binary==2.9.10
+pydantic==2.10.4
+pydantic-settings==2.7.1
+diskcache==5.6.3
+numpy==2.2.1
+pandas==2.2.3
+httpx==0.28.1
+pytest==8.3.4
+# 爬虫工具箱依赖（external_crawler/crawler/* 用，非 backend 运行必需）
+# curl_cffi 提供 TLS 指纹伪装(impersonate="chrome124")，绕 Akamai/CF 限流；
+# 迁移到 Mac 后缺失会导致 8 个爬虫脚本 import 崩溃，故补回。
+curl_cffi==0.15.0

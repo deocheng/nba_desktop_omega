@@ -1,0 +1,18 @@
+sequenceDiagram
+    participant FE as Frontend (app.js)
+    participant API as games Router
+    participant GL as game_loader
+    participant DB as PostgreSQL
+
+    FE->>API: GET /games/{game_id}  (game_id = BR, e.g. 202605130DET)
+    API->>GL: get_game_detail(game_id)
+    GL->>DB: SELECT nba_api_id FROM games WHERE game_id=%s
+    DB-->>GL: nba_api_id (e.g. 22500494)  [NULL -> fallback to game_id]
+    GL->>DB: SELECT * FROM games WHERE game_id=%s  (box score / quarters)
+    DB-->>GL: game row
+    GL->>DB: SELECT ... FROM player_gamelog WHERE gameid=%s  (nba_api_id)
+    DB-->>GL: gamelog rows
+    GL->>DB: SELECT ... FROM play_by_play WHERE gameid=%s  (nba_api_id)
+    DB-->>GL: pbp rows
+    GL-->>API: aggregated detail
+    API-->>FE: JSON detail
