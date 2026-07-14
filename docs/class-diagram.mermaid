@@ -1,96 +1,59 @@
 classDiagram
-    class coords {
-        +SVG_W: int = 500
-        +SVG_H: int = 470
-        +FULL_SVG_W: int = 940
-        +FULL_SVG_H: int = 500
-        +RIM_PX: (250,462)   %% half
-        +RIM_PX_LEFT: (0,250)
-        +RIM_PX_RIGHT: (940,250)
-        +map_xy_to_svg(x,y)   %% half court
-        +map_xy_to_svg_full(x,y)  %% full court (broadcast)
-        +full_court_rim(y)   %% left if y<470 else right
-    }
-    class PbPEvent {
-        +event_index: int
-        +game_id: str
-        +season: str
-        +period: int
-        +clock_seconds: float
-        +event_type: str
-        +subtype: str
-        +action_verb: str
-        +player: str
-        +player2: str
-        +team: str
-        +x: int
-        +y: int
-        +dist: int
-        +description: str = ""
-        +h_pts: int = 0
-        +a_pts: int = 0
-    }
-    class ResolvedEvent {
-        +event_index: int
-        +actor_px: tuple[float,float]
-        +actor_pos_source: str
-        +snapshot: dict
-        +ball: dict
-        +annotation: list
-        +global_t: float
-    }
-    class ReplayFrame {
-        +t: float
-        +players: list[PlayerSprite]
-        +ball: BallSprite
-        +annotations: list[Annotation]
-        +event_index: int
-    }
-    class ReplayMeta {
-        +fps: int
-        +frame_count: int
-        +court: dict   %% {mode, w, h}
-        +period: int
-        +clock: tuple
-        +event_count: int
-    }
-    class ReplayResult {
-        +game_id: str
-        +season: str
-        +frames: list[ReplayFrame]
-        +meta: ReplayMeta
-        +events: list[dict]   %% NEW: PBP sync, index-aligned
-    }
-    class TacticsService {
-        +replay(req): dict   %% -> {frames, events, meta(court.mode=full)}
-        +render_template(id, fps): dict
-        +list_games(season)
-    }
-    class replay_engine {
-        +resolve_positions(events, full_court=True)
-        +build_frames_from_events(events, fps, full_court=True): (frames, events)
-    }
-    class animation {
-        +build_frames(resolved, fps)
-        +build_frames_from_template(tpl, fps)  %% half court, unchanged
-    }
-    class TacticsJS {
-        +render(containerId, mode, courtMode)
-        +setFrames(frames, meta, events)
-        +buildCourt(courtMode)
-        +drawFullCourt()
-        +updateCommentary()
-        +onTick(cb)
+    direction LR
+
+    class HofEntry {
+        +str team_abbr
+        +str season
+        +str player_name
+        +str br_slug
     }
 
-    coords <.. PbPEvent : map_xy_to_svg_full
-    PbPEvent <.. ResolvedEvent : resolve_positions
-    ResolvedEvent <.. ReplayFrame : build_frames
-    ReplayFrame <.. ReplayResult : frames
-    ReplayMeta <.. ReplayResult : meta
-    TacticsService ..> replay_engine : replay()
-    replay_engine ..> animation : build_frames
-    replay_engine ..> DbLayer : load_pbp_events (param SQL)
-    DbLayer ..> PbPEvent : rows->events
-    ReplayResult <.. TacticsJS : consumes (px + events)
-    TacticsJS ..> coords : NEVER (zero coord calc)
+    class ExecEntry {
+        +str team_abbr
+        +int rk
+        +str executive
+        +str start
+        +str end
+        +str notes
+    }
+
+    class Config {
+        +dict BR_TEAM_SLUGS
+        +set TEAM_ABBRS
+        +str PROJECT_ROOT
+        +load_dotenv() dict
+        +get_conn() Connection
+    }
+
+    class Fetcher {
+        +fetch_team_page(abbr, kind, offline_dir) str
+        -_fetch_online(abbr, kind) str
+        -_fetch_offline(abbr, kind, offline_dir) str
+    }
+
+    class Parser {
+        +parse_hof_div(html) list~HofEntry~
+        +parse_executives_table(html) list~ExecEntry~
+        +normalize_season(token) str
+    }
+
+    class Loader {
+        +upsert_hof(rows) int
+        +upsert_executives(rows) int
+        +load_from_gold(gold_json, gold_csv) tuple
+    }
+
+    class CLI {
+        +main() int
+    }
+
+    Config <.. Fetcher : get_conn / slugs
+    Config <.. Loader : get_conn
+    CLI --> Fetcher : fetch
+    CLI --> Parser : parse
+    CLI --> Loader : upsert / load_from_gold
+    Parser ..> HofEntry : produces
+    Parser ..> ExecEntry : produces
+    Loader ..> HofEntry : consumes
+    Loader ..> ExecEntry : consumes
+    Loader --> Config : get_conn

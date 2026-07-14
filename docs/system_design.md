@@ -1,334 +1,292 @@
-# NBACore Studio v8 — 实体详情页（球员/球队专属数据页）系统架构设计 + 任务分解
+# 系统架构设计 + 任务分解：BR 球队 HOF / Executives 爬虫与落库（C 项）
 
-> **设计人**：高见远（Architect / Bob）
-> **输入**：PRD（产品经理 许清楚，简单 PRD）+ 已探明代码事实（主理人 齐活林）
-> **范围**：仅架构设计与任务分解，**不写实现代码**，不修改任何现有代码文件。
-> 本文件与 `docs/class-diagram.mermaid`、`docs/sequence-diagram.mermaid` 为本次新增文档产物。
-
----
-
-## 决策摘要（给主理人先看）
-
-| 维度 | 决策 | 理由 / 依据 |
-|---|---|---|
-| 框架 | **不引入任何新框架**，沿用 vanilla JS（前端）+ FastAPI（后端） | 与现有代码库一致；前端纯渲染约束 |
-| 覆盖层 vs 新导航 | **全屏覆盖层（Overlay）**，非新增 nav 项 | 符合 PRD 建议；复用 `intelligence.js`/`workspace.js` 的 `window.Xxx.render` + 内联 HTML 模式 |
-| 聚合位置 | **后端聚合**（数据层 `entity_loader.py`），前端只渲染 | 架构契约：前端纯渲染、Layer 3 零计算；避免把整季 gamelog 下发前端 |
-| 年份列表数据源 | **实体详情接口内返回 `seasons`（实体实际覆盖赛季）**，不沿用全局 `/players/seasons` | 解决 Q6（缺赛季不展示）；区块内无数据显示「暂无数据」 |
-| 周口径 | **默认 ISO 周（周一起始，`YYYY-Www`）** | 解决 Q1；原生 `datetime.isocalendar()`，无需依赖 |
-| 后端落点 | **扩展现有 `players.py` / `teams.py`**（URL 自然，且 `app.py` 无需改动） | 两 router 当前均 <200 行、纯编排，新增 2 端点仍合规；避免新建 router + 注册 |
-| 任务数 | **5 个顶层任务**（角色硬性上限 ≤5），内部以子项覆盖主理人要求的 T1–T7 | 见 Part B |
+> 角色：架构师（高见远）｜语言：中文｜交付对象：工程师（经 team-lead 转发）
+> 前置：A 项（transactions 孤儿行）、B 项（HOF 名字修正）已完成并落盘，本设计不触及。
+> 本次范围 = **C + 爬虫化**：把 BR 球队页的「名人堂 HoF」与「高管 executives」落成两张新表，并写一个可复用的爬虫模块铺到全部 30 支 NBA 球队。
 
 ---
 
-# Part A：系统设计
+## 0. 范围与边界（确认）
+
+| 项 | 状态 |
+|---|---|
+| A：Dennis Schröder transactions 孤儿行 | 已完成，不处理 |
+| B：HOF 23 名反转名/漏抓 | 已完成，不处理 |
+| **C：新增 `team_hof` + `team_executives` 两张表** | **本次交付** |
+| **爬虫化：复用 `scrape_br_hof_exec.py` 套路，铺 30 队** | **本次交付** |
+| 实时爬取执行环境 | 仅用户 Mac（沙箱被 CF 403 / WebFetch 丢注释表）；解析逻辑在沙箱用已存 `DET_*.html` 离线验证 |
+
+---
 
 ## 1. 实现方案 + 框架选型
 
-### 1.1 技术挑战与选型
+### 1.1 技术难点
+1. **HOF 页面不是 `<table>`**：是 `div#div_leaderboard` 容器下、按赛季切块的 `div#leaderboard_number-<season>` 文本列表（`h4` 标赛季 + `<span><a>` 列球员）。沙箱 `curl` 被 CF 403、WebFetch 丢 BR 注释块，**必须用 UC Chrome 真实浏览器**才拿得到完整 DOM；但已有离线 `DET_hof.html` 可用于验证。
+2. **executives 是干净 `<table>`**（偶发藏在 HTML 注释块内），字段 `Rk,Executive,Start,End,Notes`，且金 CSV 第 22 行混入了重复表头行，须跳过。
+3. **数据格式不统一**：`start/end` 混排 `'1948'` / `'1954-03-27'` / `'present'`；`season` 形如 `'2013-14'`（个别源有笔误）。须保留原文、做防御式归一。
+4. **环境隔离**：口令从 `.env` 的 `DB_PASSWORD` 经 `os.environ` 注入，严禁硬编码；实时爬取只在 Mac 跑。
 
-1. **名字全站可点击 + 专属数据页**
-   - 前端需一个统一链接组件 `entityLink(type, id, name)`，并在 ≥6 个名字渲染点统一替换。
-   - 打开方式采用**覆盖层**（Overlay），点击名字 → `EntityDetail.open()` 渲染 `#player-detail` / `#team-detail` 置顶 → 返回/Esc 关闭。
-   - 复用既有覆盖层模式：`window.Intelligence.render(containerId, playerId, season)` 把 `api()` 结果内联为 HTML（见 `frontend/js/components/intelligence.js:61`）。
+### 1.2 框架与库选型（不引入新框架）
+纯 Python，复用项目既有资产：
 
-2. **「年份列表 + 时间粒度 Tab」完整数据呈现**
-   - 时间粒度 = `赛季`(默认) / `月` / `周` / `单场`。
-   - **核心难点**：月/周/单场聚合。球员侧已有 `load_player_gamelog_with_game_context(season)`（已 join `dim_games` 返回 `game_date`，见 `joins.py:22`）—— 这是关键数据源。球队侧**无 `team_gamelog` 表**，但存在 `team_stats_per_game`（球队逐场统计，已被 `teams.py:18` 引用）可 join `games`/`dim_games` 得到 `game_date`。
-   - **聚合必须下沉到数据层**（`entity_loader.py`），严禁在 router / 前端做计算。
-
-3. **架构契约（致命约束）**
-   - Layer 3 router：**零 SQL、零 pandas、零计算、纯编排、单文件 ≤200 行**。`TestLayerIsolation` 会扫描 `api/**` 拒绝 import psycopg2 / 含 SQL 字符串 / 文件 >200 行。
-   - 数据层（`backend/data_layer/*`）是唯一 SELECT 层；聚合逻辑放 `data_layer` 或 `services`。
-   - 注意：现有 `backend/api/routers/data_import.py` 已违反契约（内联 psycopg2+SQL），本次**严禁重蹈**。
-
-### 1.2 框架与库
-
-- **前端**：原生 ES（IIFE 组件，暴露 `window.*` 全局），`echarts`（已通过 CDN 引入，见 `index.html:8`）用于雷达/趋势图。无新库。
-- **后端**：FastAPI + Pydantic（已用）。无新库。
-- **日期聚合**：后端用 Python 标准库 `datetime.isocalendar()`（ISO 周）与 `strftime('%Y-%m')`（月），**不引入 dayjs/date-fns**。前端仅做展示格式化，用原生 `Date` 即可；若后续需要，可选项 `dayjs`（本期**不引入**）。
+| 用途 | 选型 | 说明 |
+|---|---|---|
+| DB 连接 | `psycopg2`（已在 `.venv`） | **复用** `common/bridge_constants.get_pg_conn()` / `PG_DSN`，口令来自 `DB_PASSWORD` |
+| HTML 解析 | `bs4`（已在 `.venv`） | `BeautifulSoup(html, "html.parser")`；遍历注释块取 `<table>` |
+| 实时抓取 | `undetected_chromedriver`（已在 `.venv`） | **复用** `scrape_br_hof_exec.py` 的 UC Chrome 套路（warm-up + 重试 + CF 检测） |
+| 30 队常量 | **复用** `common/bridge_constants._CANON` | 当前 30 队规范缩写集合 |
+| CLI | 标准库 `argparse` | `--all-teams` / `--team` / `--offline-dir` / `--kind` |
+| 记录载体 | 标准库 `dataclasses` | `HofEntry` / `ExecEntry` |
+| `.env` 加载 | **自写 ~12 行轻量 loader**（不新增 `python-dotenv` 依赖） | 读项目根 `.env` 注入 `os.environ`，仅在变量缺失时填充 |
 
 ### 1.3 架构模式
-
-- 前端：覆盖层控制器 `EntityDetail` + 视图模块（`PlayerDetailView` / `TeamDetailView` / `EntityGamesView`），事件委托（全局 click 捕获 `.entity-link`）。
-- 后端：经典三层——Layer 3 router（编排）/ services（既有）/ Layer 1 data_layer（SELECT+聚合）。新增聚合全部落在 data_layer。
-
----
-
-## 2. 文件清单及相对路径（标注 新增 / 修改）
-
-### 后端
-
-| 文件 | 状态 | 说明 |
-|---|---|---|
-| `backend/data_layer/entity_loader.py` | **新增** | 实体详情全部聚合/SELECT：`load_player_seasons`、`load_team_seasons`、`load_player_games_aggregated`、`load_team_gamelog_with_game_context`、`load_team_games_aggregated`、`_aggregate_games`（按月/周/赛季/单场分组与均值） |
-| `backend/data_layer/joins.py` | **修改** | `load_player_gamelog_with_game_context(season, player_id=None)` 增加可选 `player_id` 过滤（向后兼容，默认 `None`） |
-| `backend/api/routers/players.py` | **修改** | 新增 `GET /players/{id}/detail`、`GET /players/{id}/games`；保持纯编排、<200 行 |
-| `backend/api/routers/teams.py` | **修改** | 新增 `GET /teams/{abbr}/detail`、`GET /teams/{abbr}/games`；保持纯编排、<200 行 |
-| `backend/api/schemas.py` | **修改** | 新增 `EntityGamesResponse` / `GameGroup` / `GameRow` / `GameAggregate` / `SeasonCoverage` / `PlayerEntityDetail` / `TeamEntityDetail` |
-| `backend/app.py` | **不变** | 因扩展现有 router（已注册），**无需改动** |
-| `backend/tests/test_entity_loader.py` | **新增** | 数据层聚合单测（分组/均值/ISO 周） |
-| `backend/tests/test_entity_api.py` | **新增** | 端点集成测试 + `TestLayerIsolation` 兼容校验（router 无 SQL/无 pandas/≤200 行） |
-
-> 注：`backend/tests/` 当前不存在，需新建目录（测试落地路径按仓库既有测试约定，若实际在 `tests/` 则对应调整）。
-
-### 前端
-
-| 文件 | 状态 | 说明 |
-|---|---|---|
-| `frontend/js/components/entity_detail.js` | **新增** | 全局函数 `entityLink(type,id,name)` + 控制器 `window.EntityDetail`（open/render/close、年份列表、粒度 Tab、Esc/返回/键盘） |
-| `frontend/js/components/player_detail_view.js` | **新增** | `window.PlayerDetailView`：bio/指标/投篮/防守/情报 区块渲染 |
-| `frontend/js/components/team_detail_view.js` | **新增** | `window.TeamDetailView`：standings/stats/radar/trend 区块渲染 |
-| `frontend/js/components/entity_games_view.js` | **新增** | `window.EntityGamesView`：按 `granularity` 渲染 games groups（赛季/月/周/单场通用） |
-| `frontend/js/app.js` | **修改** | ① 全局 click 委托捕获 `.entity-link` → `EntityDetail.open`；② 6 处名字渲染点替换为 `entityLink(...)`（searchPlayer 下拉 / renderRankings / renderContextSimilar / renderTeams / showGameDetail / loadTableData） |
-| `frontend/index.html` | **修改** | ① `<body>` 末尾新增 `<div id="entity-overlay" class="entity-overlay hidden">`；② 引入 `<script src="js/components/entity_detail.js">`（置于 `app.js` 之后） |
-| `frontend/css/style.css` | **修改** | 新增 `.entity-overlay` / `.entity-link` / 年份列表 / 粒度 Tab / 模块区块 样式 |
+**分层 + 函数式**（无强制 OOP 框架）：
+`config`（连接/常量/路径） → `fetch`（决定 html 来源：离线文件 or UC Chrome） → `parse`（纯函数：html 字符串 → 记录列表，离线在线通用） → `load`（upsert 入库 + 金数据导入） → `__main__`（CLI 编排）。
+关键原则：**`parse` 层是纯函数，只吃 html 字符串**，因此离线与在线共用同一解析路径，沙箱即可完整验证解析正确性。
 
 ---
 
-## 3. 数据结构与接口（schema）
+## 2. 两张表 DDL（含索引、upsert 唯一约束）
 
-### 3.1 新增 API 端点（推荐：后端聚合）
+> 完整文件见 `db/team_hof_exec.sql`（已写入项目根 `db/`）。要点如下。
 
-> 推荐**后端聚合**而非前端拉原始 gamelog 后聚合：① 满足「前端纯渲染」契约；② 避免整季大体积数据下发；③ 复用既有 `load_player_gamelog_with_game_context` 已 join `game_date`。
-
-**球员**
+### 2.1 `team_hof`（粒度 = 一个 `(队, 赛季, 球员)`）
+```sql
+CREATE TABLE IF NOT EXISTS team_hof (
+    id           BIGSERIAL PRIMARY KEY,
+    team_abbr    VARCHAR(3)  NOT NULL,   -- 规范 3 字母缩写
+    season       VARCHAR(7)  NOT NULL,   -- '2013-14' (YYYY-YY)
+    player_name  TEXT        NOT NULL,   -- 球员名原文
+    br_slug      TEXT        NULL,       -- BR 球员页 slug, 可选, 留待桥接
+    scraped_at   TIMESTAMP   NOT NULL DEFAULT now(),
+    UNIQUE (team_abbr, season, player_name)
+);
+CREATE INDEX IF NOT EXISTS idx_th_team   ON team_hof (team_abbr);
+CREATE INDEX IF NOT EXISTS idx_th_player ON team_hof (player_name);
 ```
-GET /players/{player_id}/detail?season=2024
-  → PlayerEntityDetail { bio, season, metrics, shooting, defense, intelligence, seasons[] }
+- DET 金数据：118 条 `season_entries` → 本表 118 行；23 名去重球员由 `(team_abbr, player_name)` 派生，无需单独列。
 
-GET /players/{player_id}/games?season=2024&granularity=season|month|week|game
-  → EntityGamesResponse { entity_type, entity_id, season, granularity, groups[], totals }
+### 2.2 `team_executives`（粒度 = 一个 `(队, 任期序号 rk)`）
+```sql
+CREATE TABLE IF NOT EXISTS team_executives (
+    id           BIGSERIAL PRIMARY KEY,
+    team_abbr    VARCHAR(3)  NOT NULL,
+    rk           INTEGER     NOT NULL,   -- BR 表 Rk 列
+    executive    TEXT        NOT NULL,
+    start        TEXT        NOT NULL,   -- 保留原文: '1948' / '1954-03-27' / 'present'
+    "end"        TEXT        NOT NULL,   -- end 是保留字, 须双引号
+    notes        TEXT        NULL,
+    scraped_at   TIMESTAMP   NOT NULL DEFAULT now(),
+    UNIQUE (team_abbr, rk)
+);
+CREATE INDEX IF NOT EXISTS idx_te_team ON team_executives (team_abbr);
+CREATE INDEX IF NOT EXISTS idx_te_exec ON team_executives (executive);
 ```
+- DET 金数据：22 条 tenure → 本表 22 行（解析时跳过 `Rk=="Rk"` 重复表头行）。
 
-**球队**
-```
-GET /teams/{team_abbr}/detail?season=2024
-  → TeamEntityDetail { team_abbr, team_name, season, standings, stats, radar, trend, seasons[] }
+### 2.3 是否外键到 `dim_players` —— 权衡结论
+| 方案 | 优点 | 缺点 | 结论 |
+|---|---|---|---|
+| **A. 先不建外键，只存名 + 可选 `br_slug`** | 零桥接复杂度；`br_slug` 已顺手从 `<a href>` 抓取，留作后续 name→id 匹配锚点 | 暂时无法 JOIN `dim_players` | ✅ **采用** |
+| B. 现在就建 `player_key` 桥接表 | 可直接关联事实表 | name 归一/消歧未决（绰号、中间名、字符转义如 `Charles "Chuck" Cooper`）；YAGNI | ❌ 暂不做 |
 
-GET /teams/{team_abbr}/games?season=2024&granularity=season|month|week|game
-  → EntityGamesResponse { entity_type, entity_id, season, granularity, groups[], totals }
-```
-
-**响应模型（Pydantic，定义在 `schemas.py`）**
-```python
-class GameRow(BaseModel):
-    game_id: str
-    game_date: str            # ISO 'YYYY-MM-DD'
-    opponent: str | None = None
-    is_home: bool = False
-    result: str | None = None # 'W' / 'L'
-    pts: float | None = None
-    # ... 其余逐场个人/球队字段
-
-class GameAggregate(BaseModel):
-    gp: int = 0
-    pts: float | None = None
-    fg_pct: float | None = None
-    # ... 该分组聚合指标
-
-class GameGroup(BaseModel):
-    key: str                  # 赛季='2024-25' / 月='2024-11' / 周='2024-W45' / 单场=game_id
-    label: str
-    games: list[GameRow] = []
-    aggregate: GameAggregate
-
-class EntityGamesResponse(BaseModel):
-    entity_type: str          # 'player' | 'team'
-    entity_id: str
-    season: int
-    granularity: str          # 'season' | 'month' | 'week' | 'game'
-    groups: list[GameGroup] = []
-    totals: GameAggregate
-
-class SeasonCoverage(BaseModel):
-    season: int
-    label: str                # seasonLabel(s) → '2024-25'
-    has_data: bool
-
-class PlayerEntityDetail(BaseModel):
-    bio: PlayerBio
-    season: int
-    metrics: dict
-    shooting: dict
-    defense: dict
-    intelligence: dict
-    seasons: list[SeasonCoverage]
-
-class TeamEntityDetail(BaseModel):
-    team_abbr: str
-    team_name: str | None = None
-    season: int
-    standings: dict
-    stats: dict
-    radar: dict
-    trend: dict
-    seasons: list[SeasonCoverage]
-```
-
-### 3.2 前端组件签名
-
-```javascript
-// entity_detail.js
-window.entityLink = function(type, id, name) {
-  // 返回 `<a class="entity-link" data-etype="player|team" data-eid="...">名称</a>`
-  // 内部用 escapeHtml 防注入
-};
-
-window.EntityDetail = {
-  open(type, id, name) {},        // 打开覆盖层，默认最近覆盖赛季 + granularity='season'
-  render(season, granularity) {}, // 切换年份/粒度后重渲染
-  close() {},                     // 关闭 + 恢复焦点 + 解绑 Esc
-  // 内部: onYearChange / onGranularityChange / fetchDetail / fetchGames (调全局 api())
-};
-```
-
-### 3.3 数据层聚合函数签名（`entity_loader.py`）
-
-```python
-def load_player_seasons(player_id: str) -> list[int]: ...
-def load_team_seasons(team_abbr: str) -> list[int]: ...
-
-def load_player_games_aggregated(player_id, season, granularity) -> dict: ...
-#   内部: load_player_gamelog_with_game_context(season, player_id) → _aggregate_games(rows, granularity)
-
-def load_team_gamelog_with_game_context(season, team_abbr=None) -> list[dict]: ...
-#   新增: team_stats_per_game JOIN games/dim_games ON game_id → game_date + 主客队 + 比分
-
-def load_team_games_aggregated(team_abbr, season, granularity) -> dict: ...
-#   内部: load_team_gamelog_with_game_context(season, team_abbr) → _aggregate_games(rows, granularity)
-
-def _aggregate_games(rows, granularity) -> dict: ...
-#   分组键: season→seasonLabel; month→strftime('%Y-%m'); week→isocalendar 'YYYY-Www'; game→game_id
-#   每组计算 gp / pts 均值 / fg_pct 等聚合; totals = 全量聚合
-```
-
-> **聚合字段范围**：首期覆盖 `gp / pts / fg_pct` 等核心指标；其余指标（篮板/助攻/三分等）在 `GameRow` 与 `GameAggregate` 中按需扩展，结构保持一致即可。
-
-### 3.4 类图
-
-见 `docs/class-diagram.mermaid`（Mermaid `classDiagram`）。
+**结论**：采用方案 A。表内不引外键，`br_slug` 设为可空 TEXT，后续单独开「name→player_id 桥接」任务再处理。
 
 ---
 
-## 4. 程序调用流程（时序图）
+## 3. 文件列表及相对路径（职责）
 
-见 `docs/sequence-diagram.mermaid`（Mermaid `sequenceDiagram`）。要点：
-1. 点击名字 → `app.js` 全局委托捕获 `.entity-link` → `EntityDetail.open()`。
-2. 并行拉取 `detail`（bio/模块/年份列表）与默认粒度 `games`（season 汇总）。
-3. 渲染：年份列表 + 粒度 Tab + 模块区块 + 比赛明细。
-4. 切年份 → 重新 `GET /detail`；切粒度 → 重新 `GET /games?granularity=`。
-5. 关闭：返回按钮 / Esc / 点背景 → `close()` 恢复焦点。
+新增封装为 `hof_exec/` 包（放在项目根，与既有 `scrape_br_hof_exec.py` 同级），DB 复用 `common/`：
 
----
+| 文件 | 职责 |
+|---|---|
+| `db/team_hof_exec.sql` | **T1** 两张表 DDL（IF NOT EXISTS + 唯一约束 + 索引） |
+| `hof_exec/__init__.py` | 包标识 |
+| `hof_exec/config.py` | **T2/T4** 读项目根 `.env`（轻量 loader，不引 `python-dotenv`）；导出 `TEAM_ABBRS`（复用 `_CANON`）、`BR_TEAM_SLUGS`（规范缩写→BR URL slug 映射）、`PROJECT_ROOT`、`OFFLINE_DEFAULT`；`get_conn()` 转发自 `common.bridge_constants` |
+| `hof_exec/fetch.py` | **T4** `fetch_team_page(abbr, kind, offline_dir=None) -> str`：离线=读 `{offline_dir}/{abbr}_{kind}.html`；在线=UC Chrome（复用 warm-up/重试/CF 检测）；在线可顺手缓存 raw 到 `offline_dir` |
+| `hof_exec/parse.py` | **T2** `parse_hof_div(html) -> list[HofEntry]`、`parse_executives_table(html) -> list[ExecEntry]`、`normalize_season(token) -> str`；纯函数，离线在线通用 |
+| `hof_exec/load.py` | **T3** `upsert_hof(rows)`、`upsert_executives(rows)`（INSERT … ON CONFLICT DO UPDATE）、`load_from_gold(json_path, csv_path)`（从 DET 金文件直接入库，双入口） |
+| `hof_exec/validate.py` | **T5** `assert_parse_matches_gold(html_dir, gold_json, gold_csv)`：断言解析产出 23 HOF / 22 executives 且与金文件一致 |
+| `hof_exec/__main__.py` | **T4** CLI 入口：`--all-teams` / `--team ABBR` / `--offline-dir DIR` / `--kind hof\|exec\|both` |
+| `tests/test_hof_exec_offline.py` | **T5** pytest：用已存 `DET_hof.html` + `DET_executives.html` + 金文件做离线断言 |
+| `docs/run_live_crawl.md` | **T7** 实时 30 队爬取 runbook（Mac 执行步骤、CF warm-up 注意、失败重试） |
 
-## 5. 待明确事项（Anything UNCLEAR）
-
-> 以下问题多数已有推荐方案，但需主理人/用户最终拍板（已写入「跨文件约定」作为默认实现）。
-
-1. **Q1 周口径**：默认 ISO 周（周一起始，`YYYY-Www`）。若用户要「NBA 赛程周」，需额外 mapping 表 → 建议作 P2 / 后续，默认 ISO。
-2. **Q3 球队比赛级数据源**：`team_stats_per_game` 是否含 `game_id` + `team_abbr` 两列，需工程师实现时 `SELECT * FROM team_stats_per_game LIMIT 1` 确认。设计按「含」假设；若不含 `game_id`，回退方案：用 `games` 表（含 `game_date`、主客队）关联球队逐场统计的其他可用表（注意 `team_game_splits` 无 `game_id`，不可用）。
-3. **Q4 链接化范围**：P0 覆盖 search / rankings / context / teams / games / system 内的分析向名字；dataimport / crawler 等运维页留 P2。确认是否需更早覆盖。
-4. **Q6 缺赛季**：年份列表只展示实体**实际有数据**的赛季（来自 `detail.seasons`）；无数据赛季**不展示**（而非置灰），对应区块显示「暂无数据」。
-5. **P2 范围**：分享 URL（pushState）、键盘 ←→ 在年份间导航、VS 快捷对比、收藏 —— PRD 标 P2。建议本期至少实现**低成本项**：Esc 关闭 + 返回按钮（+ 可选 ←→ 切年份）；分享/VS/收藏可后续迭代。需主理人确认本期是否必做。
-6. **detail 拉取策略**：默认全量拉取 bio/指标/投篮/防守/情报（简单）；若性能成问题再改按需懒加载。请确认接受默认全量。
-7. **球队「bio」等价物**：球队无 bio，球队 detail 用 standings/stats/radar/trend 区块替代 bio 区块；区块命名以「球队概况」呈现。
-8. **落点确认**：本次采用「扩展 `players.py`/`teams.py`」（`app.py` 无需改）。若主理人更偏好独立 `entity.py` router（URL 变 `/entity/...`），可在 T02 切换，但需改 `app.py` 注册。
+**复用关系**：`hof_exec/config.py` 直接 `from common.bridge_constants import get_pg_conn, PROJECT_ROOT, _CANON`；`hof_exec/fetch.py` 的在线分支移植 `scrape_br_hof_exec.py` 的 `scrape()` + `_is_cf_challenge()`。
 
 ---
 
-# Part B：任务分解（有序、含依赖）
+## 4. 解析算法（关键）
 
-> 角色硬性约束：**任务数 ≤ 5**，每个任务 ≥ 3 个相关文件。
-> 主理人原始示例为 T1–T7；下方以 **5 个顶层任务**承载，每个任务的「子项」即对应 T1–T7 的具体工作，确保粒度不丢失。
+### 4.1 HOF `div` 列表解析（`parse_hof_div`）
+**输入**：html 字符串（在线/离线等价）。**输出**：`list[HofEntry]`。
 
-## 6. 依赖包（Required Packages）
+1. `soup = BeautifulSoup(html, "html.parser")`
+2. 定位容器：`container = soup.find("div", id="div_leaderboard") or soup.find("div", class_="leaderboard_grid")`。
+3. 遍历每个 `block = container.find_all("div", id=re.compile(r"^leaderboard_number-(.+)$"))`：
+   - **赛季**：`season_raw = block.find("h4").get_text(strip=True)`（人类可见标签，作为规范来源）；解析失败再回退取 id 正则分组。
+   - `season = normalize_season(season_raw)`
+   - 遍历 `block` 内所有 `<span><a>`：`player_name = a.get_text(strip=True)`；`br_slug =` 从 `a["href"]` 形如 `/players/b/billuch01.html` 提取末段文件名去后缀（可选，健壮处理缺 href）。
+   - 产出 `HofEntry(team_abbr, season, player_name, br_slug)`。
+4. 返回列表。
 
-**无新增依赖。** 前端 vanilla JS + echarts（已引入）；后端 FastAPI + Pydantic（已用）；日期聚合用 Python 标准库 `datetime`。
-- 可选（**本期不引入**）：`dayjs`（仅当前端需复杂日期格式化时备用）。
+**`normalize_season(token)`（防御式容错）**：
+- `token = token.strip()`
+- 若匹配 `^\d{4}-\d{2}$` → 原样返回（规范 `'2013-14'`；gold 的 118 条 `season_entries` 全部命中此类）。
+- 否则尝试修复：提取前导 4 位年份 `Y = re.search(r"(\d{4})", token)`；若命中则 `end = Y+1`，返回 `f"{Y}-{str(Y+1)[2:]}"`，并打 warning 日志（覆盖 `'2010-1'` / `'2010--11'` 等畸形）。
+- 仍失败 → 记录为不可解析并跳过（理论不发生）。
 
-## 7. 任务列表（Task List，按实现顺序）
+> 说明：gold `DET_hof_players.json` 的 118 条 `season_entries` 全部符合 `^\d{4}-\d{2}$`，团队 lead 提到的「`'2010-11'` 笔误」在本金数据中实为合法赛季（麦蒂底特律最后一季），故 normalize 以防御式实现为主，并非针对单一固定字符串。若有具体畸形样本请补（见 §9）。
 
-### T01 — 数据层实体聚合函数  ⭐ P0（+P1 基础）
-- **Source Files**：`backend/data_layer/entity_loader.py`(新)、`backend/data_layer/joins.py`(改)、`backend/tests/test_entity_loader.py`(新)
-- **Dependencies**：无
-- **子项（覆盖主理人 T1）**：
-  - `load_player_seasons` / `load_team_seasons`（实体覆盖赛季 → 解决 Q6）
-  - `load_player_games_aggregated`（复用 `joins.load_player_gamelog_with_game_context` + 过滤 player_id）
-  - `load_team_gamelog_with_game_context`（新增 join：team_stats_per_game × games/dim_games）
-  - `load_team_games_aggregated`
-  - `_aggregate_games`（按月 `%Y-%m` / 周 ISO `YYYY-Www` / 赛季 / 单场 分组与均值）
-  - 单测：分组键正确、均值正确、ISO 周边界
-- **Priority**：P0
+**与金文件对齐**：解析产出 118 个 `(season, player)` 对 == `season_entries`；去重球员 23 == `count`/`players`。故 `team_hof` 粒度 = `season_entry`。
 
-### T02 — 后端 API 实体详情端点（扩展 players/teams，纯编排）  ⭐ P0
-- **Source Files**：`backend/api/routers/players.py`(改)、`backend/api/routers/teams.py`(改)、`backend/api/schemas.py`(改)
-- **Dependencies**：T01
-- **子项（覆盖主理人 T2）**：
-  - `players.py` 新增 `GET /players/{id}/detail`、`GET /players/{id}/games?granularity=`
-  - `teams.py` 新增 `GET /teams/{abbr}/detail`、`GET /teams/{abbr}/games?granularity=`
-  - `schemas.py` 新增 7 个响应模型
-  - **契约校验**：router 零 SQL / 零 pandas / 零计算 / ≤200 行；团队 abbr 入参用 `team_loader._to_br_abbr` 归一化（如涉及 BR 风格表）
-  - `app.py` 无需改动（扩展已注册 router）
-- **Priority**：P0
+### 4.2 executives `<table>` 解析（`parse_executives_table`）
+**输入**：html 字符串。**输出**：`list[ExecEntry]`。
 
-### T03 — 前端 entityLink 组件 + 全局名字链接化 + 覆盖层基础设施  ⭐ P0
-- **Source Files**：`frontend/js/components/entity_detail.js`(新)、`frontend/js/app.js`(改)、`frontend/index.html`(改)、`frontend/css/style.css`(改)
-- **Dependencies**：无（可与 T01/T02 并行）
-- **子项（覆盖主理人 T3）**：
-  - `entity_detail.js`：全局函数 `entityLink(type,id,name)` + `EntityDetail.open/close` 骨架 + `#entity-overlay` 渲染容器
-  - `app.js`：全局 `click` 委托捕获 `.entity-link` → `EntityDetail.open`；6 处名字渲染点替换为 `entityLink(...)`（searchPlayer 下拉 / renderRankings / renderContextSimilar / renderTeams / showGameDetail / loadTableData）
-  - `index.html`：新增 `#entity-overlay` 容器 + 引入 `entity_detail.js`
-  - `style.css`：覆盖层 / 链接 / 年份列表 / 粒度 Tab 基础样式
-- **Priority**：P0
+1. `soup = BeautifulSoup(html, "html.parser")`
+2. 取表（**注释块感知**，兼容 BR 把表藏进 `<!-- -->` 的情况——复用 `scrape_br_hof_exec.py` 的 `extract_tables` 思路）：遍历主文档 `<table>` + 所有 `Comment` 节点内 `<table>`，挑表头含 `Executive` + `Start`（或严格等于 `[Rk,Executive,Start,End,Notes]`）的那张。
+3. 逐行：
+   - **跳过重复表头行**：若首单元格 `== "Rk"`（金 CSV 第 22 行混入的重复表头）或整行等于表头 → `continue`。
+   - 跳过空行 / 首格非数字（rk 无法解析）的行（计 warning）。
+   - 映射 `rk=int(cells[0])`、`executive=cells[1]`、`start=cells[2]`、`end=cells[3]`、`notes=cells[4] or ""`。
+   - `start/end` **保持 TEXT 原样**（含 `'1948'`、`'1954-03-27'`、`'present'`，**不转 DATE**）。
+   - 产出 `ExecEntry(team_abbr, rk, executive, start, end, notes)`。
+4. 返回列表。
 
-### T04 — 球员专属页覆盖层（#player-detail：模块整合 + 年份列表 + 粒度 Tab 赛季/单场）  ⭐ P0
-- **Source Files**：`frontend/js/components/player_detail_view.js`(新)、`frontend/js/components/entity_games_view.js`(新)、`frontend/js/components/entity_detail.js`(改)
-- **Dependencies**：T02、T03
-- **子项（覆盖主理人 T4）**：
-  - `PlayerDetailView`：bio / 指标 / 投篮 / 防守 / 情报 区块渲染（调既有 `window.Intelligence` 等或独立渲染）
-  - `EntityGamesView`：渲染 games groups（granularity=season → 整季汇总；game → 逐场）
-  - `EntityDetail` 接入：年份列表渲染（来自 `detail.seasons`）+ 粒度 Tab（默认 `season`，含 `game`）；默认拉取并展示
-- **Priority**：P0
+### 4.3 离线 / 在线双模式
+- **解析层是纯函数**：只接收 html 字符串，无任何网络/IO 分支 → 离线（`DET_*.html`）与在线（UC Chrome 抓取）走同一代码路径，保证沙箱验证 == 线上行为。
+- **fetch 层隔离来源**：`fetch_team_page(abbr, kind, offline_dir)` 内部 `if offline_dir: 读文件 else: UC Chrome`。在线模式可把 raw html 顺手落盘 `offline_dir` 做缓存/复核。
 
-### T05 — 球队专属页 + 月/周粒度 Tab + 测试收尾  ⭐ P1（测试 P0 收尾）
-- **Source Files**：`frontend/js/components/team_detail_view.js`(新)、`frontend/js/components/entity_detail.js`(改)、`backend/tests/test_entity_api.py`(新)
-- **Dependencies**：T02、T03、T04
-- **子项（覆盖主理人 T5 / T6 / T7）**：
-  - `TeamDetailView`：standings / stats / radar / trend 区块渲染（#team-detail）
-  - `EntityDetail` 接入 `month` / `week` Tab：切换时调 `GET /games?granularity=month|week`（后端已由 T01 支持）
-  - P2 低成本项：Esc 关闭、返回按钮、键盘 ←→ 切年份（其余 P2 如分享 URL/VS/收藏留后续）
-  - 测试：`TestLayerIsolation` 兼容校验（routers 无 SQL/无 pandas/≤200 行）+ 端点集成测试 + 前端冒烟（覆盖层可开关、链接可点）
-- **Priority**：P1
+---
 
-## 8. 跨文件约定（Shared Knowledge）
+## 5. 程序调用流程（时序图 Mermaid）
 
-- **响应风格**：沿用现有 API 直接返回 Pydantic model（**无** `{code,data,message}` 包裹），与 `players.py`/`teams.py` 一致；前端 `api()` 在 HTTP 非 2xx 时抛错，覆盖层捕获后显示错误块。
-- **granularity 枚举**：`season | month | week | game`。`season`=整季一个汇总组；`month`=`YYYY-MM`；`week`=`YYYY-Www`（ISO，周一起始）；`game`=逐场。
-- **日期格式**：响应中 `game_date` 统一 ISO `YYYY-MM-DD`（字符串）。
-- **年份列表数据源**：以 `detail.seasons`（实体实际覆盖赛季）为准，**不**用全局 `/players/seasons`；无数据赛季不展示，对应区块显示「暂无数据」（解决 Q6）。
-- **覆盖层关闭协议**：`EntityDetail.close()` → 给 `#entity-overlay` 加 `.hidden`、恢复 `document.body` 滚动、焦点归还 `lastFocused`（打开时记录触发元素）；Esc 键 + 返回按钮 + 点背景均可关闭。
-- **链接生成**：所有名字渲染统一走 `entityLink(type,id,name)`，内部 `escapeHtml` 防 XSS；禁止在业务代码里手写 `<a>` 跳名字。
-- **entity id 类型**：player_id 为字符串；team_abbr 为 NBA 标准缩写（如 `BOS`），涉及 BR 风格表时用 `team_loader._to_br_abbr` 归一化。
-- **错误与空态**：任一区块数据缺失时显示「暂无数据」，不整页崩溃；`detail` 拉取失败显示错误块并提供关闭。
-- **聚合字段扩展**：新增指标只需在 `GameRow`/`GameAggregate` 加字段并在 `_aggregate_games` 补计算，前端 `EntityGamesView` 自动遍历展示，无需改接口结构。
-
-## 9. 任务依赖图（Task Dependency Graph）
+> 单独文件见 `docs/sequence-diagram.mermaid`；此处为同图预览。
 
 ```mermaid
-graph TD
-    T01["T01 数据层实体聚合<br/>(entity_loader + joins 扩展)"]
-    T02["T02 后端 API 实体端点<br/>(players/teams 扩展 + schemas)"]
-    T03["T03 前端 entityLink + 覆盖层基础设施<br/>(entity_detail.js + app.js + index.html + css)"]
-    T04["T04 球员专属页覆盖层<br/>(player_detail_view + entity_games_view + entity_detail)"]
-    T05["T05 球队页 + 月/周 Tab + 测试<br/>(team_detail_view + entity_detail + tests)"]
+sequenceDiagram
+    autonumber
+    actor User
+    participant CLI as __main__ (CLI)
+    participant Cfg as Config
+    participant F as Fetcher
+    participant P as Parser
+    participant L as Loader
+    participant DB as PostgreSQL
 
-    T01 --> T02
-    T03 --> T04
-    T02 --> T04
-    T02 --> T05
-    T03 --> T05
-    T04 --> T05
+    User->>CLI: python -m hof_exec [--all-teams | --team DET | --offline-dir DIR] [--kind hof|exec|both]
+    CLI->>Cfg: load_dotenv() + TEAM_ABBRS / BR_TEAM_SLUGS
+    alt --all-teams
+        CLI->>CLI: teams = TEAM_ABBRS (30)
+    else --team DET
+        CLI->>CLI: teams = [DET]
+    end
+    loop for each team_abbr in teams
+        CLI->>F: fetch_team_page(abbr, kind, offline_dir)
+        alt offline mode (--offline-dir given)
+            F->>F: read "{offline_dir}/{abbr}_{kind}.html"
+        else online mode (default, 需 Mac + UC Chrome)
+            F->>F: UC Chrome warm-up + get(url) + retry + CF-detect
+            F->>F: cache raw html to offline_dir (可选)
+        end
+        F-->>CLI: html string
+        alt kind in (hof, both)
+            CLI->>P: parse_hof_div(html)
+            P-->>CLI: list[HofEntry]
+            CLI->>L: upsert_hof(rows)
+            L->>DB: INSERT ... ON CONFLICT (team_abbr,season,player_name) DO UPDATE
+            DB-->>L: upsert count
+        end
+        alt kind in (exec, both)
+            CLI->>P: parse_executives_table(html)
+            P-->>CLI: list[ExecEntry]
+            CLI->>L: upsert_executives(rows)
+            L->>DB: INSERT ... ON CONFLICT (team_abbr,rk) DO UPDATE
+            DB-->>L: upsert count
+        end
+    end
+    CLI-->>User: 汇总 (每队 hof/exec 行数, 跳过/失败计数)
 ```
 
-> **并行说明**：T01 与 T03 互不依赖，可并行启动；T02 依赖 T01；T04/T05 依赖 T02+T03；T05 额外依赖 T04。
+**三种调用形态**
+- `python -m hof_exec --offline-dir det2026_br --team DET --kind both` → 沙箱可跑，纯离线验证+入库。
+- `python -m hof_exec --team DET --kind both` → 在线抓 DET 两页并入库（需 Mac）。
+- `python -m hof_exec --all-teams --kind both` → 在线铺全部 30 队（需 Mac；建议分批/限速避免 CF）。
+
+---
+
+## 6. 任务列表（有序、含依赖、按实现顺序）
+
+> 说明：本分解按团队 lead 明确要求拆为 **T1–T7**（含独立的离线验证/离线入库/线上爬取阶段）。这有意超出通用「≤5 任务」默认上限，因为各阶段可独立验证、且 T5/T6/T7 是明确不同的交付与执行环境。
+
+| Task | 名称 | 源文件 | 依赖 | 优先级 |
+|---|---|---|---|---|
+| **T1** | 写 `db/team_hof_exec.sql` 并连库执行建表 | `db/team_hof_exec.sql` | — | P0 |
+| **T2** | 写解析模块（HOF div 列表 + executives table，离线/在线双模式） | `hof_exec/parse.py`、`hof_exec/config.py`（常量/`.env` loader）、`hof_exec/__init__.py` | T1（仅概念依赖；解析本身不触库） | P0 |
+| **T3** | 写 upsert loader（解析结果入口 + DET 金文件入口双支持） | `hof_exec/load.py` | T1, T2 | P0 |
+| **T4** | 写 `__main__` 编排（30 队常量 + `--all-teams`/`--team`/`--offline-dir`/`--kind`） | `hof_exec/__main__.py`、`hof_exec/fetch.py` | T2, T3 | P0 |
+| **T5** | 离线验证：用已存 `DET_*.html` 跑解析，断言 23 HOF / 22 executives 且对齐金文件 | `hof_exec/validate.py`、`tests/test_hof_exec_offline.py` | T2, T4（offline 模式） | P1 |
+| **T6** | 用 loader 把 DET 金数据写入新表（离线入库） | 复用 `hof_exec/load.py:load_from_gold` + `hof_exec/__main__.py`（offline 模式调用） | T3, T5 | P1 |
+| **T7** | （需用户 Mac）实时 30 队爬取：runbook + 执行命令说明 | `docs/run_live_crawl.md`（CLI 已在 T4 具备） | T4, T5 | P2 |
+
+**依赖关系图（Mermaid）**
+```mermaid
+graph LR
+    T1[T1 建表 DDL] --> T2[T2 解析模块]
+    T1 --> T3[T3 Loader]
+    T2 --> T3
+    T2 --> T4[T4 __main__ 编排]
+    T3 --> T4
+    T4 --> T5[T5 离线验证]
+    T3 --> T6[T6 DET 金数据入库]
+    T5 --> T6
+    T4 --> T7[T7 实时30队爬取]
+    T5 --> T7
+```
+
+---
+
+## 7. 依赖包列表
+
+```
+- psycopg2          # 已在 .venv；DB 连接（经 common.bridge_constants）
+- beautifulsoup4    # 已在 .venv；HTML 解析
+- undetected_chromedriver  # 已在 .venv；UC Chrome 实时抓取（仅在线/Mac）
+- 标准库（无需安装）: os, re, json, argparse, dataclasses, datetime, unittest.mock
+```
+**无需新增任何第三方包**。`.env` 加载用自写轻量 loader，不引入 `python-dotenv`。
+
+---
+
+## 8. 共享知识（跨文件约定）
+
+| 约定 | 内容 |
+|---|---|
+| **DB 连接** | `from common.bridge_constants import get_pg_conn`；口令 **仅** 来自 `os.environ["DB_PASSWORD"]`，禁止硬编码。用项目 `.venv/bin/python` 运行。 |
+| **`.env` 加载** | `hof_exec/config.py` 内轻量 loader：若 `DB_PASSWORD` 等未设，则读项目根 `.env`（`PROJECT_ROOT/.env`）注入 `os.environ`；已设则不动。`.env` 已被 gitignore。 |
+| **30 队缩写** | `TEAM_ABBRS` 直接复用 `common.bridge_constants._CANON`（当前 30 队规范缩写）。 |
+| **BR URL slug 映射** | `BR_TEAM_SLUGS`：规范缩写 → BR `/teams/{slug}/` slug。已知差异：`BKN→BRK`、`CHA→CHO`（其余同名）。fetch 对 404 优雅跳过+记录（见 §9-3）。 |
+| **season 规范** | 字符串 `'YYYY-YY'`（如 `'2013-14'`），`VARCHAR(7)`；经 `normalize_season` 防御式归一。 |
+| **`present` 不转日期** | `team_executives.start/end` 一律 `TEXT` 原样存：`'1948'` / `'1954-03-27'` / `'present'`，不强行转 DATE。 |
+| **重复表头跳过** | executives 解析时，首格 `== "Rk"` 或整行等于表头 → 跳过；空行/非数字 rk 跳过并 warning。 |
+| **解析纯函数化** | `parse_*` 只吃 html 字符串，离线/在线共用；fetch 层才区分来源。 |
+| **审计列** | 两表均有 `scraped_at TIMESTAMP DEFAULT now()`，upsert 时刷新。 |
+| **upsert 语义** | 同唯一键覆盖（`ON CONFLICT … DO UPDATE`）；不保留历史快照（如需快照另开任务）。 |
+
+---
+
+## 9. 待明确事项（需用户拍板）
+
+1. **是否现在就建 `player_key` 桥接？** 设计倾向「否」（只存名 + 可选 `br_slug`），留后续单独任务做 name→id 匹配。请确认。
+2. **30 队范围**：默认用当前 30 队（`_CANON`）。是否需含历史 franchise（如已迁址/更名的旧队页）？建议仅当前 30 队。
+3. **BR URL slug 映射需实测确认**：BR 用 `BRK`(篮网)/`CHO`(黄蜂)，而 `_CANON` 用 `BKN`/`CHA`。个别队可能无 `executives.html` 或返回 404/空页（如极年轻球队）。建议 `BR_TEAM_SLUGS` 内置映射 + fetch 对 404 优雅跳过并记录，而非中断全量。请确认映射表或授权我按 BR 现行 slug 内置。
+4. **实时爬取由用户手动在 Mac 跑**：本设计交付 = CLI + `docs/run_live_crawl.md` runbook；实际执行在用户 Mac（本沙箱 CF 403）。请确认此分工。
+5. **HOF `season` 笔误的具体形态**：gold 的 118 条均合法，`normalize_season` 按防御式实现。如有具体畸形样本（非 `'2010-11'`）请补充，以校准修复规则。
+6. **`start/end` 未来是否转 DATE**：当前保留 TEXT；若后续要做任期时长/在职分析，再开解析（`present` → `NULL` 或 `now()`）。请确认暂不强转。
+7. **更新策略**：默认 upsert 覆盖（同唯一键刷新 `scraped_at`）。是否需要保留历史快照/软删？建议覆盖即可。
+
+---
+
+## 附：DET 金数据校验基线（供 T5/T6 断言）
+- `DET_hof_players.json`：`count=23` 去重球员；`season_entries=118` 条 → `team_hof` 应落 **118 行**。
+- `DET_executives.csv`：22 条 tenure（含第 22 行重复表头须跳过）→ `team_executives` 应落 **22 行**。
+- 唯一性：HOF `(DET, season, player)`、Exec `(DET, rk)` 在金数据内无冲突。
