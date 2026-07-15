@@ -17,3 +17,8 @@ pytest==8.3.4
 # curl_cffi 提供 TLS 指纹伪装(impersonate="chrome124")，绕 Akamai/CF 限流；
 # 迁移到 Mac 后缺失会导致 8 个爬虫脚本 import 崩溃，故补回。
 curl_cffi==0.15.0
+# BR 球队页爬取依赖（transactions_crawl / hof_exec / crawl_team_pages 用）
+# 之前仅装于 .venv 未写入依赖声明；与 curl_cffi 同理，补回以避免 import 崩溃。
+beautifulsoup4==4.15.0
+undetected-chromedriver==3.5.5
+lxml==6.1.1  # 可选：BS4 的更快解析器后端

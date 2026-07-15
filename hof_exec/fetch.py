@@ -16,8 +16,10 @@ from __future__ import annotations
 import logging
 import os
 import time
+from selenium.common.exceptions import WebDriverException
 
 from .config import BR_TEAM_SLUGS, PROJECT_ROOT
+from common.browser import get_driver, reset_driver, warmup_once
 
 logger = logging.getLogger(__name__)
 
@@ -69,47 +71,42 @@ def fetch_team_page(abbr: str, kind: str, offline_dir: str | None = None) -> str
 
 
 def _fetch_online(abbr: str, kind: str, retries: int = 4) -> str:
-    """Live fetch via undetected_chromedriver (UC Chrome) with warm-up + retry."""
-    import undetected_chromedriver as uc  # lazy import: not needed for offline/parse
+    """Live fetch via the shared UC-Chrome driver (warm-up + retry + CF detect).
 
+    The driver is a process-wide singleton (``common.browser.get_driver``) — it
+    is built once and reused for every page instead of being rebuilt per page
+    (~50s each). On a driver-level failure (WebDriverException / TimeoutError /
+    OSError) we reset the driver so the next attempt rebuilds it, rather than
+    skipping the page.
+    """
     slug = BR_TEAM_SLUGS.get(abbr, abbr)
     base = BR_BASE.format(slug=slug)
     url = f"{base}/{kind}.html"
     warm = base
-
-    opts = uc.ChromeOptions()
-    opts.headless = True
-    opts.add_argument("--no-sandbox")
-    opts.add_argument("--disable-dev-shm-usage")
-    opts.add_argument(
-        "--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36"
-    )
+    year_or_kind = kind
 
     html = ""
     for attempt in range(1, retries + 1):
-        driver = uc.Chrome(options=opts)
         try:
-            # warm-up: hit the root domain first to obtain a session cookie
-            if warm:
-                try:
-                    driver.get(warm)
-                    time.sleep(3)
-                except Exception:
-                    pass
+            driver = get_driver()          # reuse, do not rebuild per page
+            warmup_once(warm)              # only warm the first time
             driver.get(url)
             time.sleep(8)
             html = driver.page_source
             if not _is_cf_challenge(html):
-                logger.info("[%s/%s attempt %d] OK (%d bytes)", abbr, kind, attempt, len(html))
+                logger.info("[%s/%s attempt %d] OK (%d bytes)", abbr, year_or_kind, attempt, len(html))
                 break
-            logger.warning("[%s/%s attempt %d] CF challenge, retrying", abbr, kind, attempt)
-        finally:
-            driver.quit()
-        time.sleep(3)
+            logger.warning("[%s/%s attempt %d] CF challenge, retrying", abbr, year_or_kind, attempt)
+        except (WebDriverException, TimeoutError, OSError) as e:
+            logger.warning(
+                "[%s/%s attempt %d] fetch error: %s; rebuilding driver",
+                abbr, year_or_kind, attempt, repr(e)[:160],
+            )
+            reset_driver()                  # rebuild next round; do not skip the page
+            time.sleep(3)
     else:
         logger.error(
-            "[%s/%s] all %d attempts hit CF/empty; returning last payload", abbr, kind, retries
+            "[%s/%s] all %d attempts hit CF/empty; returning last payload", abbr, year_or_kind, retries
         )
 
     # cache the raw payload so a later offline run can reuse it
