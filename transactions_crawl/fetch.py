@@ -101,7 +101,7 @@ def _fetch_online(abbr: str, year: int, retries: int = 4) -> str:
                 logger.info("[%s/%s attempt %d] OK (%d bytes)", abbr, year_or_kind, attempt, len(html))
                 break
             logger.warning("[%s/%s attempt %d] CF challenge, retrying", abbr, year_or_kind, attempt)
-        except (WebDriverException, TimeoutError, OSError) as e:
+        except Exception as e:
             logger.warning(
                 "[%s/%s attempt %d] fetch error: %s; rebuilding driver",
                 abbr, year_or_kind, attempt, repr(e)[:160],
