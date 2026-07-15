@@ -1,95 +1,113 @@
-# Live 30-team HOF / Executives Crawl — Runbook
+# 统一 30 队 BR 球队页爬取 — 运行手册 (Runbook)
 
-This runbook explains how to run the **live** crawl across all 30 NBA teams and
-upsert the results into `team_hof` / `team_executives`. The code path is the
-same one validated offline against the DET gold fixtures.
+本手册定稿 **统一编排器 `crawl_team_pages.py`** 的用法：一个入口对全部 30 队
+依次爬 **交易(多年倒序) + 名人堂(HOF) + 高管(executives)**，复用
+`transactions_crawl` / `hof_exec` 两包已验证的 fetch / parse / load，统一断点续爬
+与进度统计。**不改任何表结构**（零 DDL；唯一约束 `(tx_date,abbr,desc)` /
+`(tx_abbr,season,player)` / `(tx_abbr,rk)` 直接复用，孪生去重 upsert 自然修复
+旧拼接 bug）。
 
-> ⚠️ **Run this on the user's Mac, not in the sandbox.**
-> The sandbox is blocked by Cloudflare (`CF 403` / JS challenge) and has no
-> Chrome profile. The offline DET load (`--offline-dir`) is the only part that
-> runs in CI/sandbox.
+> ⚠️ **在线爬取必须在本机 Mac 跑，不在沙箱。**
+> 沙箱被 Cloudflare 挡（`CF 403` / JS challenge）且无 Chrome 配置；离线
+> `DET` 回放（`--offline-dir`）是唯一可在 CI/沙箱跑的部分。
 
-## Prerequisites (on the Mac)
+## 范围边界
+仅 **transactions + HOF + executives** 三类。coaches / draft / retired_numbers /
+players / all_star / leaders 等其它 BR 分区属独立管线，**OUT OF SCOPE**。
 
-- Python 3.11+ with the project's `.venv` activated.
-- `undetected_chromedriver` + a working Chrome install (the package drives a
-  real UC Chrome instance, reusing the existing `.uc_br_profile` session cookie
-  strategy from `scrape_br_hof_exec.py`).
-- `.env` present with `DB_PASSWORD` (the loader in `hof_exec/config.py` reads
-  it; nothing is hardcoded).
-- Postgres reachable at `localhost:5433` (dbname `nba`, user `postgres`).
+## 前置条件（Mac 本机）
+- Python 3.11+，项目 `.venv` 已激活。
+- `undetected_chromedriver` + 可用的 Chrome（驱动真实 UC Chrome，复用
+  `.uc_br_profile` 会话 cookie 策略过 CF）。
+- 项目根 `.env` 含 `DB_PASSWORD`（loader `hof_exec.config.get_conn` 读取，
+  **绝不硬编码**）。
+- Postgres 可达：`localhost:5433`（dbname `nba`，user `postgres`）。
+- `bs4` 已装于 `.venv`（未在 `requirements.txt` 中声明，但本机已可用）。
 
 ```bash
 cd /path/to/nba_desktop_omega_mac_migrate
 source .venv/bin/activate
 ```
 
-## Build / verify the schema first (once)
+## 三阶段「年份分阶段滚动」
+在线连跑 30 队 × 多年必遇 CF 限速，故按年份分段、确认前一阶段稳了再放下一阶段。
+三个阶段只是同一编排器的不同 `--year-start/--year-end` 参数：
 
 ```bash
-.venv/bin/python - <<'PY'
-from hof_exec.config import get_conn
-sql = open("db/team_hof_exec.sql", encoding="utf-8").read()
-with get_conn() as conn, conn.cursor() as cur:
-    cur.execute(sql)
-    conn.commit()
-print("team_hof / team_executives ready")
-PY
+# 阶段①（现在，推荐首轮）：2000 → 2026
+.venv/bin/python -m crawl_team_pages --all-teams --year-start 2000 --year-end 2026
+
+# 阶段②：1980 → 2000（确认①稳了再放）
+.venv/bin/python -m crawl_team_pages --all-teams --year-start 1980 --year-end 2000
+
+# 阶段③（剩余历史）：1947 → 1979
+.venv/bin/python -m crawl_team_pages --all-teams --year-start 1947 --year-end 1979
 ```
 
-## Run the full 30-team crawl
+便捷脚本 `run_br_team_pages.sh` 封装了上述三阶段（自动加载 `.env` 与 `PYTHONPATH`）：
 
 ```bash
-.venv/bin/python -m hof_exec --all-teams --kind both
+bash run_br_team_pages.sh            # 阶段①（默认）
+bash run_br_team_pages.sh stage2    # 1980→2000
+bash run_br_team_pages.sh stage3    # 1947→1979
+bash run_br_team_pages.sh all       # ①②③ 连续
 ```
 
-This iterates `hof_exec.config.TEAM_ABBRS` (the 30 canonical abbrs from
-`common.bridge_constants._CANON`), resolves each to its BR slug via
-`BR_TEAM_SLUGS` (BKN→BRK, CHA→CHO, rest identity), and for each team fetches
-both `/hof` and `/executives`, parses, and upserts.
-
-## Batching & rate-limiting (recommended)
-
-BR/Cloudflare will throttle aggressive traffic. Run in waves rather than one
-shot:
-
+## 单队 / 单类型
 ```bash
-# East (e.g. 15 teams) then West (remaining 15) — split the abbr list as you like
-.venv/bin/python -m hof_exec --team BOS --kind both
-.venv/bin/python -m hof_exec --team NYK --kind both
-# ... repeat per team, or wrap in a shell loop with `sleep 5` between teams
+# 单队
+.venv/bin/python -m crawl_team_pages --team DET
+
+# 只爬交易 / HOF / 高管
+.venv/bin/python -m crawl_team_pages --all-teams --kind trans
+.venv/bin/python -m crawl_team_pages --all-teams --kind hof
+.venv/bin/python -m crawl_team_pages --all-teams --kind exec
 ```
 
-A simple paced loop:
+## 断点续爬 / CF 命中策略
+- **CF 挑战 / 404 命中即 SKIP 继续**（记日志，不中断整轮）；在线抓取会把 raw HTML
+  缓存到 `det2026_br/`，二次运行自动跳过已完成项。
+- **续跑靠双重保险**：① 落库 `upsert` 幂等（`ON CONFLICT` / 孪生 `UPDATE`）；
+  ② raw HTML 离线缓存。重跑安全、无重复行。
+- 日志盯 `SKIP`（应只来自 CF/404/缺页）与 `LOADED <abbr>/<year>: N rows`；
+  收尾打印 `DONE totals: transactions=N hof=M exec=K`。
+
+## 限速建议
+BR/CF 会限流激进请求。建议分批而非一次梭哈：按分区（东/西）或单队循环，
+队间 `sleep 5`。示例单队循环：
 
 ```bash
 for t in BOS BKN NYK PHI TOR CHI CLE DET IND MIL ATL CHA MIA ORL WAS \
          DEN MIN OKC POR UTA GSW LAC LAL PHX SAC DAL HOU MEM NOP SAS; do
   echo "=== $t ==="
-  .venv/bin/python -m hof_exec --team "$t" --kind both
+  .venv/bin/python -m crawl_team_pages --team "$t"
   sleep 5
 done
 ```
 
-## 404 / missing-team handling
+## 离线 DET 回放（沙箱安全，已验证）
+无 DB、无网络，用 `det2026_br/` 下捕获的 DET 离线文件回放三类解析并校验：
 
-- `fetch_team_page` detects a BR 404 payload (`looks_like_404`) and the CLI
-  **skips** that team/kind with a `SKIP ... 404 page detected` log line — no
-  crash, no partial row.
-- For historical franchises BR may not host a modern `/hof` page; those teams
-  are simply skipped and logged, so the run finishes cleanly.
-- Re-running is safe: upserts refresh `scraped_at` and never duplicate rows
-  (unique keys `(team_abbr, season, player_name)` and `(team_abbr, rk)`).
+```bash
+# 解析层单测（含拼接 bug 守卫、多集合相等）
+.venv/bin/python -m pytest tests/test_team_pages_offline.py -v
 
-## Verify after the run
+# 编排器离线回放（会真实 upsert 到本机 DB；DET 三类 LOADED，其余 29 队因无
+# 离线文件被 SKIP，EXIT=0 不崩）
+.venv/bin/python -m crawl_team_pages --all-teams --year-start 2000 --year-end 2026 --offline-dir det2026_br
+```
 
+## 运行后核验（SQL）
 ```sql
-SELECT team_abbr, count(*) FROM team_hof GROUP BY team_abbr ORDER BY team_abbr;
+SELECT team_abbr, count(*) FROM transactions      GROUP BY team_abbr ORDER BY team_abbr;
+SELECT team_abbr, count(*) FROM team_hof         GROUP BY team_abbr ORDER BY team_abbr;
 SELECT team_abbr, count(*) FROM team_executives GROUP BY team_abbr ORDER BY team_abbr;
 ```
 
-## Offline one-team load (sandbox-safe, already validated)
+## 历史 fallback：仅 HOF / executives（旧管线，仍可用）
+若只需 HOF + executives（不含交易），可直接用 `hof_exec` 包（早于统一编排器存在）：
 
 ```bash
+.venv/bin/python -m hof_exec --all-teams --kind both
 .venv/bin/python -m hof_exec --offline-dir det2026_br --team DET --kind both
 ```

@@ -49,39 +49,10 @@ from bs4 import BeautifulSoup
 logger = logging.getLogger(__name__)
 
 # 30-team abbreviation -> full franchise name (used to build the
-# "The <Team> " description prefix). Static NBA reference data.
-TEAM_FULL_NAME: dict[str, str] = {
-    "ATL": "Atlanta Hawks",
-    "BOS": "Boston Celtics",
-    "BKN": "Brooklyn Nets",
-    "CHA": "Charlotte Hornets",
-    "CHI": "Chicago Bulls",
-    "CLE": "Cleveland Cavaliers",
-    "DAL": "Dallas Mavericks",
-    "DEN": "Denver Nuggets",
-    "DET": "Detroit Pistons",
-    "GSW": "Golden State Warriors",
-    "HOU": "Houston Rockets",
-    "IND": "Indiana Pacers",
-    "LAC": "LA Clippers",
-    "LAL": "Los Angeles Lakers",
-    "MEM": "Memphis Grizzlies",
-    "MIA": "Miami Heat",
-    "MIL": "Milwaukee Bucks",
-    "MIN": "Minnesota Timberwolves",
-    "NOP": "New Orleans Pelicans",
-    "NYK": "New York Knicks",
-    "OKC": "Oklahoma City Thunder",
-    "ORL": "Orlando Magic",
-    "PHI": "Philadelphia 76ers",
-    "PHX": "Phoenix Suns",
-    "POR": "Portland Trail Blazers",
-    "SAC": "Sacramento Kings",
-    "SAS": "San Antonio Spurs",
-    "TOR": "Toronto Raptors",
-    "UTA": "Utah Jazz",
-    "WAS": "Washington Wizards",
-}
+# "The <Team> " description prefix). SINGLE SOURCE OF TRUTH is now
+# ``common/team_names.TEAM_FULL_NAME`` (was a local copy here). Import it
+# verbatim — do NOT redefine; see docs/team_crawl_design.md §3.3 / §8-Q2.
+from common.team_names import TEAM_FULL_NAME  # noqa: E402,F401
 
 # Leading ``Month D, YYYY`` (the optional ":" is tolerated for pages that
 # include it; the captured DET page omits it).
