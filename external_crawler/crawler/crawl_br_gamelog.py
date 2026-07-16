@@ -18,6 +18,11 @@ import random
 import argparse
 import sys
 from datetime import datetime
+from pathlib import Path
+
+# Ensure the project root (three levels up from this file) is on sys.path so
+# `import common.browser` resolves when run as a standalone script.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 DB_CONFIG = dict(host='localhost', port=5433, dbname='nba', user='postgres', password=os.environ.get('DB_PASSWORD'))
 
@@ -80,6 +85,7 @@ def get_players(conn, season: int, limit: int = None, resume: bool = False):
         query = """
             SELECT DISTINCT p.player, p.player_id FROM player_per_game p
             WHERE p.season = %s 
+              AND p.player_id IS NOT NULL AND p.player_id <> ''
               AND NOT EXISTS (
                 SELECT 1 FROM player_gamelog g 
                 WHERE g.player = p.player AND g.season = %s
@@ -92,7 +98,8 @@ def get_players(conn, season: int, limit: int = None, resume: bool = False):
     else:
         query = """
             SELECT DISTINCT player, player_id FROM player_per_game 
-            WHERE season = %s ORDER BY player
+            WHERE season = %s AND player_id IS NOT NULL AND player_id <> ''
+            ORDER BY player
         """
         if limit:
             query += f" LIMIT {limit}"
@@ -101,34 +108,64 @@ def get_players(conn, season: int, limit: int = None, resume: bool = False):
 
 
 def get_game_id_map(conn, season: int):
-    """Build date+team → game_id mapping from games table"""
+    """Build (date, team) -> nba_api_id mapping from dim_games.
+
+    NOTE: player_gamelog.gameid stores the NUMERIC nba_api_id (not the
+    alphanumeric games.game_id), so we map via dim_games.nba_api_id.
+    BR gamelog pages are regular-season only ('player_game_log_reg').
+    """
     cur = conn.cursor()
     cur.execute("""
-        SELECT game_id, game_date::text, home_team_abbr, away_team_abbr
-        FROM games 
-        WHERE season = %s AND game_id ~ '^[0-9]+$'
+        SELECT game_date::text, home_team_abbr, away_team_abbr, nba_api_id
+        FROM dim_games
+        WHERE season = %s AND season_type = 'Regular Season'
+          AND nba_api_id IS NOT NULL
     """, (season,))
-    
+
     mapping = {}
     for row in cur.fetchall():
-        gid, date_str, home, away = row
-        mapping[(date_str, home)] = gid
-        mapping[(date_str, away)] = gid
-    
+        date_str, home, away, nba_id = row
+        mapping[(date_str, home)] = nba_id
+        mapping[(date_str, away)] = nba_id
+
     return mapping
 
 
+def _fetch_html(url: str) -> str:
+    """Fetch a fully-rendered BR page via the shared Playwright driver.
+
+    Reuses ``common.browser.get_driver()`` (the Playwright + stealth backend,
+    with optional CF-cookie injection). After navigation we poll ``page_source``
+    for the real stat table so a previously-injected ``cf_clearance`` cookie is
+    given time to clear any residual Cloudflare interstitial. Returns the rendered
+    HTML, or '' on hard failure.
+    """
+    from common.browser import get_driver
+    drv = get_driver()
+    drv.get(url)
+    html = drv.page_source
+    if "player_game_log_reg" in html:
+        return html
+    # Poll up to ~60s for the real table (CF interstitial still clearing).
+    for _ in range(12):
+        time.sleep(5)
+        html = drv.page_source
+        if "player_game_log_reg" in html:
+            return html
+    return html  # caller sees no table and skips safely
+
+
 def scrape_gamelog(player_name: str, player_id: str, season: int) -> list:
-    """Scrape one player's gamelog from BR"""
+    """Scrape one player's gamelog from BR (browser-backed)"""
     first_letter = player_id[0].lower()
     url = f"https://www.basketball-reference.com/players/{first_letter}/{player_id}/gamelog/{season}"
-    
-    resp = requests.get(url, headers=HEADERS, timeout=30)
-    if resp.status_code != 200:
-        print(f"    HTTP {resp.status_code}")
+
+    html = _fetch_html(url)
+    if not html:
+        print(f"    fetch failed")
         return []
-    
-    soup = BeautifulSoup(resp.text, 'html.parser')
+
+    soup = BeautifulSoup(html, 'html.parser')
     table = soup.find('table', id='player_game_log_reg')
     if not table:
         print(f"    No table found")
@@ -204,6 +241,10 @@ def run_pipeline(season: int, limit: int = None, dry_run: bool = False, resume: 
     skipped_players = 0
     
     for i, (player_name, player_id) in enumerate(players):
+        if not player_id:
+            print(f"[{i+1}/{len(players)}] {player_name} (None) → 跳过 (无 player_id)")
+            skipped_players += 1
+            continue
         print(f"[{i+1}/{len(players)}] {player_name} ({player_id})...", end=' ', flush=True)
         
         try:
@@ -225,6 +266,7 @@ def run_pipeline(season: int, limit: int = None, dry_run: bool = False, resume: 
                     
                     if not game_id:
                         continue
+                    game_id = str(game_id)  # player_gamelog.gameid is varchar
                     
                     if not dry_run:
                         # UPSERT: DELETE then INSERT
