@@ -7,8 +7,7 @@ set -a
 set +a
 cd /Users/deocheng/Downloads/nba_desktop_omega_mac_migrate_2026-07-13
 export BR_COOKIE_FILE=/tmp/br_cf_cookies.json
-# CDP 直连模式：绕过无头 launch 在某些环境下的 asyncio 事件循环冲突，
-# 直接驱动已开 CF 的用户 Chrome（9222）。cookies 走浏览器实时态，不依赖本文件。
+# CDP 直连模式：绕过无头 launch 在某些环境下的 asyncio 事件循环冲突，直接驱动已开 CF 的用户 Chrome（9222）。cookies 走浏览器实时态，不依赖本文件。
 export BROWSER_BACKEND=cdp
 export CHROME_CDP_URL=http://127.0.0.1:9222
 PY=.venv/bin/python
@@ -29,12 +28,9 @@ echo "===== $(date) GAMELOG ALL DONE =====" >> "$LOG"
 
 # === 自动接力（relay）：gamelog 全部季串行跑完后，自动触发 headshots 头像抓取 ===
 # 硬约束（红线）：绝不与 gamelog 并行 —— gamelog python 进程此时已完全退出。
-# 直接调 crawl_br_headshots.py（不调 run_headshots_all.sh），原因：
-#   (a) 此时 pgrep -f crawl_br_gamelog.py 本就查不到，双锁中的 gamelog 互斥锁无意义；
-#   (b) 直接调 python 可避免接力时又被 run_headshots_all.sh 的 gamelog 互斥锁误拦
-#       （那个互斥锁是为「独立手动跑 headshots」准备的，接力场景不适用）。
-# env（BROWSER_BACKEND / CHROME_CDP_URL / BR_COOKIE_FILE / DB_PASSWORD）在脚本顶部已
-# export，本接力块在同一作用域，无需重复 export；且全程无 unset。
+# 直接调 crawl_br_headshots.py（不调 run_headshots_all.sh），原因：(a) 此时 pgrep -f crawl_br_gamelog.py 本就查不到，双锁中的 gamelog 互斥锁无意义；
+# (b) 直接调 python 可避免接力时又被 run_headshots_all.sh 的 gamelog 互斥锁误拦（那个互斥锁是为「独立手动跑 headshots」准备的，接力场景不适用）。
+# env（BROWSER_BACKEND / CHROME_CDP_URL / BR_COOKIE_FILE / DB_PASSWORD）在脚本顶部已 export，本接力块在同一作用域，无需重复 export；且全程无 unset。
 echo "=== [relay] gamelog 抓取完成 ($(date))，自动接力 headshots 头像抓取 ===" | tee -a "$LOG"
 # 轻量 self-guard：若已有 headshots crawler 在跑（极端并发），跳过接力，绝不强行并行。
 if pgrep -f "crawl_br_headshots.py" >/dev/null 2>&1; then
