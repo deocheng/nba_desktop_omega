@@ -1,59 +1,44 @@
 classDiagram
-    direction LR
-
-    class HofEntry {
-        +str team_abbr
-        +str season
-        +str player_name
-        +str br_slug
+    class DimPlayers {
+        +player_id varchar PK   «已有»
+        +player_name text        «已有»
+        +source_url text         «已有»
+        +scraped_at timestamp     «已有»
+        +headshot_path text       «新增: 本地绝对路径»
+        +headshot_url text        «新增: 头像图片 URL (BR 域)»
+        +headshot_status varchar(16)  «新增: NULL/ok/missing/failed»
+        +headshot_scraped_at timestamp  «新增: NULL=未抓; upsert 写 now()»
     }
 
-    class ExecEntry {
-        +str team_abbr
-        +int rk
-        +str executive
-        +str start
-        +str end
-        +str notes
+    class HeadshotStore {
+        <<module: common/headshot_store.py>>
+        +HEADSHOT_ROOT Path
+        +SELECTOR str = "#info .media-item img"
+        +headshot_path_for(pid, src) Path
+        +ensure_root() void
+        +extract_headshot_src(html) str|None
+        +download_image(url, dest, referer, cookies) bool
+        +fetch_image_via_cdp(driver, url) bytes|None
+        -_is_valid_image(bytes) bool
     }
 
-    class Config {
-        +dict BR_TEAM_SLUGS
-        +set TEAM_ABBRS
-        +str PROJECT_ROOT
-        +load_dotenv() dict
-        +get_conn() Connection
+    class CrawlBrHeadshots {
+        <<module: external_crawler/crawler/crawl_br_headshots.py>>
+        +DB_CONFIG dict
+        +get_players(conn, limit, resume) list
+        +scrape_player(pid, name, driver) tuple
+        +upsert_path(conn, pid, path, url, status) void
+        +run_pipeline(limit, dry_run, resume) void
     }
 
-    class Fetcher {
-        +fetch_team_page(abbr, kind, offline_dir) str
-        -_fetch_online(abbr, kind) str
-        -_fetch_offline(abbr, kind, offline_dir) str
+    class BrowserDriver {
+        <<external: common.browser>>
+        +get_driver() Driver
+        +get(url) void
+        +page_source str
     }
 
-    class Parser {
-        +parse_hof_div(html) list~HofEntry~
-        +parse_executives_table(html) list~ExecEntry~
-        +normalize_season(token) str
-    }
-
-    class Loader {
-        +upsert_hof(rows) int
-        +upsert_executives(rows) int
-        +load_from_gold(gold_json, gold_csv) tuple
-    }
-
-    class CLI {
-        +main() int
-    }
-
-    Config <.. Fetcher : get_conn / slugs
-    Config <.. Loader : get_conn
-    CLI --> Fetcher : fetch
-    CLI --> Parser : parse
-    CLI --> Loader : upsert / load_from_gold
-    Parser ..> HofEntry : produces
-    Parser ..> ExecEntry : produces
-    Loader ..> HofEntry : consumes
-    Loader ..> ExecEntry : consumes
-    Loader --> Config : get_conn
+    CrawlBrHeadshots ..> HeadshotStore : uses
+    CrawlBrHeadshots ..> BrowserDriver : get_driver()
+    CrawlBrHeadshots ..> DimPlayers : UPDATE headshot_*
+    HeadshotStore ..> BrowserDriver : fetch_image_via_cdp(driver)

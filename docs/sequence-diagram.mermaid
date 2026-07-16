@@ -1,47 +1,34 @@
 sequenceDiagram
-    autonumber
-    actor User
-    participant CLI as __main__ (CLI)
-    participant Cfg as Config
-    participant F as Fetcher
-    participant P as Parser
-    participant L as Loader
-    participant DB as PostgreSQL
+    participant Main as crawl_br_headshots.py
+    participant DB as PostgreSQL(dim_players)
+    participant Drv as common.browser Driver (CDP)
+    participant BR as Basketball-Reference
+    participant Store as common.headshot_store
+    participant Disk as /Volumes/12T/.../headshots
 
-    User->>CLI: python -m hof_exec [--all-teams | --team DET | --offline-dir DIR] [--kind hof|exec|both]
-
-    CLI->>Cfg: load_dotenv() + TEAM_ABBRS / BR_TEAM_SLUGS
-    alt --all-teams
-        CLI->>CLI: teams = TEAM_ABBRS (30)
-    else --team DET
-        CLI->>CLI: teams = [DET]
-    end
-
-    loop for each team_abbr in teams
-        CLI->>F: fetch_team_page(abbr, kind, offline_dir)
-        alt offline mode (--offline-dir given)
-            F->>F: read "{offline_dir}/{abbr}_{kind}.html"
-        else online mode (default, 需 Mac + UC Chrome)
-            F->>F: UC Chrome warm-up + get(url) + retry + CF-detect
-            F->>F: cache raw html to offline_dir (可选)
-        end
-        F-->>CLI: html string
-
-        alt kind in (hof, both)
-            CLI->>P: parse_hof_div(html)
-            P-->>CLI: list[HofEntry]   (normalize_season 容错)
-            CLI->>L: upsert_hof(rows)
-            L->>DB: INSERT ... ON CONFLICT (team_abbr,season,player_name) DO UPDATE
-            DB-->>L: upsert count
-        end
-
-        alt kind in (exec, both)
-            CLI->>P: parse_executives_table(html)
-            P-->>CLI: list[ExecEntry]  (跳过 Rk=="Rk" 重复表头行)
-            CLI->>L: upsert_executives(rows)
-            L->>DB: INSERT ... ON CONFLICT (team_abbr,rk) DO UPDATE
-            DB-->>L: upsert count
+    Main->>DB: connect + get_players(resume, limit)
+    DB-->>Main: [(player_id, player_name), ...]
+    loop 每位球员 (限速 3–6s)
+        Main->>Drv: get(players/{first}/{pid}.html)
+        Drv->>BR: navigate (复用有效 cf_clearance)
+        BR-->>Drv: 渲染 HTML (含 headshot <img>)
+        Main->>Store: extract_headshot_src(page_source)
+        alt 找到 <img>
+            Store-->>Main: 绝对 src URL (BR 域)
+            Main->>Store: download_image(src, dest, referer)
+            alt Tier-1 HTTP 200 + 合法图片
+                Store->>BR: GET headshot (同 CF 会话)
+                BR-->>Store: 图片字节
+                Store->>Disk: write {pid}.jpg (magic 校验)
+            else Tier-1 失败(403/超时)
+                Store->>Drv: fetch_image_via_cdp(src)
+                Drv->>BR: 独立 target 导航图片 URL
+                BR-->>Drv: Network.getResponseBody 字节
+                Store->>Disk: write {pid}.jpg
+            end
+            Main->>DB: upsert_path(pid, path, url, 'ok')
+        else 无 <img> (BR 本身缺头像)
+            Main->>DB: upsert_path(pid, NULL, NULL, 'missing')
         end
     end
-
-    CLI-->>User: 汇总 (每队 hof/exec 行数, 跳过/失败计数)
+    Main->>DB: commit + 打印汇总(ok/missing/failed/skipped)
