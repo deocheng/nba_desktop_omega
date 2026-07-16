@@ -72,6 +72,9 @@ class PlayerBio(BaseModel):
     experience: str | None = None
     year_from: int | None = None
     year_to: int | None = None
+    # 增量：本地头像（headshot）落盘信息（见 docs/ARCH_headshots_incremental.md）
+    headshot_path: str | None = None       # 12TB 盘绝对路径（status='ok' 时存在）
+    headshot_status: str | None = None     # NULL/ok/missing/failed
 
     @classmethod
     def from_row(cls, row: dict) -> "PlayerBio":
@@ -96,6 +99,8 @@ class PlayerBio(BaseModel):
             experience=row.get("experience"),
             year_from=row.get("year_from"),
             year_to=row.get("year_to"),
+            headshot_path=row.get("headshot_path"),
+            headshot_status=row.get("headshot_status"),
         )
 
 

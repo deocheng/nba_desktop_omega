@@ -113,7 +113,6 @@ function nav(page) {
   if (page === 'tactics') loadTacticsPage();
   if (page === 'clutch-replay') loadClutchReplayPage();
   if (page === 'video-library') loadVideoLibraryPage();
-  if (page === 'analytics-builder') loadAnalyticsBuilderPage();
   if (page === 'cba') loadCbaPage();
   if (page === 'draft') loadDraftPage();
   setTimeout(resizeAllCharts, 50);
@@ -175,13 +174,6 @@ function loadVideoLibraryPage() {
   }
 }
 
-// ── Analytics Builder Page (v8.3.2) ──
-function loadAnalyticsBuilderPage() {
-  if (window.AnalyticsBuilder && typeof window.AnalyticsBuilder.render === 'function') {
-    window.AnalyticsBuilder.render('analyticsBuilderRoot');
-  }
-}
-
 // ── CBA Aux Page (v8.3.2+ · T01/T02) ──
 function loadCbaPage() {
   if (window.Cba && typeof window.Cba.render === 'function') {
@@ -216,7 +208,7 @@ function loadDraftPage() {
 
   const tbody = document.getElementById('draftTableBody');
   if (tbody) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--text-dim);">
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:30px; color:var(--text-dim);">
       <div class="spinner"></div> ${I18N.t('draft.loading')}
     </td></tr>`;
   }
@@ -229,7 +221,7 @@ function loadDraftPage() {
   api(url).then(d => renderDraft(d)).catch(e => {
     const tb = document.getElementById('draftTableBody');
     if (tb) {
-      tb.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--danger);">
+      tb.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:30px; color:var(--danger);">
         ${I18N.t('draft.failedToLoad')}: ${escapeHtml(e.message)}
       </td></tr>`;
     }
@@ -244,7 +236,7 @@ function renderDraft(data) {
   if (countEl) countEl.textContent = (data && data.count != null ? data.count : rows.length);
 
   if (rows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--text-dim);">
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:30px; color:var(--text-dim);">
       ${I18N.t('common.noData')}
     </td></tr>`;
     return;
@@ -258,6 +250,7 @@ function renderDraft(data) {
     const team = escapeHtml(r.team_abbr || '—');
     const wLbs = (r.weight_lbs != null) ? r.weight_lbs : '—';
     const wKg = (r.weight_kg != null) ? r.weight_kg : '—';
+    const wSpan = (r.wingspan_cm != null) ? r.wingspan_cm : '—';
 
     // A1-4: degrade BR link to "无资料" when player not in dim_players.
     let brCell;
@@ -278,6 +271,7 @@ function renderDraft(data) {
       <td style="font-weight:600;">${name}</td>
       <td style="text-align:right; font-family:var(--mono);">${wLbs}</td>
       <td style="text-align:right; font-family:var(--mono);">${wKg}</td>
+      <td style="text-align:right; font-family:var(--mono);">${wSpan}</td>
       <td style="text-align:center;">${brCell}</td>
     </tr>`;
   }).join('');
@@ -425,9 +419,13 @@ function renderVSPlayerCard(slot, bio) {
   const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
   const team = bio.team_abbr || bio.team || '—';
   const pos = bio.position || '';
+  // 有头像则渲染 <img> 覆盖在圆头像上；加载失败（onerror）自动移除回退到首字母
+  const avatarInner = bio.headshot_path
+    ? `<img class="player-avatar-img" src="/headshots/${encodeURIComponent(bio.player_id || '')}" alt="${escapeHtml(name)}" onerror="this.remove()" loading="lazy">`
+    : escapeHtml(initials);
   card.className = 'player-card player-' + slot + ' has-player';
   card.innerHTML = `
-    <div class="player-avatar ${slot === 2 ? 'p2' : ''}">${escapeHtml(initials)}</div>
+    <div class="player-avatar ${slot === 2 ? 'p2' : ''}">${avatarInner}</div>
     <div class="player-name">${entityLink('player', bio.player_id || '', name, 'entity-link-name')}</div>
     <div class="player-team">${escapeHtml([team, pos].filter(Boolean).join(' · '))}</div>
   `;
@@ -1074,9 +1072,13 @@ function renderCtxVsPlayerCard(slot, bio) {
   const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
   const team = bio.team_abbr || bio.team || '—';
   const pos = bio.position || '';
+  // 有头像则渲染 <img> 覆盖在圆头像上；加载失败（onerror）自动移除回退到首字母
+  const avatarInner = bio.headshot_path
+    ? `<img class="player-avatar-img" src="/headshots/${encodeURIComponent(bio.player_id || '')}" alt="${escapeHtml(name)}" onerror="this.remove()" loading="lazy">`
+    : escapeHtml(initials);
   card.className = 'player-card ctx-vs-card player-' + slot + ' has-player';
   card.innerHTML = `
-    <div class="player-avatar ${slot === 2 ? 'p2' : ''}">${escapeHtml(initials)}</div>
+    <div class="player-avatar ${slot === 2 ? 'p2' : ''}">${avatarInner}</div>
     <div class="player-name">${entityLink('player', bio.player_id || '', name, 'entity-link-name')}</div>
     <div class="player-team">${escapeHtml([team, pos].filter(Boolean).join(' · '))}</div>
   `;
@@ -3991,9 +3993,10 @@ async function loadIntelligencePage() {
         <div class="card-title">查询球员情报</div>
       </div>
       <div class="form-row" style="align-items:flex-end;">
-        <div style="flex:1; min-width:240px;">
-          <label class="label">球员 ID</label>
-          <input class="input" id="intelPlayerInput" placeholder="例如 jamesle01" value="jamesle01">
+        <div style="flex:1; min-width:240px; position:relative;">
+          <label class="label">球员名（模糊搜索）</label>
+          <input class="input" id="intelNameSearch" type="text" placeholder="输入球员名，如 LeBron" oninput="IntelSearch.onSearch()" onblur="setTimeout(IntelSearch.hideDropdown,200)">
+          <div class="dropdown" id="intelNameDropdown"></div>
         </div>
         <div style="min-width:160px;">
           <label class="label">赛季</label>
@@ -4008,19 +4011,81 @@ async function loadIntelligencePage() {
   const sel = document.getElementById('intelSeasonSelect');
   if (defSeason) sel.value = defSeason;
 
-  // Auto-load the default player
-  loadIntelResult();
+  // Auto-load a default player by name (no hard-coded player_id required).
+  const intelNameInput = document.getElementById('intelNameSearch');
+  if (intelNameInput) {
+    intelNameInput.value = 'LeBron James';
+    IntelSearch.onSearch(true);
+  }
 }
 
 async function loadIntelResult() {
-  const pid = (document.getElementById('intelPlayerInput') || {}).value;
+  const pid = intelPid;
   const season = (document.getElementById('intelSeasonSelect') || {}).value;
-  if (!pid) { toast('请输入球员 ID', 'error'); return; }
+  if (!pid) { toast('请选择球员', 'error'); return; }
   if (!window.Intelligence) return;
   await window.Intelligence.render('intelResult', pid.trim(), season);
 }
 
-// ── Workspace Page (v8.3) ──
+// ── Player Intelligence name fuzzy-search helper (self-contained, mirrors AgeCurve) ──
+let intelPid = '';
+
+const IntelSearch = {
+  _nameMap: {},
+  onSearch: async function (autoSelectFirst) {
+    const input = document.getElementById('intelNameSearch');
+    const q = input ? input.value.trim() : '';
+    if (q.length < 2) { IntelSearch.hideDropdown(); return; }
+    try {
+      const d = await api('/players?name=' + encodeURIComponent(q) + '&limit=8');
+      const dd = document.getElementById('intelNameDropdown');
+      if (!dd) return;
+      const list = (d && d.players) || [];
+      IntelSearch._nameMap = {};
+      if (list.length === 0) {
+        dd.innerHTML = '<div class="dropdown-item" style="color:var(--text-dim);">无匹配球员</div>';
+      } else {
+        dd.innerHTML = list.map(function (p) {
+          const pid = p.player_id || '';
+          const nm = p.full_name || p.player_name || pid;
+          IntelSearch._nameMap[pid] = nm;
+          const sub = [p.team_abbr || p.team, p.position].filter(Boolean).map(escapeHtml).join(' · ');
+          return '<div class="dropdown-item" onmousedown="IntelSearch.onSelect(\'' + pid + '\')">' +
+            '<div>' + escapeHtml(nm) + '</div>' +
+            (sub ? '<div class="sub">' + sub + '</div>' : '') + '</div>';
+        }).join('');
+      }
+      if (autoSelectFirst && list.length) {
+        IntelSearch.onSelect(list[0].player_id);
+      } else {
+        IntelSearch.showDropdown();
+      }
+    } catch (e) {
+      if (typeof toast === 'function') toast(e.message, 'error');
+    }
+  },
+  onSelect: function (pid) {
+    if (!pid) return;
+    intelPid = pid;
+    const input = document.getElementById('intelNameSearch');
+    if (input) input.value = IntelSearch._nameMap[pid] || pid;
+    IntelSearch.hideDropdown();
+    loadIntelResult();
+  },
+  showDropdown: function () {
+    const input = document.getElementById('intelNameSearch');
+    const q = input ? input.value.trim() : '';
+    if (q.length < 2) return;
+    const dd = document.getElementById('intelNameDropdown');
+    if (dd) dd.classList.add('show');
+  },
+  hideDropdown: function () {
+    const dd = document.getElementById('intelNameDropdown');
+    if (dd) dd.classList.remove('show');
+  }
+};
+
+// ── DIY分析 Page (merged Workspace + Analytics Builder · v8.3) ──
 async function loadWorkspacePage() {
   const root = document.getElementById('workspaceRoot');
   if (!root) return;
@@ -4029,6 +4094,12 @@ async function loadWorkspacePage() {
     return;
   }
   await window.Workspace.renderList('workspaceRoot');
+
+  // Render the Analytics Builder block beneath the Workspace content.
+  const abRoot = document.getElementById('analyticsBuilderRoot');
+  if (abRoot && window.AnalyticsBuilder && typeof window.AnalyticsBuilder.render === 'function') {
+    window.AnalyticsBuilder.render('analyticsBuilderRoot');
+  }
 }
 
 // ── Init ──

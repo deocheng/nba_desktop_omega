@@ -8,6 +8,8 @@ from __future__ import annotations
 import logging
 
 from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import FileResponse
+from pathlib import Path
 from pydantic import BaseModel
 
 from backend.api.schemas import (
@@ -61,6 +63,28 @@ _DEFAULT_PLAYER_METRICS = [
 def list_seasons() -> list[int]:
     """List available seasons from fact_player_season_stats (descending)."""
     return get_available_seasons("fact_player_season_stats")
+
+
+@router.get("/headshots/{player_id}")
+def get_player_headshot(player_id: str):
+    """Serve a player's local headshot image from the 12TB store.
+
+    Only returns the file when ``headshot_status = 'ok'`` (i.e. a real image was
+    scraped and persisted). Otherwise 404 — the frontend falls back to initials.
+    Reuses ``get_player_bios`` (no raw SQL in this router, per Layer-3 contract).
+    """
+    bios = get_player_bios([player_id])
+    if not bios:
+        raise HTTPException(status_code=404, detail=f"player {player_id!r} not found")
+    row = bios[0]
+    path = row.get("headshot_path")
+    status = row.get("headshot_status")
+    if not path or status != "ok":
+        raise HTTPException(status_code=404, detail="headshot not available")
+    p = Path(path)
+    if not p.is_file():
+        raise HTTPException(status_code=404, detail="headshot file missing")
+    return FileResponse(str(p))
 
 
 @router.get("", response_model=PlayerSearchResponse)
