@@ -62,6 +62,115 @@ class CFChallengeError(Exception):
 
 
 # ---------------------------------------------------------------------------
+# 共享 Cloudflare 防撞 + 自恢复熔断器（全爬虫共用，见 common/cf_breaker.py）
+# 在 get() 层挂一个模块级实例：凡是经本模块 get() 的爬虫
+# （gamelog / fill_player_cache / headshots / transactions / injuries /
+# contracts / schedule ... 几十个）都自动获得「连续撞墙→熔断冷却→自恢复」，
+# 无需每个爬虫各写一遍。默认 max_cooldowns=0 = 无限自恢复。
+# ---------------------------------------------------------------------------
+import os as _os  # 模块级，供下方 _BREAKER 读取 CF_* 环境变量
+from .cf_breaker import CFBreaker  # noqa: E402  (同包, 仅依赖标准库)
+
+_BREAKER = CFBreaker(
+    breach_limit=int(_os.environ.get("CF_BREACH_LIMIT", "5")),
+    backoff=int(_os.environ.get("CF_BACKOFF", "30")),
+    cooldown=int(_os.environ.get("CF_COOLDOWN", "600")),
+    max_cooldowns=int(_os.environ.get("CF_MAX_COOLDOWNS", "0")),
+)
+_CF_INNER_TRIES = 3  # 单页面内部重试上限（< breach_limit，避免单球员就触发熔断）
+
+
+def configure_breaker(breach_limit=None, backoff=None, cooldown=None,
+                      max_cooldowns=None) -> None:
+    """运行时调参（爬虫 CLI 可调用，覆盖 env / 默认值）。"""
+    if breach_limit is not None:
+        _BREAKER.breach_limit = int(breach_limit)
+    if backoff is not None:
+        _BREAKER.backoff = int(backoff)
+    if cooldown is not None:
+        _BREAKER.cooldown = int(cooldown)
+    if max_cooldowns is not None:
+        _BREAKER.max_cooldowns = int(max_cooldowns)
+
+
+# ---------------------------------------------------------------------------
+# Cloudflare 握手（爬取前置门禁）
+# ---------------------------------------------------------------------------
+# 在「爬虫自己驱动的那个标签页」里先导航到 BR 主页，检测 CF 挑战；若命中则写
+# 哨兵文件 + 打印醒目标语，并轮询同一标签页直到挑战消失（真实 BR 内容出现）
+# 再继续。这样用户清的一定就是爬虫正在驱动的那个 tab，杜绝「A 标签清了、爬虫
+# 驱动 B 标签」的错配——这正是 player_shooting A 阶段「全新 profile 无
+# cf_clearance → 全缺口 0 行 → 缺口永久卡住」的根因。
+_BR_HOMEPAGE = "https://www.basketball-reference.com/"
+_CF_FLAG = "/tmp/br_cf_challenge.flag"
+
+
+def _write_cf_flag() -> None:
+    """写 CF 挑战哨兵文件（best-effort）。"""
+    try:
+        with open(_CF_FLAG, "w") as _f:
+            _f.write("cf challenge active; solve it in the browser window\n")
+    except Exception:  # noqa: BLE001 - best-effort
+        pass
+
+
+def _clear_cf_flag() -> None:
+    """移除 CF 挑战哨兵文件（best-effort）。"""
+    try:
+        if _os.path.exists(_CF_FLAG):
+            _os.remove(_CF_FLAG)
+    except Exception:  # noqa: BLE001 - best-effort
+        pass
+
+
+def ensure_cf_cleared(driver, base_url: str = _BR_HOMEPAGE,
+                      poll: float = 10.0, timeout: "float | None" = None) -> bool:
+    """Block until the page the crawler is driving clears the CF challenge.
+
+    Navigates the driver's *current* (driven) tab to ``base_url`` — the exact
+    tab the crawl will use — so whatever challenge the user solves is the one
+    gating the crawl. If the page is a CF challenge, writes the
+    ``/tmp/br_cf_challenge.flag`` sentinel and prints a prompt, then polls
+    every ``poll`` seconds until the challenge clears (real BR content appears)
+    or ``timeout`` elapses. Returns ``True`` if cleared, ``False`` on timeout.
+
+    Safe to call from any crawler right after ``get_driver()`` and before the
+    main fetch loop. Works for both the Playwright (``_PWDriver``) and raw-CDP
+    (``_RawCDPDriver``) backends — both expose ``_navigate`` / ``_is_challenged``.
+    """
+    if driver is None:
+        return True
+    # Fire-and-forget navigation (no internal challenge poll): we own the poll
+    # loop below so the interval is exactly ``poll`` and the user's manual
+    # click-through is what clears it.
+    try:
+        driver._navigate(base_url)
+    except Exception as _e:  # noqa: BLE001 - navigation may be delayed
+        logger.warning("CF 握手导航 %s 失败（仍继续检测）: %s", base_url, _e)
+    deadline = None if timeout is None else time.time() + timeout
+    while True:
+        try:
+            if not driver._is_challenged():
+                _clear_cf_flag()
+                return True
+        except Exception:  # noqa: BLE001 - page mid-navigation
+            pass
+        _write_cf_flag()
+        logger.warning(
+            "Cloudflare 挑战页命中 %s — 请在弹出的 Chrome 窗口手动通过验证"
+            "（点击 'Verify you are human'），爬虫将自动继续。", base_url)
+        print("==============================================================")
+        print(">>> 请在【爬虫驱动的那个 Chrome 标签页】手动通过 Cloudflare 验证")
+        print(">>> （点击 'Verify you are human'）。验证通过后爬虫自动继续。")
+        print("==============================================================")
+        if deadline is not None and time.time() > deadline:
+            _clear_cf_flag()
+            logger.error("CF 握手超时（%ss）：放弃等待，爬虫以当前页面继续。", timeout)
+            return False
+        time.sleep(poll)
+
+
+# ---------------------------------------------------------------------------
 # Module-level state. All mutations are guarded by _LOCK for thread safety.
 # ---------------------------------------------------------------------------
 _LOCK = threading.Lock()
@@ -100,21 +209,27 @@ class _PWDriver:
         self._context = context
         self._page = page
 
-    def get(self, url: str, _tries: int = 20) -> None:
+    def get(self, url: str, _tries: int = _CF_INNER_TRIES) -> None:
         """Navigate to ``url`` and transparently ride out a Cloudflare challenge.
 
         A ``cf_clearance`` cookie expires (~30-60 min), after which
         Cloudflare re-issues a challenge that **cannot** be solved by
         automation — a human must click through in the browser window.
         So instead of blindly retrying (which just spins on timeouts),
-        we DETECT the challenge and **wait** for the user to solve it,
-        polling the page up to ``_tries`` times. This is the realistic
-        ceiling for a Cloudflare-protected site: the crawler auto-pauses
-        and auto-resumes once the user clears the check, no cookie-pasting
-        required (we drive the user's browser directly via CDP).
+        we DETECT the challenge and **wait** for the user to solve it.
 
-        Raises ``CFChallengeError`` if the challenge is not cleared within
-        ``_tries`` polls (the caller should then pause/alert).
+        The wait is delegated to the shared ``_BREAKER`` (common.cf_breaker):
+        each challenge detection calls ``_BREAKER.on_breach()``, which does the
+        backoff/cooldown *sleep* and returns a decision. When Cloudflare is
+        in a site-wide storm (the common case), the breaker trips after
+        ``breach_limit`` *cumulative* breaches across players and **cools down
+        for ``cooldown`` seconds with zero network requests** — so we never
+        burn the whole crawl budget spinning (the old 20×15s-per-player
+        behaviour). After cooldown it auto-resets and the crawl self-resumes.
+
+        Raises ``CFChallengeError`` only when ``max_cooldowns`` is exceeded
+        (the breaker gives up); otherwise it returns the (likely still
+        challenged) page source and lets the caller skip that one page.
         """
         last_err = None
         for _ in range(_tries):
@@ -124,27 +239,42 @@ class _PWDriver:
                 last_err = _e                     # page may never fire DCL
             if not self._is_challenged():
                 self._flag_cf(False)
+                _BREAKER.on_success()
                 return
-            # Challenge still up: tell the user and wait for them to solve it.
+            # Challenge still up → feed the shared breaker (does backoff/cooldown
+            # sleep internally; on "giveup" it returns that decision).
             self._flag_cf(True)
+            decision = _BREAKER.on_breach()
+            if decision == "giveup":
+                self._flag_cf(False)
+                raise CFChallengeError(
+                    f"Cloudflare challenge not cleared after breaker gave up: {last_err}"
+                )
             logger.warning(
                 "Cloudflare challenge active — solve it in the browser "
                 "window (click through); crawler auto-resumes"
             )
-            time.sleep(15)
             try:
                 self._page.reload(wait_until="domcontentloaded", timeout=30000)
             except Exception:  # noqa: BLE001 - best-effort reload
                 pass
+        # Exhausted inner retries: return (likely challenged) source; the
+        # caller checks content and skips. Default max_cooldowns=0 means the
+        # breaker never gives up, so we self-recover seamlessly.
         self._flag_cf(False)
-        raise CFChallengeError(
-            f"Cloudflare challenge not cleared after {_tries} polls: {last_err}"
-        )
 
     @property
     def page_source(self) -> str:
         """Return the current page's rendered HTML."""
         return self._page.content()
+
+    def _navigate(self, url: str, timeout: int = 30000) -> None:
+        """Fire-and-forget navigation (no CF poll); the caller owns the poll.
+
+        Used by ``ensure_cf_cleared`` so the handshake controls the polling
+        interval exactly instead of relying on ``get``'s internal retry loop.
+        """
+        self._page.goto(url, wait_until="domcontentloaded", timeout=timeout)
 
     # 哨兵文件：CF 挑战期间存在，用户解除后移除（供监控/用户判断）。
     _CF_FLAG = "/tmp/br_cf_challenge.flag"
@@ -304,10 +434,23 @@ def _CDP_BASE() -> str:
     return _os.environ.get("CHROME_CDP_URL", "http://127.0.0.1:9222")
 
 
+# createTarget 重试：全新 CDP Chrome 启动后 target 子系统可能比 websocket 晚就绪
+# 一秒多，首次 Target.createTarget 会报 "no browser is open"。这里轮询重试而不是
+# 静默复用可能空白的已有页面（那正是「驱动了错误 tab」的隐患之一）。
+_CDP_CREATE_TARGET_TRIES = 15    # 重试上限（≈30s @ 2s）
+_CDP_CREATE_TARGET_WAIT = 2.0   # 每次重试间隔（秒）
+
+
 def _cdp_http_get(path: str):
     import json as _json
     import urllib.request as _u
-    with _u.urlopen(f"{_CDP_BASE()}{path}", timeout=10) as _r:
+    # CDP 接口永远是本机 localhost（默认 http://127.0.0.1:9222）。
+    # 在设置了 HTTP(S)_PROXY 的环境（如沙箱设了 HTTP_PROXY=127.0.0.1:54323）
+    # 下，裸 urlopen 会把 127.0.0.1 也塞进代理 → 502 Bad Gateway / 连接错误，
+    # 哪怕本机真有 CDP Chrome。用 ProxyHandler({}) 建一个**绕过代理**的
+    # opener 直连 CDP（CDP 永远是 localhost，直连才正确）。最小化改动。
+    _opener = _u.build_opener(_u.ProxyHandler({}))
+    with _opener.open(f"{_CDP_BASE()}{path}", timeout=10) as _r:
         return _json.loads(_r.read())
 
 
@@ -385,7 +528,7 @@ class _RawCDPDriver:
         return (r or {}).get("result", {}).get("value")
 
     # -- public WebDriver-like surface --------------------------------------
-    def get(self, url: str, _tries: int = 40) -> None:
+    def get(self, url: str, _tries: int = _CF_INNER_TRIES) -> None:
         """Navigate to ``url`` and ride out a Cloudflare challenge.
 
         The BR Cloudflare interstitial (English "Checking your browser" /
@@ -424,18 +567,33 @@ class _RawCDPDriver:
             if cleared:
                 self._flag_cf(False)
                 return
-            # still challenged: keep the sentinel ON, give the user time
+            # still challenged → feed the shared breaker (does backoff/cooldown
+            # sleep internally; on "giveup" it returns that decision).
             self._flag_cf(True)
+            decision = _BREAKER.on_breach()
+            if decision == "giveup":
+                self._flag_cf(False)
+                raise CFChallengeError(
+                    f"Cloudflare challenge not cleared after breaker gave up: {last_err}"
+                )
             logger.warning(
                 "Cloudflare challenge active — solve it in the browser "
                 "window (click through); crawler auto-resumes"
             )
-            _t.sleep(30)
-        # budget exhausted: leave the flag ON (we WERE waiting) and raise
-        self._flag_cf(True)
-        raise CFChallengeError(
-            f"Cloudflare challenge not cleared after {_tries} rounds: {last_err}"
-        )
+        # Inner retries exhausted for this one page (CF still up). With the
+        # shared breaker, a site-wide storm would already have cooled down
+        # (and self-resumed) *across* players; a single stubborn page is
+        # just skipped — no raise by default, so callers never crash on CF.
+        self._flag_cf(False)
+
+    def _navigate(self, url: str, timeout: int = 40) -> None:
+        """Fire-and-forget navigation (no CF poll); the caller owns the poll.
+
+        Used by ``ensure_cf_cleared`` so the handshake controls the polling
+        interval exactly instead of relying on ``get``'s internal retry loop.
+        """
+        self._send(self._ws, "Page.enable", timeout=30)
+        self._send(self._ws, "Page.navigate", {"url": url}, timeout=timeout)
 
     @property
     def page_source(self) -> str:
@@ -506,20 +664,57 @@ def _build_driver_cdp():
     _CDP = True
 
     base = _CDP_BASE()
-    # 1. create a dedicated blank page target
-    try:
-        res = _cdp_call_browser("Target.createTarget", {"url": "about:blank", "newWindow": False})
-        tid = (res or {}).get("targetId")
-    except Exception as _e:  # noqa: BLE001
-        logger.warning("CDP createTarget failed (%s); reusing an existing page", _e)
-        tid = None
-    # 2. resolve its page-level websocket URL
-    targets = _cdp_http_get("/json")
-    entry = next((t for t in targets if t.get("id") == tid), None) if tid else None
+    # 1. open a dedicated blank page target. On a freshly launched CDP Chrome
+    #    the target subsystem can lag the websocket by a second or two, so
+    #    Target.createTarget may fail with "no browser is open". Poll + retry
+    #    instead of silently reusing a possibly-blank existing page.
+    tid = None
+    last_err = None
+    for _attempt in range(1, _CDP_CREATE_TARGET_TRIES + 1):
+        try:
+            res = _cdp_call_browser(
+                "Target.createTarget", {"url": "about:blank", "newWindow": False})
+            tid = (res or {}).get("targetId")
+            if tid:
+                break
+        except Exception as _e:  # noqa: BLE001
+            last_err = _e
+            logger.warning(
+                "CDP createTarget 尝试 %d/%d 失败 (%s)；%ss 后重试…",
+                _attempt, _CDP_CREATE_TARGET_TRIES, _e, _CDP_CREATE_TARGET_WAIT)
+            time.sleep(_CDP_CREATE_TARGET_WAIT)
+    # 2. resolve its page-level websocket URL (with a short retry: the freshly
+    #    created target may not yet appear in /json immediately after creation).
+    entry = None
+    for _attempt in range(1, _CDP_CREATE_TARGET_TRIES + 1):
+        try:
+            targets = _cdp_http_get("/json")
+        except Exception as _e:  # noqa: BLE001
+            last_err = _e
+            targets = []
+        entry = next((t for t in targets if t.get("id") == tid), None) if tid else None
+        if entry:
+            break
+        time.sleep(_CDP_CREATE_TARGET_WAIT)
     if not entry:
+        # Last-resort fallback: reuse an existing page target. Loud warning so
+        # the operator knows we are NOT driving a clean tab we just opened.
+        logger.warning(
+            "CDP createTarget 重试 %d 次仍失败（%s）；回退到复用已有页面目标",
+            _CDP_CREATE_TARGET_TRIES, last_err)
+        try:
+            targets = _cdp_http_get("/json")
+        except Exception:  # noqa: BLE001
+            targets = []
         entry = next((t for t in targets if t.get("type") == "page"), None)
-    if not entry or "webSocketDebuggerUrl" not in entry:
-        raise RuntimeError("CDP: no usable page target found in the user's Chrome")
+        if not entry or "webSocketDebuggerUrl" not in entry:
+            raise RuntimeError(
+                "CDP: 无法创建或复用任何可用 page target（用户 Chrome 未就绪？）")
+        page_ws = entry["webSocketDebuggerUrl"]
+        logger.info(
+            "connected to user Chrome via raw CDP (reused target %s); driving it directly",
+            entry.get("id", ""))
+        return _RawCDPDriver(page_ws, entry.get("id", ""))
     page_ws = entry["webSocketDebuggerUrl"]
     logger.info(
         "connected to user Chrome via raw CDP (target %s); driving it directly", tid
