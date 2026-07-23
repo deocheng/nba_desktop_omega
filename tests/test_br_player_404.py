@@ -212,6 +212,20 @@ def test_flag_corrupted_slugs_writes_quarantine():
     q = [p for (t, p) in inserts if t == "player_shooting_404"]
     assert ("xreuse01", "corrupted") in q
 
+    # 回归守护（QA 专项验证）：真实库上 season>=1997 clamp 会把跨年代复用 slug
+    # 的跨度压扁到 ≤25，使 Fix 3 成为 no-op（隔离 0 条）。必须去掉该 clamp 且
+    # 保留全量 MAX-MIN>25，移除误杀风险更大的 <2000 AND >2015。
+    corrupt_sql = next(
+        (s for (s, _) in conn.log
+         if "GROUP BY br_player_id" in s and "HAVING" in s), "")
+    assert corrupt_sql, "必须发出 corrupted 检测 SQL"
+    assert "season >= 1997" not in corrupt_sql, \
+        "corrupted 检测不得加 season>=1997 clamp（会压扁跨年代复用 slug 跨度）"
+    assert "MAX(season) - MIN(season) > 25" in corrupt_sql, \
+        "corrupted 检测必须保留全量跨度 >25"
+    assert "MIN(season) < 2000" not in corrupt_sql, \
+        "移除 <2000 AND >2015 条件（误杀风险更大，>25 已足够）"
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Fix 4 — URL / 页面格式校验（纯函数，不抓 BR）

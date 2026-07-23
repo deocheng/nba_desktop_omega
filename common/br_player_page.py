@@ -204,13 +204,21 @@ class BRPlayerPageCrawler(BRTeamPageCrawler):
             cur.close()
 
     def _flag_corrupted_slugs(self, conn) -> int:
-        """把 player_gamelog(season>=1997) 中赛季跨度异常的 slug（复用/混入）
-        标记为 corrupted 并隔离到 player_shooting_404（note='corrupted'），
-        使其不进入缺口枚举。返回隔离条数。
+        """把 player_gamelog 中赛季跨度异常的 slug（跨年代复用/混入）标记为
+        corrupted 并隔离到 player_shooting_404（note='corrupted'），使其不进入
+        缺口枚举。返回隔离条数。
 
-        判定：``MAX(season)-MIN(season) > 25``（生涯跨度不可能这么长，典型
-        Vince Carter 仅 23 季）或 ``MIN(season) < 2000 AND MAX(season) > 2015``
-        （slug 被跨时代复用，明显混入）。
+        **关键**：对**全量** season 计算 ``MAX(season)-MIN(season)``，**不要**加
+        ``season >= 1997`` 过滤。否则跨年代复用 slug（如 catlete01 全量 1986–2025、
+        cummite01 1983–2025、greenac01 1986–2026）的早期赛季会被砍掉，跨度被「压扁」
+        到 ≤25，导致本预过滤在真实库上成为 no-op（实测隔离 0 条），与「预过滤减少
+        爬取」的承诺矛盾（见 QA 专项验证）。
+
+        判定阈值 ``> 25``：人类不可能有 >25 季的真实生涯（Vince Carter 仅 23 季为
+        史上最长之一），故 >25 必为 slug 跨年代复用/混入；真实长生涯球星
+        （KG/科比/诺维茨基等）span ≤25 不会被误杀。``<2000 AND >2015`` 条件已移除
+        ——它在全量下会命中 302 条 span 40+ 复用 slug（已被 >25 覆盖），且对真实长
+        生涯球员有更大误杀风险，不如 >25 稳。
         """
         if conn is None:
             return 0
@@ -220,10 +228,8 @@ class BRPlayerPageCrawler(BRTeamPageCrawler):
             SELECT br_player_id
             FROM player_gamelog
             WHERE br_player_id IS NOT NULL
-              AND season >= 1997
             GROUP BY br_player_id
             HAVING MAX(season) - MIN(season) > 25
-               OR (MIN(season) < 2000 AND MAX(season) > 2015)
             """
         )
         bad = [r[0] for r in cur.fetchall() if r[0]]
