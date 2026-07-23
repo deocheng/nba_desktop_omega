@@ -1,0 +1,80 @@
+<!-- PLACEHOLDER_FIXTURE -->
+<!--
+  ⚠️ 这是占位 fixture，结构基于队级 lineups 页类比构建，非真实 BR 球员 lineup 页。
+  用户须存入真实 HTML 到 raw_archive/br_players/antetgi01/lineups_2014.html 后，
+  用 --rework antetgi01,2014 重放校验解析器，并替换本文件为真实内容。
+
+  当前结构以 crawl_br_team_lineups.py 的 parse_team_lineups_html 为蓝本：
+  table id="lineups"、data-stat 列名、5 人 <a> 链接抽取。
+  球员级页表结构可能不同——以实际 HTML 为准。
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<title>Giannis Antetokounmpo 2013-14 Lineups | Basketball-Reference.com</title>
+</head>
+<body>
+<h1>Giannis Antetokounmpo: 2013-14 Lineups</h1>
+
+<div class="table_wrapper">
+<table id="lineups">
+<thead>
+<tr class="thead">
+  <th data-stat="ranker">#</th>
+  <th data-stat="lineup">Lineup</th>
+  <th data-stat="gp">GP</th>
+  <th data-stat="mp">MP</th>
+  <th data-stat="won">W</th>
+  <th data-stat="lost">L</th>
+  <th data-stat="pts">PTS</th>
+  <th data-stat="opp_pts">OPP PTS</th>
+  <th data-stat="off_rtg">OFF RTG</th>
+  <th data-stat="def_rtg">DEF RTG</th>
+  <th data-stat="net_rtg">NET RTG</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <th scope="row" data-stat="ranker">1</th>
+  <td data-stat="lineup">
+    <a href="/players/a/antetgi01.html">Giannis Antetokounmpo</a>,
+    <a href="/players/m/middlkh01.html">Khris Middleton</a>,
+    <a href="/players/w/woltebr01.html">Brandon Wolter</a>,
+    <a href="/players/n/neckno01.html">OJ Neck</a>,
+    <a href="/players/s/sandels01.html">Larry Sanders</a>
+  </td>
+  <td data-stat="gp">10</td>
+  <td data-stat="mp">45</td>
+  <td data-stat="won">6</td>
+  <td data-stat="lost">4</td>
+  <td data-stat="pts">120</td>
+  <td data-stat="opp_pts">110</td>
+  <td data-stat="off_rtg">120.0</td>
+  <td data-stat="def_rtg">110.0</td>
+  <td data-stat="net_rtg">10.0</td>
+</tr>
+<tr>
+  <th scope="row" data-stat="ranker">2</th>
+  <td data-stat="lineup">
+    <a href="/players/a/antetgi01.html">Giannis Antetokounmpo</a>,
+    <a href="/players/k/knighbr01.html">Brandon Knight</a>,
+    <a href="/players/m/middlkh01.html">Khris Middleton</a>,
+    <a href="/players/p/pachuzo01.html">Zaza Pachulia</a>,
+    <a href="/players/s/sandels01.html">Larry Sanders</a>
+  </td>
+  <td data-stat="gp">20</td>
+  <td data-stat="mp">120</td>
+  <td data-stat="won">12</td>
+  <td data-stat="lost">8</td>
+  <td data-stat="pts">240</td>
+  <td data-stat="opp_pts">220</td>
+  <td data-stat="off_rtg">115.0</td>
+  <td data-stat="def_rtg">105.0</td>
+  <td data-stat="net_rtg">10.0</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+</body>
+</html>
