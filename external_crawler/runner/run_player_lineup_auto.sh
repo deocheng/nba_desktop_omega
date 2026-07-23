@@ -42,6 +42,7 @@ CDP_URL="${CHROME_CDP_URL:-http://127.0.0.1:9222}"
 PSQL_BIN="${PSQL_BIN:-/opt/homebrew/bin/psql}"
 PSQL_CONN="${PSQL_CONN:-host=127.0.0.1 port=5433 dbname=nba user=postgres}"
 COVERAGE_SQL="${REPO}/docs/coverage_lineup.sql"
+DDL_SQL="${REPO}/docs/ddl_player_lineups.sql"
 
 # ── 安全上限（env 可调；默认 500 循环 / 无总超时）──────────────────────────
 MAX_CYCLES="${PLA_MAX_CYCLES:-500}"
@@ -250,6 +251,15 @@ verify_coverage() {
 # ═══════════════════════════════════════════════════════════════════════════
 # 主流程
 # ═══════════════════════════════════════════════════════════════════════════
+
+# ── 幂等建表：确保 player_lineups + player_lineups_404 在首次 gap 查询前存在 ──
+# 全新数据库上 player_lineups / player_lineups_404 不存在时，get_gap() 会因
+# UndefinedTable 崩溃。DDL 必须在 gap 查询之前执行（与 backfill runner 一致）。
+echo "[auto] 确保 DDL (docs/ddl_player_lineups.sql) ..."
+"${PSQL_BIN}" "${PSQL_CONN}" -f "${DDL_SQL}" || {
+  echo "[auto] ⚠️ DDL 执行失败（可能 dim_players 不存在导致 FK 失败）；继续尝试 ..."
+}
+
 before="$(get_gap)" || {
   echo "[auto] 无法获取 lineup 缺口（DB 不可达？），退出。"
   exit 1
