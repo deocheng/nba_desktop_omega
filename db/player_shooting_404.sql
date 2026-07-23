@@ -4,7 +4,11 @@
 --
 -- 来源（详见 common/br_player_page.py）：
 --   'http_404' : BR 返回 404 页面（Page Not Found），永久失效，不应再爬。
---   'corrupted': player_gamelog 赛季跨度异常（slug 复用/混入），永远抓不到真实页。
+--               当前爬虫唯一自动写入的来源（Fix 2 运行时 _crawl_player 命中 404 隔离）。
+--   'corrupted': 预留/可选。原 Fix 3 曾用「赛季跨度(MAX-MIN>25)」预过滤损坏 slug 并
+--               写此 note，但 QA Round-2 验证发现该跨度会被同 slug 后期冒名者污染，
+--               误杀真实有效页面的球员（KG/Stockton/Malone 等）并永久丢数据，故该
+--               预过滤已移除；仅保留 Fix 2 的 http_404 运行时隔离。本列保留以便手动标注。
 --
 -- 作用：enumerate_players(priority_gap=True) 的 gap 查询 LEFT JOIN 本表并排除，
 --   使缺口数变真实、爬虫不再对失效 slug 死循环空转（此前缺口永久卡在 2,904）。

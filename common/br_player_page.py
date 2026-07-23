@@ -124,13 +124,21 @@ class BRPlayerPageCrawler(BRTeamPageCrawler):
         默认：``player_gamelog.br_player_id``(非 NULL) ∪ ``dim_players.player_id``
         (非 NULL，T0 确认 dim_players 的 slug 列就是 player_id) 去重。
         ``priority_gap=True``：仅返回「在 gamelog 宇宙内、但 player_shooting 缺
-        Regular 组合」的 slug，实现优先补缺（先把 ~9,797 缺口快速补齐）。
+        Regular 组合」的 slug，实现优先补缺（先把 ~9,797 缺口快速补齐）；并**排除
+        已隔离 slug**（``player_shooting_404``，来源为 Fix 2 运行时 404 隔离
+        note='http_404'）。
+
+        说明（Fix 3 跨度预过滤已移除）：原方案用赛季跨度(``MAX-MIN>25``)预过滤损坏
+        slug，但真实库上 player_gamelog 会被同 slug 的后期冒名者污染（如
+        garneke01/KG、stockjo01/Stockton、malonka01/Malone 的 gamelog 被 2017–2025
+        冒名行顶到 span>25），跨度的预过滤会**误杀真实有效页面的球员、永久丢数据**
+        （QA Round-2 实测 301 命中里含 KG/Stockton/Malone 及 30 条会真丢爬取）。
+        死 slug / 损坏 slug 已由 Fix 2 的 ``_crawl_player`` 在运行时 fetch 命中 404
+        后隔离进 ``player_shooting_404(note='http_404')`` 正确处理（无误杀、缺口口径
+        诚实），故预过滤纯属「锦上添花」且风险大于收益，直接移除（QA 推荐方案 A）。
         """
         cur = conn.cursor()
         if priority_gap:
-            # 预过滤：把赛季跨度明显异常的 slug（复用/混入）标记为 corrupted 并隔离，
-            # 使它们不进入缺口枚举（这些 slug 永远抓不到真实页面，会无限空转）。
-            self._flag_corrupted_slugs(conn)
             cur.execute(
                 """
                 SELECT DISTINCT g.br_player_id AS slug
@@ -179,14 +187,16 @@ class BRPlayerPageCrawler(BRTeamPageCrawler):
         cur.close()
         return found
 
-    # ── 404 / corrupted slug 隔离（Fix 2 / Fix 3）─────────────────────────
+    # ── 404 slug 隔离（Fix 2）─────────────────────────────────────────────
     def _quarantine_slug(self, conn, slug: str, note: str = "http_404") -> None:
-        """把已确认 404 / 明显损坏的 slug 隔离到 player_shooting_404。
+        """把运行时 fetch 命中 404 的 slug 隔离到 player_shooting_404。
 
-        使后续 ``enumerate_players`` 的 gap 查询排除它们 —— 缺口数变真实、
-        不再因 404/corrupted 死循环把缺口永久卡在 2,904。
-        note 区分来源：'http_404'=BR 返回 404；'corrupted'=赛季跨度异常
-        （slug 复用/混入，永远抓不到真实页面）。
+        注意：本方法**只服务于 Fix 2 的运行时 404 隔离**（note='http_404'）。
+        原 Fix 3 的「赛季跨度预过滤」已移除——跨度会被同 slug 后期冒名者污染、
+        误杀真实有效页面的球员（garneke01/KG、stockjo01/Stockton、malonka01/Malone
+        等，其 gamelog 被 2017–2025 冒名行顶到 span>25），预过滤会**永久丢失**这些
+        球员的有效 shooting 数据。死 slug / 损坏 slug 已由本方法在运行时 fetch 命中
+        404 后正确隔离（无误杀、缺口口径诚实），预过滤风险大于收益，故删除。
         """
         if conn is None:
             return
@@ -202,42 +212,6 @@ class BRPlayerPageCrawler(BRTeamPageCrawler):
             conn.commit()
         finally:
             cur.close()
-
-    def _flag_corrupted_slugs(self, conn) -> int:
-        """把 player_gamelog 中赛季跨度异常的 slug（跨年代复用/混入）标记为
-        corrupted 并隔离到 player_shooting_404（note='corrupted'），使其不进入
-        缺口枚举。返回隔离条数。
-
-        **关键**：对**全量** season 计算 ``MAX(season)-MIN(season)``，**不要**加
-        ``season >= 1997`` 过滤。否则跨年代复用 slug（如 catlete01 全量 1986–2025、
-        cummite01 1983–2025、greenac01 1986–2026）的早期赛季会被砍掉，跨度被「压扁」
-        到 ≤25，导致本预过滤在真实库上成为 no-op（实测隔离 0 条），与「预过滤减少
-        爬取」的承诺矛盾（见 QA 专项验证）。
-
-        判定阈值 ``> 25``：人类不可能有 >25 季的真实生涯（Vince Carter 仅 23 季为
-        史上最长之一），故 >25 必为 slug 跨年代复用/混入；真实长生涯球星
-        （KG/科比/诺维茨基等）span ≤25 不会被误杀。``<2000 AND >2015`` 条件已移除
-        ——它在全量下会命中 302 条 span 40+ 复用 slug（已被 >25 覆盖），且对真实长
-        生涯球员有更大误杀风险，不如 >25 稳。
-        """
-        if conn is None:
-            return 0
-        cur = conn.cursor()
-        cur.execute(
-            """
-            SELECT br_player_id
-            FROM player_gamelog
-            WHERE br_player_id IS NOT NULL
-            GROUP BY br_player_id
-            HAVING MAX(season) - MIN(season) > 25
-            """
-        )
-        bad = [r[0] for r in cur.fetchall() if r[0]]
-        cur.close()
-        for slug in bad:
-            self._quarantine_slug(conn, slug, note="corrupted")
-        logger.info("corrupted slug 预过滤：隔离 %d 个异常赛季跨度 slug", len(bad))
-        return len(bad)
 
     # ── 单球员抓取（重写基类 _crawl_one 的球队模型）─────────────────────
     def _crawl_player(self, conn, driver, slug: str) -> int:

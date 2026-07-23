@@ -184,47 +184,45 @@ def test_crawl_player_registers_failure_on_cf_not_quarantine():
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Fix 2/3 — enumerate_players 排除已隔离 / corrupted slug（mock DB）
+# Fix 2 — enumerate_players 排除已隔离(404) slug（mock DB）
+# （Fix 3 跨度预过滤已移除：QA Round-2 证明 >25 会误杀真实球员、永久丢数据）
 # ═══════════════════════════════════════════════════════════════════════════
-def test_enumerate_players_excludes_quarantined_and_corrupted():
+def test_enumerate_players_excludes_quarantined_and_no_corrupted_prefilter():
     inserts: list = []
     conn = _MockConn(_make_router(inserts))
     crawler = PlayerShootingCrawler()
 
     slugs = crawler.enumerate_players(conn, priority_gap=True)
 
-    # corrupted(xreuse01) 已被隔离、且 gap 查询排除 q.slug → 不应出现
+    # gap 查询只返回其真实结果；不再有任何 corrupted 预过滤写入隔离表。
     assert slugs == ["goodslug01", "goodslug02"], slugs
-    assert "xreuse01" not in slugs, "corrupted slug 不应进入缺口枚举"
-    # 确认 corrupted 隔离已写入（note='corrupted'）
-    q = [p for (t, p) in inserts if t == "player_shooting_404"]
-    assert ("xreuse01", "corrupted") in q, "corrupted slug 应写隔离表 note=corrupted"
+    assert "xreuse01" not in slugs
+
+    # Fix 3 预过滤已移除：不得再把任何 slug 标 corrupted 隔离（会误杀真实球员）。
+    assert not any(p and p[1] == "corrupted"
+                   for (_, p) in inserts), \
+        "corrupted 预过滤不得再写入隔离表（QA Round-2：>25 误杀 KG/Stockton/Malone）"
+
+    # Fix 2 路径仍在：gap 查询必须 LEFT JOIN player_shooting_404 并排除已隔离 slug。
+    gap_sql = next((s for (s, _) in conn.log
+                    if "player_shooting_404 q" in s and "NOT EXISTS" in s), "")
+    assert gap_sql, "必须发出 gap 查询"
+    assert "LEFT JOIN player_shooting_404 q" in gap_sql
+    assert "q.slug IS NULL" in gap_sql, "gap 查询必须排除已隔离 slug"
 
 
-def test_flag_corrupted_slugs_writes_quarantine():
-    inserts: list = []
-    conn = _MockConn(_make_router(inserts))
+def test_no_corrupted_prefilter_method():
+    """回归守护：corrupted 预过滤方法已被移除，运行时仅由 Fix 2 隔离 404。
+
+    QA Round-2 教训：任何基于赛季跨度的预过滤都会因 gamelog 被同 slug 冒名者污染
+    而误杀真实有效页面的球员（KG/Stockton/Malone 等），永久丢失其 shooting 数据。
+    故 _flag_corrupted_slugs 不应存在；隔离完全交给 Fix 2 的运行时 404 检测。
+    """
+    assert not hasattr(BRPlayerPageCrawler, "_flag_corrupted_slugs"), \
+        "_flag_corrupted_slugs 必须已移除（避免误杀真实球员）"
     crawler = PlayerShootingCrawler()
-
-    n = crawler._flag_corrupted_slugs(conn)
-
-    assert n == 1, "应隔离 1 个 corrupted slug"
-    q = [p for (t, p) in inserts if t == "player_shooting_404"]
-    assert ("xreuse01", "corrupted") in q
-
-    # 回归守护（QA 专项验证）：真实库上 season>=1997 clamp 会把跨年代复用 slug
-    # 的跨度压扁到 ≤25，使 Fix 3 成为 no-op（隔离 0 条）。必须去掉该 clamp 且
-    # 保留全量 MAX-MIN>25，移除误杀风险更大的 <2000 AND >2015。
-    corrupt_sql = next(
-        (s for (s, _) in conn.log
-         if "GROUP BY br_player_id" in s and "HAVING" in s), "")
-    assert corrupt_sql, "必须发出 corrupted 检测 SQL"
-    assert "season >= 1997" not in corrupt_sql, \
-        "corrupted 检测不得加 season>=1997 clamp（会压扁跨年代复用 slug 跨度）"
-    assert "MAX(season) - MIN(season) > 25" in corrupt_sql, \
-        "corrupted 检测必须保留全量跨度 >25"
-    assert "MIN(season) < 2000" not in corrupt_sql, \
-        "移除 <2000 AND >2015 条件（误杀风险更大，>25 已足够）"
+    assert not hasattr(crawler, "_flag_corrupted_slugs"), \
+        "实例也不应再有 _flag_corrupted_slugs"
 
 
 # ═══════════════════════════════════════════════════════════════════════════
