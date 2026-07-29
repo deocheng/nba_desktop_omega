@@ -51,7 +51,7 @@ class BRPlayerLineupCrawlerBase(BRPlayerPageCrawler):
     TASK_TYPE = "br_player_lineup"
     TABLE = "player_lineups"
     QUARANTINE_TABLE = "player_lineups_404"
-    CONFLICT_COLS = ("player_id", "season", "season_type", "lineup_key")
+    CONFLICT_COLS = ("player_id", "season", "season_type", "lineup_size", "lineup_key")
     MIN_SEASON = 1997
     MAX_SEASON = 2026
     RAW_ARCHIVE = "raw_archive/br_players"  # 复用 shooting 归档根
@@ -326,6 +326,26 @@ class BRPlayerLineupCrawlerBase(BRPlayerPageCrawler):
             conn.close()
         logger.info("[rework] %s/%s 重放完成: %d 行", slug, year, n)
         return n
+
+    # ── 覆写通用 upsert：插入前按冲突键去重 ───────────────────────────
+    def _upsert_rows(self, conn, table: str, rows: list,
+                     conflict_cols: Tuple[str, ...]) -> int:
+        """覆写 ``BRPlayerPageCrawler._upsert_rows``：批量 upsert 前先按
+        ``conflict_cols`` 去重。
+
+        同一 (slug, year) 页可能因 BR 表结构/解析边界产生**重复冲突键**行
+        （如 boothca01/2001 的 2-man 阵容 ``boothca01|howarju01`` 出现两次）。
+        直接 ``execute_values + ON CONFLICT DO UPDATE`` 会报
+        ``cannot affect row a second time`` 并使事务中止、连锁崩溃。
+        此处去重（保留最后一次出现）后交父类幂等执行，根因修复；
+        重复键即同一逻辑行，去重不影响数据完整性。
+        """
+        if rows:
+            _seen: dict = {}
+            for _r in rows:
+                _seen[tuple(_r.get(c) for c in conflict_cols)] = _r
+            rows = list(_seen.values())
+        return super()._upsert_rows(conn, table, rows, conflict_cols)
 
 
 # 模块级日志器（基类已配置 root handler；本模块复用）。

@@ -50,8 +50,10 @@ TOTAL_TIMEOUT="${PLA_TOTAL_TIMEOUT:-0}"   # 0 = 不限制总时长
 START_TS="$(date +%s)"
 
 # ── 网络：CDP 永远是 localhost，强制直连 ──────────────────────────────────
-export NO_PROXY=127.0.0.1,localhost
-export no_proxy=127.0.0.1,localhost
+# 爬虫必须直连 BR，绝不依赖任何代理（含本机/agent 临时代理）
+unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy ALL_PROXY all_proxy 2>/dev/null || true
+export NO_PROXY='*'
+export no_proxy='*'
 
 # ── 用户是否显式指定了后端 ─────────────────────────────────────────────────
 EXPLICIT_BACKEND="${BROWSER_BACKEND:-}"
@@ -100,12 +102,25 @@ ensure_chrome() {
   cdp_profile_dir="${REPO}/.cache/cdp_chrome_profile"
   os_name="$(uname -s 2>/dev/null || echo unknown)"
   if [ "${os_name}" = "Darwin" ]; then
-    open -n -a "Google Chrome" --args \
+    # 注意：macOS 上 `open -n -a "Google Chrome" --args ...` 的 --args 会被合并进
+    # 已运行的普通 Chrome 实例而被忽略（含 --user-data-dir / --remote-debugging-port），
+    # 导致 9222 永远拉不起来。因此【直接调 Chrome 二进制】起一个真正独立的
+    # CDP 实例（独立 --user-data-dir），与用户正常 Chrome 互不干扰、可稳定绑定 9222。
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
       --remote-debugging-port=9222 \
-      --user-data-dir="${cdp_profile_dir}" || \
-      echo "[auto] open -n -a 'Google Chrome' 失败（可能未安装/未在前台）"
+      --no-proxy-server \
+      --no-sandbox \
+      --disable-gpu \
+      --disable-dev-shm-usage \
+      --disable-software-rasterizer \
+      --user-data-dir="${cdp_profile_dir}" >/dev/null 2>&1 &
   elif [ "${os_name}" = "Linux" ]; then
     google-chrome --remote-debugging-port=9222 \
+      --no-proxy-server \
+      --no-sandbox \
+      --disable-gpu \
+      --disable-dev-shm-usage \
+      --disable-software-rasterizer \
       --user-data-dir="${cdp_profile_dir}" >/dev/null 2>&1 &
   else
     echo "[auto] 未知 OS(${os_name})，请手动启动 Chrome 远程调试。"

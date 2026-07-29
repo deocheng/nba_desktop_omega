@@ -1,12 +1,17 @@
 """crawl_br_player_lineup.py — BR 球员级 lineup 爬虫。
 
 数据源: https://www.basketball-reference.com/players/{letter}/{slug}/lineups/{year}
-  * ``#lineups``      -> season_type='Regular'
-  * ``#lineups_po``   -> season_type='Playoffs'（P2，解析器已预留探测）
-  一页 = 某球员某赛季的 5 人阵容组及出场时间/效率统计。
+  * ``#lineups-5-man`` / ``-4-man`` / ``-3-man`` / ``-2-man`` -> season_type='Regular'（阵容人数 5/4/3/2）
+  * ``#lineups-post-5-man`` / ``-post-4-man`` / ... -> season_type='Playoffs'（BR 真实 id，探测+跳过）
+  一页 = 某球员某赛季各阵容人数(2~5)的阵容组及每 100 回合净差值统计。
 
-复用: common.br_player_lineup.BRPlayerLineupCrawlerBase（继承 BRPlayerPageCrawler），
-      CF/限速/upsert/归档/断点续跑/404 隔离全部来自既有，零新建。
+真实页结构（已用 boguemu01/2001 样本核实，2026-07-24 修订）：
+  * 4 张阵容人数表（5/4/3/2-man）均被 Chrome 渲染为可解析 DOM（非 HTML 注释），BeautifulSoup 均可 find。
+  * 季后赛对应 ``lineups-post-{n}-man`` 表（BR 真实 id）；探测到才解析，否则跳过。
+  * 列 = ``ranker`` / ``lineup`` / ``team_id`` / ``mp``(格式 M:SS)
+         + 22 个 ``diff_*``（每 100 回合净差值，带 +/-）。
+  * N 人组合在 ``data-stat="lineup"`` 单元格内，N 个 ``/players/{l}/{slug}.html`` 链接（N = 阵容人数）。
+  * 单元格 ``csk`` 属性给出权威已排序 lineup_key（':' 分隔），仅作校验。
 
 入库: psycopg2.extras.execute_values + ON CONFLICT
       (player_id, season, season_type, lineup_key) DO UPDATE（幂等）。
@@ -19,13 +24,9 @@
   python crawl_br_player_lineup.py --rework antetgi01,2014
   python crawl_br_player_lineup.py --limit 5 --dry-run   # 小批量验证
 """
-# ⚠️ UNVERIFIED — 球员级 lineup 页表结构待样例 HTML
-# （raw_archive/br_players/antetgi01/lineups_2014.html）确认；
-# 用户存入后用 --rework antetgi01,2014 重放校验。
-# 当前解析器以队级 crawl_br_team_lineups.py 的 parse_team_lineups_html 为蓝本
-# （table id=lineups/lineups_po、5 人组合抽取、效率列），是合理起点而非瞎猜。
 
 import argparse
+import re
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -47,17 +48,80 @@ from common.br_team_page import (
 # 最小上场分钟阈值（默认 0 = 全存 BR 实际组合，不改变语义）。
 MIN_MINUTES = 0
 
+# 22 个「每 100 回合净差值」列（与 DDL player_lineups.diff_* 一一对应）。
+DIFF_STATS = (
+    "diff_fg", "diff_fga", "diff_fg_pct",
+    "diff_fg3", "diff_fg3a", "diff_fg3_pct", "diff_efg_pct",
+    "diff_ft", "diff_fta", "diff_ft_pct",
+    "diff_pts",
+    "diff_orb", "diff_orb_pct", "diff_drb", "diff_drb_pct",
+    "diff_trb", "diff_trb_pct",
+    "diff_ast", "diff_stl", "diff_blk", "diff_tov", "diff_pf",
+)
+
+# 阵容人数表 id（BR 实际格式）：
+#   Regular  -> lineups-{n}-man
+#   Playoffs -> lineups-post-{n}-man  （注意单词顺序：post 在前，非 -post 后缀）
+LINEUP_SIZES = (5, 4, 3, 2)          # 阵容人数：5 / 4 / 3 / 2（man）
+REG_PREFIX = "lineups-{n}-man"           # Regular 表 id
+PO_PREFIX = "lineups-post-{n}-man"       # Playoffs 表 id（BR 真实格式）
+
+
+def parse_minutes(val: Optional[str]) -> Optional[int]:
+    """把 BR ``mp`` 文本（格式 ``M:SS``）解析为总秒数。
+
+    ``"132:57"`` -> ``7857``（132*60+57）。空/*/None -> None。
+    解析失败（非预期格式）-> None，不抛异常。
+    """
+    if not val:
+        return None
+    s = val.strip()
+    try:
+        if ":" in s:
+            m, sec = s.split(":", 1)
+            return int(m) * 60 + int(sec)
+        return int(float(s))
+    except (ValueError, TypeError):
+        return None
+
+
+def _find_br_table(soup: BeautifulSoup, table_id: str):
+    """BR 注释感知表查找（兜底）。
+
+    BR 把部分表（尤其季后赛 ``lineups-post-{n}-man`` 表）原样注释在
+    ``<!-- ... <table id="lineups-post-5-man"> ... -->`` 里
+    （外层 ``div`` 带 ``setup_commented commented`` 类），``html.parser`` 默认
+    跳过注释内容，致 ``soup.find('table', id=table_id)`` 对注释内表返回
+    ``None``（Regular 表一般为可见表，PO 表多为注释表 → 独漏 PO）。
+
+    本函数：先直接 ``find``；失败则扫描所有 ``Comment`` 节点，命中
+    ``id="<table_id>"`` 者把注释文本当子 soup 再 ``find``，返回真实表。
+    对可见表无副作用（首查即命中返回）。
+    """
+    t = soup.find("table", id=table_id)
+    if t is not None:
+        return t
+    from bs4 import Comment
+    for c in soup.find_all(string=lambda s: isinstance(s, Comment)):
+        if f'id="{table_id}"' in c:
+            sub = BeautifulSoup(c, "html.parser")
+            t = sub.find("table", id=table_id)
+            if t is not None:
+                return t
+    return None
+
 
 # ── 纯函数：解析 lineup 页 ───────────────────────────────────────────────────
 def _parse_lineups_table(soup: BeautifulSoup, table_id: str,
-                         season_type: str,
+                         season_type: str, size: int,
                          min_minutes: int = MIN_MINUTES) -> List[Dict]:
-    """解析单张 lineup 表（``#lineups`` 或 ``#lineups_po``）为记录列表。
+    """解析单张 lineup 表（``lineups-{size}-man`` 或季后赛 ``*-post`` 变体）。
 
-    以队级 ``parse_team_lineups_html`` 为蓝本：table id / data-stat 列名 /
-    5 人组合抽取逻辑完全对齐。BR 5 人组合必须恰好 5 人，不足则跳过以防脏数据。
+    每行 ``data-stat="lineup"`` 单元格内 ``size`` 个球员链接 +
+    22 个 ``diff_*`` 净差列 + ``mp``(M:SS) + ``team_id`` + ``ranker``。
+    BR 阵容组合人数须恰好 = ``size``，不足/超出（汇总行/误入他表）则跳过。
     """
-    table = soup.find("table", id=table_id)
+    table = _find_br_table(soup, table_id)
     if table is None:
         return []
     out: List[Dict] = []
@@ -67,30 +131,27 @@ def _parse_lineups_table(soup: BeautifulSoup, table_id: str,
         vals = _row_data_stats(row)
         if not vals:
             continue
-        lineup = vals.get("lineup", "")
-        if not lineup:
-            continue
         cell = row.find(["th", "td"], attrs={"data-stat": "lineup"})
         players = extract_player_links(cell) if cell is not None else []
-        if len(players) != 5:
-            # BR 5-man lineup 必须 5 人；非 5 人（如 4-man/3-man 子表误入）跳过。
+        if len(players) != size:
+            # 汇总行（"Player Average"）无 <a> 链接 → 跳过；
+            # 人数不符（如 5-man 表误入 4-man 行）也跳过。
             continue
-        mp = safe_int(vals.get("mp")) or safe_int(vals.get("min"))
+        mp = parse_minutes(vals.get("mp"))
         if mp is not None and mp < min_minutes:
             continue
+        csk = cell.get("csk") if cell is not None else None
         rec: Dict = {
             "season_type": season_type,
-            "players": players,  # List[Tuple[slug, name]]
-            "gp": safe_int(vals.get("gp")),
+            "lineup_size": size,
+            "players": players,  # List[Tuple[slug, name]]，长度须为 size
+            "ranker": safe_int(vals.get("ranker")),
+            "team_id": (vals.get("team_id") or None),
             "minutes": mp,
-            "won": safe_int(vals.get("won")),
-            "lost": safe_int(vals.get("lost")),
-            "pts": safe_int(vals.get("pts")),
-            "opp_pts": safe_int(vals.get("opp_pts")),
-            "off_rtg": safe_float(vals.get("off_rtg")),
-            "def_rtg": safe_float(vals.get("def_rtg")),
-            "net_rtg": safe_float(vals.get("net_rtg")),
+            "csk": csk,  # 权威已排序 key（':' 分隔），仅校验用
         }
+        for ds in DIFF_STATS:
+            rec[ds] = safe_float(vals.get(ds))
         out.append(rec)
     return out
 
@@ -100,28 +161,23 @@ def parse_player_lineups_html(html: str,
                               year: Optional[int] = None) -> List[Dict]:
     """纯函数：解析 BR 球员 lineup 页 HTML -> 记录列表。
 
-    解析 ``#lineups``(Regular) + ``#lineups_po``(Playoffs) 双表（若存在）。
-    每条记录含 ``season_type`` / ``players`` / 9 个数值列；
-    不含 ``player_id`` / ``season`` 维度（由 ``build_rows`` 注入）。
+    解析全部 4 种阵容人数表（Regular + Playoffs）：
+      ``#lineups-5-man`` / ``-4-man`` / ``-3-man`` / ``-2-man``（Regular）
+      ``#lineups-post-5-man`` / ... / ``-post-2-man``（Playoffs，BR 真实 id，探测到才解析）
+    每条记录含 ``season_type`` / ``lineup_size`` / ``players`` / 阵容元数据 /
+    22 个 ``diff_*`` 净差列；不含 ``player_id`` / ``season``（由 ``build_rows`` 注入）。
 
     输出每条记录的契约：
         {
             "season_type": str,                    # 'Regular' / 'Playoffs'
-            "players": [(br_slug, display_name), ...],  # 长度须为 5
-            "gp": Optional[int],
-            "minutes": Optional[int],
-            "won": Optional[int],
-            "lost": Optional[int],
-            "pts": Optional[int],
-            "opp_pts": Optional[int],
-            "off_rtg": Optional[float],
-            "def_rtg": Optional[float],
-            "net_rtg": Optional[float],
+            "lineup_size": int,                   # 2 / 3 / 4 / 5
+            "players": [(br_slug, display_name), ...],  # 长度须为 lineup_size
+            "ranker": Optional[int],
+            "team_id": Optional[str],
+            "minutes": Optional[int],              # 总秒数（M:SS 已解析）
+            "csk": Optional[str],                # 权威 key（':' 分隔），仅校验
+            "diff_fg": Optional[float], ...      # 22 个 diff_* 净差列
         }
-
-    ⚠️ 表 id / data-stat 列名映射待样例 HTML 确认（见模块顶部注释）。
-       预期表 id 为 ``lineups`` / ``lineups_po``（类比 team_lineups），
-       但球员级页结构可能不同——以实际 HTML 为准。
 
     Args:
         html: BR 球员 lineup 页 HTML 文本。
@@ -132,12 +188,18 @@ def parse_player_lineups_html(html: str,
         return []
     soup = BeautifulSoup(html, "html.parser")
     out: List[Dict] = []
-    out += _parse_lineups_table(soup, "lineups", "Regular")
-    out += _parse_lineups_table(soup, "lineups_po", "Playoffs")
+    for size in LINEUP_SIZES:
+        # Regular
+        out += _parse_lineups_table(
+            soup, REG_PREFIX.format(n=size), "Regular", size)
+        # Playoffs：BR 真实 id = lineups-post-{size}-man（探测到才解析）
+        po_id = PO_PREFIX.format(n=size)
+        if _find_br_table(soup, po_id) is not None:
+            out += _parse_lineups_table(soup, po_id, "Playoffs", size)
     return out
 
 
-# ── 具体爬虫 ────────────────────────────────────────────────────────────────
+# ── 具体爬虫 ─────────────────────────────────────────────────────────────────
 class PlayerLineupCrawler(BRPlayerLineupCrawlerBase):
     """BR 球员 lineup 爬虫。
 
@@ -151,8 +213,8 @@ class PlayerLineupCrawler(BRPlayerLineupCrawlerBase):
               team_abbr: Optional[str] = None) -> List[Dict]:
         """委托纯函数 parse_player_lineups_html。
 
-        ``season_type`` 参数不使用——解析器内部探测 ``#lineups``(Regular) 和
-        ``#lineups_po``(Playoffs) 双表，每条记录自带 ``season_type`` 字段。
+        ``season_type`` 参数不使用——解析器内部探测 ``#lineups-5-man``(Regular)
+        和 ``#lineups-post-5-man``(Playoffs) 双表，每条记录自带 ``season_type``。
         """
         return parse_player_lineups_html(html)
 
@@ -160,9 +222,11 @@ class PlayerLineupCrawler(BRPlayerLineupCrawlerBase):
                    rec: Dict) -> Dict:
         """把一条解析记录补全为可落库行。
 
-        注入 ``player_id=slug`` / ``season`` / ``season_type``；
-        计算 ``lineup_key``（5 个 br_player_id 排序后 ``|`` 连接，对齐
-        team_lineups 约定）；展开 5× ``br_player_id`` / ``player_name``。
+        注入 ``player_id=slug`` / ``season`` / ``season_type`` / ``lineup_size``；
+        计算 ``lineup_key``（N 个 br_player_id 排序后 ``|`` 连接，N=lineup_size，对齐
+        team_lineups 约定）；展开 5× ``br_player_id`` / ``player_name``（不足位留 NULL）；
+        透传 ranker / team_id / minutes / 22 个 diff_*。
+        用单元格 ``csk`` 校验 lineup_key（不一致仅告警不阻断）。
         """
         players: List[Tuple[Optional[str], str]] = rec.get("players", [])
         slugs = sorted([p[0] for p in players if p[0]])
@@ -170,22 +234,33 @@ class PlayerLineupCrawler(BRPlayerLineupCrawlerBase):
         # 无 slug 时退回按 player_name 排序（降级方案，与 team_lineups 一致）。
         lineup_key = "|".join(slugs) if slugs else "|".join(
             sorted(p[1] for p in players))
+        # csk 权威校验：':' -> '|' 后应与计算的 lineup_key 一致。
+        csk = rec.get("csk")
+        if csk:
+            expected = csk.replace(":", "|")
+            if expected != lineup_key:
+                print(
+                    f"[warn] lineup_key 不一致 slug={slug} year={season}: "
+                    f"csk={expected!r} vs 计算={lineup_key!r}")
         row: Dict = {
             "player_id": slug,
             "season": season,
             "season_type": season_type,
+            "lineup_size": rec.get("lineup_size"),
             "lineup_key": lineup_key,
         }
         for i, (br_slug, name) in enumerate(players, start=1):
             row[f"br_player_id{i}"] = br_slug
             row[f"player_name{i}"] = name
-        for k in ("gp", "minutes", "won", "lost", "pts", "opp_pts",
-                  "off_rtg", "def_rtg", "net_rtg"):
-            row[k] = rec.get(k)
+        row["ranker"] = rec.get("ranker")
+        row["team_id"] = rec.get("team_id")
+        row["minutes"] = rec.get("minutes")
+        for ds in DIFF_STATS:
+            row[ds] = rec.get(ds)
         return row
 
     def upsert(self, conn, rows: List[Dict]) -> int:
-        """批量 upsert 到 player_lineups（ON CONFLICT 4 列键 DO UPDATE）。"""
+        """批量 upsert 到 player_lineups（ON CONFLICT 5 列键 DO UPDATE：player_id, season, season_type, lineup_size, lineup_key）。"""
         return self._upsert_rows(conn, self.TABLE, rows, self.CONFLICT_COLS)
 
 

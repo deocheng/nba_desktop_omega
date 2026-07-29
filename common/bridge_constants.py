@@ -7,18 +7,27 @@ from __future__ import annotations
 
 import os
 from typing import Optional, Union
+from dotenv import load_dotenv
+load_dotenv()  # 导入本模块即加载 .env（DB_PASSWORD / PGPASSWORD），确保所有调用方拿到口令
 
 # 锚点字段名（与 dim_games 列名一致，所有匹配/回填逻辑引用 ANCHOR_COLS）
 ANCHOR_COLS = ("game_date", "home_team_abbr", "away_team_abbr",
                "home_pts", "away_pts")
 
 # 归档根目录与模板（照 OQ-a：严格用此路径布局）
-ARCHIVE_ROOT = "raw_archive"
+# 归档根改为绝对路径，可经环境变量 NBA_ARCHIVE_ROOT 重定向到外置 12T 盘，
+# 默认 /Volumes/12T/NBA/raw_archive。所有写入/读取均指向此绝对根。
+ARCHIVE_ROOT = os.environ.get("NBA_ARCHIVE_ROOT", "/Volumes/12T/NBA/raw_archive")
+# ARCHIVE_BASE = ARCHIVE_ROOT 的父目录（=/Volumes/12T/NBA），与模板 "raw_archive/..."
+# 拼接即得完整归档路径 —— 保留原相对子结构，仅把根切换到外置盘。
+ARCHIVE_BASE = os.path.dirname(ARCHIVE_ROOT)
 BR_ARCHIVE_TMPL = "raw_archive/br/{season}/{gid}.html"
 ESPN_ARCHIVE_TMPL = "raw_archive/espn/{date}/{event}.json"
 
-# PostgreSQL 连接串（PG 5433 / nba / postgres，口令从环境变量 DB_PASSWORD 注入，禁止硬编码）
-PG_DSN = "dbname=nba user=postgres host=localhost port=5433 password=" + os.environ.get("DB_PASSWORD", "")
+# PostgreSQL 连接串（PG 5433 / nba / postgres，口令从 DB_PASSWORD / PGPASSWORD
+# 注入，禁止硬编码；与 br_fill_pbp.M.DB 一致读双变量兜底）
+_PW = os.environ.get("DB_PASSWORD") or os.environ.get("PGPASSWORD", "")
+PG_DSN = f"dbname=nba user=postgres host=localhost port=5433 password={_PW}"
 
 # 项目根目录（common/ 的父目录）
 COMMON_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -67,14 +76,17 @@ def season_start_year(gdate: Union[str, "object"]) -> int:
 
 # 便利：构建归档绝对路径
 def br_archive_path(season: Union[int, str], gid: str) -> str:
-    return os.path.join(PROJECT_ROOT, BR_ARCHIVE_TMPL.format(season=season, gid=gid))
+    return os.path.join(ARCHIVE_BASE, BR_ARCHIVE_TMPL.format(season=season, gid=gid))
 
 
 def espn_archive_path(date_str: str, event: str) -> str:
-    return os.path.join(PROJECT_ROOT, ESPN_ARCHIVE_TMPL.format(date=date_str, event=event))
+    return os.path.join(ARCHIVE_BASE, ESPN_ARCHIVE_TMPL.format(date=date_str, event=event))
 
 
 def get_pg_conn():
-    """获取一个 psycopg2 连接（口令来自环境变量 DB_PASSWORD，需先 source .env）。"""
+    """获取一个 psycopg2 连接。口令在调用时从环境变量解析
+    （DB_PASSWORD / PGPASSWORD），模块导入时已 load_dotenv()。"""
     import psycopg2
-    return psycopg2.connect(PG_DSN)
+    _pw = os.environ.get("DB_PASSWORD") or os.environ.get("PGPASSWORD", "")
+    _dsn = f"dbname=nba user=postgres host=localhost port=5433 password={_pw}"
+    return psycopg2.connect(_dsn)

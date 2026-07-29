@@ -29,6 +29,13 @@ import argparse, re, time, sys, os, shutil, csv, json
 import psycopg2
 from psycopg2.extras import execute_batch
 
+# 读取项目 .env 的 DB 凭据（含 DB_PASSWORD），使脚本可独立运行
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except Exception:
+    pass
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from br_pbp_parse import parse_pbp
@@ -37,7 +44,13 @@ from bs4 import BeautifulSoup
 from common.bridge_constants import season_start_year
 import raw_archiver
 
-DB = dict(host="localhost", port=5433, user="postgres", dbname="nba")
+DB = dict(
+    host=os.environ.get("DB_HOST", "localhost"),
+    port=int(os.environ.get("DB_PORT", 5433)),
+    user=os.environ.get("DB_USER", "postgres"),
+    password=os.environ.get("DB_PASSWORD") or os.environ.get("PGPASSWORD", ""),
+    dbname=os.environ.get("DB_NAME", "nba"),
+)
 BASE = "https://www.basketball-reference.com/boxscores/pbp/{gid}.html"
 
 # 原始 HTML 存档目录 (不放弃任何原始数据, 便于离线重解析/改进解析器)
@@ -306,19 +319,23 @@ def get_targets(conn, limit, since=None, seasons=None):
     range_clause = ""
     params = []
     if seasons:
+        # 指定赛季：日期地板设为 1996-10-01（BR PBP 真实起点=1996-97 赛季，
+        # 更早的 1995-96 及以前 BR 无 PBP，爬也是 404 白费）
+        params.append('1996-10-01')
         range_clause = "AND g.season = ANY(%s)"
-        params.append(tuple(int(s) for s in seasons))
+        params.append([int(s) for s in seasons])  # list -> psycopg2 转 ARRAY，配 ANY()
     elif since:
-        range_clause = "AND g.game_date >= %s"
         params.append(since)
+    else:
+        params.append('2000-01-01')
     with conn.cursor() as cur:
         cur.execute(f"""
             SELECT g.game_id, g.game_date, g.season, g.away_team_abbr, g.home_team_abbr
             FROM dim_games g
             WHERE g.season_type IN ('Regular Season','Playoffs','Play-In','NBA Cup')
-              AND g.game_date >= '2000-01-01'
-              AND g.pbp_no_data = false
-              AND g.br_no_boxscore = false
+              AND g.game_date >= %s
+              AND (g.pbp_no_data IS NULL OR g.pbp_no_data = false)
+              AND (g.br_no_boxscore IS NULL OR g.br_no_boxscore = false)
               AND NOT EXISTS (SELECT 1 FROM play_by_play p WHERE p.gameid = g.game_id)
               AND NOT EXISTS (SELECT 1 FROM play_by_play p
                               WHERE g.nba_api_id IS NOT NULL AND p.gameid = g.nba_api_id::text)
@@ -463,6 +480,11 @@ def run_once(args):
                     if issues:
                         cur.execute("DELETE FROM pbp_parse_issues WHERE gameid=%s", (gid,))
                         execute_batch(cur, ISSUES_SQL, issues, page_size=200)
+                    # 根因修复：成功写入 PBP 后必须翻转 pbp_imported 标志，
+                    # 否则 dashboard 覆盖率代理指标（dim_games.pbp_imported）永远不同步
+                    # —— 这正是 03-04~14-15 整段显示 0% 覆盖的真因。
+                    # （404 分支已 SET pbp_no_data=true 做对称处理，此处补成功分支。）
+                    cur.execute("UPDATE dim_games SET pbp_imported=true WHERE game_id=%s", (gid,))
                 conn.commit()
                 append_issues_csv(issues)   # 本地 CSV 累积 (双存)
             total_events += len(rows)

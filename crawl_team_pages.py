@@ -15,9 +15,17 @@
 关键事实（务必遵守）：
   * 英文名来自 ``common.team_names.TEAM_FULL_NAME``（代码字典，英文）；
     **绝不**用 ``dim_teams.team_name``（中文）当英文名源。
-  * BR slug 来自 ``common.team_names.get_slug``（BR_TEAM_SLUGS）。
+  * BR slug 来自 ``common.team_names.get_br_slug``（BR_TEAM_SLUGS）。
   * DB 口令只来自 ``.env`` 的 ``DB_PASSWORD``（经 ``hof_exec.config.get_conn``），
     绝不硬编码。
+
+断点续爬：
+  * 进度写入 ``crawl_state.json``（PROJECT_ROOT 下）：记录已完成 abbr 清单
+    及本次运行的签名 (kind:year_start-year_end)。
+  * 参数（kind / 年份区间）不变时，二次运行自动跳过已完成队；参数变化则
+    视为新任务，从零开始（旧 completed 清单作废）。
+  * ``--force`` 强制重跑所有队（忽略 completed）；``--reset-state`` 运行前
+    清空进度文件。
 
 运行：
   .venv/bin/python -m crawl_team_pages --all-teams --year-start 2000 --year-end 2026
@@ -28,7 +36,9 @@
 from __future__ import annotations
 
 import argparse
+import json
 import logging
+import os
 import sys
 
 # 30-team canon abbrs — the single list we iterate as the outer loop.
@@ -51,11 +61,43 @@ from hof_exec.load import upsert_executives, upsert_hof
 logger = logging.getLogger("crawl_team_pages")
 
 _KIND_ALL = "all"
+_STATE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "crawl_state.json")
 
 
 def _wants(kind: str, target: str) -> bool:
     """Whether ``--kind`` includes ``target`` ('trans'|'hof'|'exec')."""
     return kind == _KIND_ALL or kind == target
+
+
+def _state_signature(kind: str, year_start: int, year_end: int, offline: bool) -> str:
+    # Include the offline/online mode: an offline replay (e.g. DET-only
+    # fixtures) must NOT mark teams "completed" for a later live run, which
+    # uses a different signature and therefore starts fresh.
+    mode = "offline" if offline else "online"
+    return f"{kind}:{year_start}-{year_end}:{mode}"
+
+
+def _load_state() -> dict:
+    """Load crawl_state.json, or return an empty skeleton if absent/unreadable."""
+    if not os.path.exists(_STATE_FILE):
+        return {"signature": None, "completed": []}
+    try:
+        with open(_STATE_FILE, "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+        data.setdefault("signature", None)
+        data.setdefault("completed", [])
+        return data
+    except (json.JSONDecodeError, OSError) as exc:
+        logger.warning("crawl_state.json unreadable (%s); starting fresh", exc)
+        return {"signature": None, "completed": []}
+
+
+def _save_state(state: dict) -> None:
+    try:
+        with open(_STATE_FILE, "w", encoding="utf-8") as fh:
+            json.dump(state, fh, indent=2, ensure_ascii=False)
+    except OSError as exc:
+        logger.warning("could not write crawl_state.json: %s", exc)
 
 
 # ---------------------------------------------------------------------------
@@ -181,11 +223,27 @@ def run_all(
     year_end: int,
     offline_dir: "str | None",
     team: "str | None" = None,
+    force: bool = False,
 ) -> "tuple[int, int, int]":
-    """Iterate the 30 teams (or a single team) and accumulate totals."""
+    """Iterate the 30 teams (or a single team) and accumulate totals.
+
+    Honors ``crawl_state.json`` resume: teams already completed for this exact
+    (kind, year range) signature are skipped unless ``force`` is set.
+    """
     abbrs = [team] if team else list(TEAM_ABBRS)
+
+    sig = _state_signature(kind, year_start, year_end, bool(offline_dir))
+    state = _load_state()
+    if state.get("signature") != sig:
+        # Parameters changed since the last run -> fresh progress.
+        state = {"signature": sig, "completed": []}
+    completed = set(state.get("completed", []))
+
     totals = [0, 0, 0]
     for abbr in abbrs:
+        if abbr in completed and not force:
+            logger.info("RESUME skip %s (already completed for %s)", abbr, sig)
+            continue
         try:
             t, h, e = run_team(abbr, kind, year_start, year_end, offline_dir)
         except Exception as exc:  # never let one team abort the run
@@ -194,6 +252,11 @@ def run_all(
         totals[0] += t
         totals[1] += h
         totals[2] += e
+        completed.add(abbr)
+        state["completed"] = sorted(completed)
+        _save_state(state)
+        logger.info("PROGRESS %d/%d teams done (%s)", len(completed), len(abbrs), abbr)
+
     logger.info(
         "DONE totals: transactions=%d hof=%d exec=%d",
         totals[0],
@@ -242,6 +305,16 @@ def _build_parser() -> argparse.ArgumentParser:
         default="all",
         help="Which data kind(s) to crawl. Default all.",
     )
+    p.add_argument(
+        "--force",
+        action="store_true",
+        help="Re-run every team even if already marked completed in crawl_state.json.",
+    )
+    p.add_argument(
+        "--reset-state",
+        action="store_true",
+        help="Delete crawl_state.json before starting (ignore prior progress).",
+    )
     return p
 
 
@@ -263,12 +336,20 @@ def main(argv: "list[str] | None" = None) -> int:
         )
         return 0
 
+    if args.reset_state and os.path.exists(_STATE_FILE):
+        try:
+            os.remove(_STATE_FILE)
+            logger.info("reset crawl_state.json")
+        except OSError as exc:
+            logger.warning("could not remove crawl_state.json: %s", exc)
+
     run_all(
         kind=args.kind,
         year_start=args.year_start,
         year_end=args.year_end,
         offline_dir=args.offline_dir,
         team=args.team,
+        force=args.force,
     )
     return 0
 

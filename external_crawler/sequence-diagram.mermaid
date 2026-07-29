@@ -1,0 +1,34 @@
+sequenceDiagram
+    participant SH as run_br_team_shooting_fill.sh
+    participant PY as crawl_br_team_shooting.py
+    participant BASE as common/br_team_page.py
+    participant BR as common/browser (CDP)
+    participant PG as postgres(nba)
+    participant CACHE as br_shooting_cache/
+
+    SH->>SH: source .env; unset proxy; export BROWSER_BACKEND=cdp, CHROME_CDP_URL
+    SH->>SH: pgrep 单实例锁 -> 倒序赛季循环 for S in 2026..最早
+    SH->>PY: python crawl_br_team_shooting.py --season S --resume --cache-dir ...
+    PY->>BASE: enumerate_team_seasons('shooting')
+    BASE->>PG: SELECT abbreviation,season FROM team_summaries WHERE season=S
+    PG-->>BASE: [(LAL,2026),(BOS,2026),...]  (URL 年=S，season 为结束年)
+    loop 每 (team_abbr, season)
+        PY->>BASE: fetch_team_page(driver, /teams/{ABBR}/{S}/shooting/)
+        BASE->>BR: get_driver().get(url) + page_source
+        BR-->>BASE: html (CF 自动处理/熔断)
+        BASE-->>PY: html
+        PY->>PY: parse(html) -> [(vs_type, zone, fg,fga,...), ...]
+        alt 页面缺失/无表
+            PY->>BASE: register_failure('br_team_shooting', f"{ABBR}|{S}|shooting")
+            BASE->>PG: INSERT crawl_failures(...)
+        else 解析成功
+            PY->>BASE: merge_cache('shooting', S, ABBR, payload)
+            BASE->>CACHE: 读旧 + 合并 + 回写 (MERGE 语义)
+            PY->>PY: build_rows(team, season, vs_type, rows)
+            PY->>PG: upsert team_shooting (INSERT ... ON CONFLICT DO UPDATE)
+            PG-->>PY: 写入/更新
+        end
+        PY->>BASE: rate_limit()  (3-6s)
+    end
+    PY-->>SH: 赛季 S 完成日志
+    SH->>SH: 下一季 / 全部完成

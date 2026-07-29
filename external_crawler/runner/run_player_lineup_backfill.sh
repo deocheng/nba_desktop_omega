@@ -35,8 +35,10 @@ PSQL_BIN="${PSQL_BIN:-/opt/homebrew/bin/psql}"
 PSQL_CONN="${PSQL_CONN:-host=127.0.0.1 port=5433 dbname=nba user=postgres}"
 
 # ── 网络：CDP 永远是 localhost，强制直连 ──────────────────────────────────
-export NO_PROXY=127.0.0.1,localhost
-export no_proxy=127.0.0.1,localhost
+# 爬虫必须直连 BR，绝不依赖任何代理（含本机/agent 临时代理）
+unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy ALL_PROXY all_proxy 2>/dev/null || true
+export NO_PROXY='*'
+export no_proxy='*'
 
 # ── 日志 ───────────────────────────────────────────────────────────────────
 LOG_DIR="${REPO}/logs"
@@ -108,9 +110,10 @@ for _a in "$@"; do [ "${_a}" = "--dry-run" ] && DRY=1; done
 # ── 球员级 lineup 爬虫 ─────────────────────────────────────────────────────
 echo "[runner] === 球员级 lineup 爬虫 (backend=${BROWSER_BACKEND}) ==="
 if [ "${DRY}" -eq 1 ]; then
-  "${PY}" "${CRAWLER}" --dry-run "$@" || true
+  caffeinate -s "${PY}" "${CRAWLER}" --dry-run "$@" || true
 else
-  "${PY}" "${CRAWLER}" --resume "$@" || true
+  # caffeinate -s：阻止系统闲时睡眠，确保无人值守爬取不被机器休眠打断
+  caffeinate -s "${PY}" "${CRAWLER}" --resume "$@" || true
 fi
 
 # ── gap 重算 ───────────────────────────────────────────────────────────────

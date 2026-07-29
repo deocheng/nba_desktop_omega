@@ -30,14 +30,14 @@ import json
 import os
 import sys
 import time
-from datetime import date
+from datetime import date, timedelta
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
 
 import requests  # noqa: E402
-from common.bridge_constants import get_pg_conn  # noqa: E402
+from common.bridge_constants import get_pg_conn, ARCHIVE_ROOT  # noqa: E402
 import raw_archiver  # noqa: E402
 
 # 复用既有脚本的端点 / 请求头 / 缩写映射（ARCH: 直接 import 复用，不重写）
@@ -56,27 +56,39 @@ RATE_LIMIT = 1.0  # ESPN 非 Akamai，普通 requests + UA/Referer 即可 200
 # event id 解析（复用 espn_backfill 的映射逻辑）
 # ---------------------------------------------------------------------------
 def resolve_event_id(gdate, home_abbr: str, away_abbr: str, session) -> "Optional[str]":
-    """按 (date, 主客队) 解析 ESPN event id（与 espn_backfill.espn_event_id 同源）。"""
-    if isinstance(gdate, (date,)):
-        ymd = gdate.strftime("%Y%m%d")
+    """按 (date, 主客队) 解析 ESPN event id。
+
+    方向说明（关键修复）：game_id_map.home_abbr/away_abbr 是「我们」的
+    缩写体系 (BR 风格, 如 UTA/WAS)，而 ESPN scoreboard 返回的 competitor
+    缩写是 ESPN 体系 (如 UTAH/WSH)。两体系对部分球队不一致，故这里把
+    scoreboard 的缩写经 espn_to_our 转回「我们」体系后再比对，复用既有
+    正确的映射，避免 our_to_espn 反向映射不全导致永远匹配不上。
+
+    另：部分场的 game_date 存在 off-by-one 标签误差，故在 ±3 天窗口内
+    逐日试匹配，命中即返回（每场对手唯一，误命中概率极低）。
+    """
+    if isinstance(gdate, date):
+        base = gdate
     else:
-        ymd = str(gdate).replace("-", "")[:8]
-    want = {our_to_espn(home_abbr), our_to_espn(away_abbr)}
-    if None in want:
-        return None
-    try:
-        r = session.get(SCOREBOARD.format(ymd=ymd), headers=HDR, timeout=25)
-        if r.status_code != 200:
-            return None
-        sb = r.json()
-    except Exception:  # noqa: BLE001
-        return None
-    events = (sb or {}).get("events", [])
-    for e in events:
-        comps = e.get("competitions", [{}])[0].get("competitors", [])
-        got = {c.get("team", {}).get("abbreviation") for c in comps}
-        if want.issubset(got) or got == want:
-            return e.get("id")
+        base = date.fromisoformat(str(gdate)[:10])
+    # want 直接用「我们」体系的主客队缩写
+    want = {home_abbr, away_abbr}
+    for delta in (0, -1, 1, -2, 2, -3, 3):
+        d = base + timedelta(days=delta)
+        ymd = d.strftime("%Y%m%d")
+        try:
+            r = session.get(SCOREBOARD.format(ymd=ymd), headers=HDR, timeout=25)
+            if r.status_code != 200:
+                continue
+            sb = r.json() or {}
+        except Exception:  # noqa: BLE001
+            continue
+        for e in sb.get("events", []):
+            comps = e.get("competitions", [{}])[0].get("competitors", [])
+            # scoreboard 缩写 → 我们的体系
+            got = {espn_to_our(c.get("team", {}).get("abbreviation")) for c in comps}
+            if want.issubset(got):
+                return e.get("id")
     return None
 
 
@@ -118,8 +130,12 @@ def parse_boxscore(summary: dict) -> dict:
     """从 summary 解析 球队盒式 / 球员盒式 / 投篮坐标。返回结构化 dict。"""
     box = summary.get("boxscore", {}) or {}
 
-    # 主客队区分：优先 summary.teams 的 homeAway 标志，取缩写与比分
-    comps = summary.get("teams", []) or []
+    # 主客队区分：优先 header.competitions[0].competitors（2026+ 结构，
+    # 顶层已无 summary.teams），退路 summary.teams（旧结构）。两者均含
+    # team.abbreviation / homeAway / score，循环体通用。
+    _hdr = summary.get("header", {}) or {}
+    _comps0 = (_hdr.get("competitions", []) or [{}])[0]
+    comps = _comps0.get("competitors", []) or summary.get("teams", []) or []
     home_abbr = away_abbr = None
     home_pts = away_pts = None
     for c in comps:
@@ -274,7 +290,7 @@ def run(conn, dry_run: bool, season: "Optional[int]", limit: int):
 
         # 落盘原始 JSON（原子写 + 去重；与 espn_backfill 共享归档逻辑）
         raw_archiver.save_espn_json(date_str, eid, text, write_sha256=False)
-        rel_path = f"raw_archive/espn/{date_str}/{eid}.json"
+        rel_path = os.path.join(ARCHIVE_ROOT, "espn", date_str, f"{eid}.json")
 
         try:
             summary = json.loads(text)

@@ -434,6 +434,41 @@ def _CDP_BASE() -> str:
     return _os.environ.get("CHROME_CDP_URL", "http://127.0.0.1:9222")
 
 
+def _cdp_ws_url(raw: str) -> str:
+    """Force a CDP webSocketDebuggerUrl onto the SAME host:port as the
+    configured CDP HTTP endpoint (``_CDP_BASE()``).
+
+    Two real-world traps are defeated here:
+
+    1. macOS ``localhost`` resolves to IPv6 ``::1`` while the CDP
+       websocket is bound to IPv4 ``127.0.0.1`` → ``Connection refused
+       (Errno 61)``. Force the IPv4 literal.
+
+    2. **Chrome's ``/json/version`` may advertise a ``webSocketDebuggerUrl``
+       whose PORT differs from the HTTP port.** After an auto-update
+       reassigned the browser to a *random* debugging port (while the HTTP
+       endpoint stayed on the configured port), or when a stray second
+       Chrome instance is present, the advertised port can be e.g. ``62470``
+       while the reachable HTTP port is ``9223``. Trusting that port made
+       the crawler chase a **dead** target — ``[Errno 61] Connect call
+       failed ('127.0.0.1', 62470)`` — and wedge forever retrying a
+       connection that never comes back. Force host+port to the base we
+       already curled successfully, so every CDP call lands on the browser
+       we know is up.
+    """
+    if not raw:
+        return raw
+    import re as _re
+    import urllib.parse as _up
+    base = _up.urlparse(_CDP_BASE())
+    host = "127.0.0.1"                     # macOS: localhost → IPv6 ::1
+    port = base.port                         # force the reachable HTTP port
+    scheme = "wss" if base.scheme == "https" else "ws"
+    m = _re.search(r"(/devtools/(?:browser|page)/[^/?#]+)", raw)
+    path = m.group(1) if m else "/devtools/browser"
+    return f"{scheme}://{host}:{port}{path}"
+
+
 # createTarget 重试：全新 CDP Chrome 启动后 target 子系统可能比 websocket 晚就绪
 # 一秒多，首次 Target.createTarget 会报 "no browser is open"。这里轮询重试而不是
 # 静默复用可能空白的已有页面（那正是「驱动了错误 tab」的隐患之一）。
@@ -460,7 +495,7 @@ def _cdp_call_browser(method: str, params=None, timeout=30):
     import json as _json
     import websockets
     ver = _cdp_http_get("/json/version")
-    bws = ver["webSocketDebuggerUrl"]
+    bws = _cdp_ws_url(ver["webSocketDebuggerUrl"])
 
     async def go():
         async with websockets.connect(
@@ -475,6 +510,28 @@ def _cdp_call_browser(method: str, params=None, timeout=30):
                     return m.get("result")
 
     return asyncio.run(go())
+
+
+def _cdp_validate_target(page_ws: str, tid: str) -> None:
+    """Prove ``page_ws`` actually connects BEFORE handing it to the crawler.
+
+    A dead target (e.g. a stale tab whose renderer died but Chrome
+    still lists it in ``/json``) would otherwise make the crawler hang
+    retrying a connection that never answers — exactly the 2026-07-28
+    ``[Errno 61] Connect call failed ('127.0.0.1', 62470)`` wedge.
+    On failure we close that target and raise so ``_build_driver_cdp``
+    can drop it and try a fresh one instead of returning a dead driver.
+    """
+    try:
+        _RawCDPDriver._send(
+            page_ws, "Runtime.evaluate",
+            {"expression": "1+1", "returnByValue": True}, timeout=10)
+    except Exception as _e:  # noqa: BLE001
+        try:
+            _cdp_call_browser("Target.closeTarget", {"targetId": tid})
+        except Exception:  # noqa: BLE001
+            pass
+        raise RuntimeError(f"CDP target {tid} ws unreachable: {_e}") from _e
 
 
 class _RawCDPDriver:
@@ -710,15 +767,17 @@ def _build_driver_cdp():
         if not entry or "webSocketDebuggerUrl" not in entry:
             raise RuntimeError(
                 "CDP: 无法创建或复用任何可用 page target（用户 Chrome 未就绪？）")
-        page_ws = entry["webSocketDebuggerUrl"]
+        page_ws = _cdp_ws_url(entry["webSocketDebuggerUrl"])
         logger.info(
             "connected to user Chrome via raw CDP (reused target %s); driving it directly",
             entry.get("id", ""))
+        _cdp_validate_target(page_ws, entry.get("id", ""))  # 死 target 直接抛错
         return _RawCDPDriver(page_ws, entry.get("id", ""))
-    page_ws = entry["webSocketDebuggerUrl"]
+    page_ws = _cdp_ws_url(entry["webSocketDebuggerUrl"])
     logger.info(
         "connected to user Chrome via raw CDP (target %s); driving it directly", tid
     )
+    _cdp_validate_target(page_ws, tid)  # 连接前验证：死 target 直接抛错让上层换一个
     return _RawCDPDriver(page_ws, entry.get("id", ""))
 
 

@@ -1,0 +1,113 @@
+classDiagram
+    class BRTeamPageCrawler {
+        +str cache_dir
+        +float rate_limit_s
+        +str task_type
+        +DB_CONFIG db_config
+        +get_driver()
+        +enumerate_team_seasons(domain) list
+        +fetch_team_page(driver, url) str
+        +merge_cache(season, team, payload) str
+        +resolve_player(name) tuple
+        +register_failure(token)
+        +rate_limit()
+        +season_loop()
+        +run_pipeline(season, resume, dry_run, cache_dir)*
+    }
+    class TeamShootingCrawler {
+        +parse(html) list
+        +build_rows(team, season, vs_type, rows) tuple
+        +upsert(conn, rows)
+        +run_pipeline(season, resume, dry_run, cache_dir)
+    }
+    class LineupsCrawler {
+        +parse(html) list
+        +build_rows(team, season, rows) tuple
+        +upsert(conn, rows)
+    }
+    class OnOffCrawler {
+        +parse(html) list
+        +build_rows(team, season, rows) tuple
+        +upsert(conn, rows)
+    }
+    class DepthCrawler {
+        +parse(html) list
+        +upsert_2025_26(conn, rows)
+    }
+    class RefereesCrawler {
+        +parse(html) list
+        +build_rows(team, season, rows) tuple
+        +upsert(conn, rows)
+    }
+    class PlayerBridge {
+        +resolve(name) (br_pid, nba_pid)
+    }
+    class CrawlFailure {
+        +id int
+        +game_id varchar
+        +task_type varchar
+        +resolved bool
+    }
+    class TeamShooting {
+        +id bigint
+        +team_abbr text
+        +season int
+        +season_type varchar
+        +vs_type text
+        +zone text
+        +fg int / fga int / fg_percent float
+        +fg2 int / fga2 int / fg3 int / fga3 int
+        +pct_of_fga float
+        +avg_shot_dist float
+    }
+    class TeamLineups {
+        +id bigint
+        +team_abbr text / season int / season_type varchar
+        +lineup_key text
+        +br_player_id1..5 / player_id1..5 / player_name1..5
+        +gp int / minutes int / won int / lost int
+        +pts int / opp_pts int
+        +off_rtg / def_rtg / net_rtg float
+    }
+    class TeamOnOff {
+        +id bigint
+        +team_abbr / season / season_type
+        +br_player_id / player_id / player_name
+        +minutes int
+        +on_ortg / on_drtg / on_nrtg float
+        +off_ortg / off_drtg / off_nrtg float
+        +net_pts_diff float
+    }
+    class GameReferees {
+        +id bigint
+        +game_id text
+        +team_abbr text / season int
+        +referee_name text
+        +ref_order smallint
+    }
+    class TeamDepthChart {
+        +id int
+        +season int / team_abbr text
+        +player_name text
+        +start_count int / last_start date / depth_rank int
+        +position text
+        +player_id bigint
+    }
+
+    BRTeamPageCrawler <|-- TeamShootingCrawler
+    BRTeamPageCrawler <|-- LineupsCrawler
+    BRTeamPageCrawler <|-- OnOffCrawler
+    BRTeamPageCrawler <|-- DepthCrawler
+    BRTeamPageCrawler <|-- RefereesCrawler
+    BRTeamPageCrawler ..> PlayerBridge : uses
+    BRTeamPageCrawler ..> CrawlFailure : logs
+    TeamShootingCrawler ..> TeamShooting : writes
+    LineupsCrawler ..> TeamLineups : writes
+    OnOffCrawler ..> TeamOnOff : writes
+    DepthCrawler ..> TeamDepthChart : upserts
+    RefereesCrawler ..> GameReferees : writes
+    TeamShootingCrawler ..> PlayerBridge : resolve players
+    LineupsCrawler ..> PlayerBridge : resolve players
+    OnOffCrawler ..> PlayerBridge : resolve players
+    GameReferees ..> DimGames : FK game_id
+    TeamLineups ..> DimPlayers : FK br_player_id1..5

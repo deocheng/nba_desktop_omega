@@ -71,7 +71,7 @@ _BACKUP = _PROJ.parent.parent / "pbp_backup_espn"  # external_crawler/pbp_backup
 # 仅列"不一致"的;其余 1:1 的走默认(原样)。
 _OUR_TO_ESPN_MAP = {
     "NYK": "NY", "GSW": "GS", "NOP": "NO", "SAS": "SA",
-    "PHO": "PHX", "WAS": "WSH", "CHO": "CHA", "BRK": "BKN",
+    "PHO": "PHX", "WAS": "WSH", "CHO": "CHA", "BRK": "BKN", "UTA": "UTAH",
 }
 _ESPN_TO_OUR_MAP = {v: k for k, v in _OUR_TO_ESPN_MAP.items()}
 
