@@ -37,10 +37,11 @@ from typing import Dict, List, Optional, Tuple
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import psycopg2
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Comment
 
 from common.br_player_page import BRPlayerPageCrawler, DB_CONFIG
-from common.browser import quit_driver  # 模块级（基类无 quit_driver 方法，勿用 self.quit_driver）
+from common.browser import quit_driver, reconnect_driver  # 模块级（基类无这些方法，勿用 self.xxx）
+from common.season_priority import season_tier  # 赛季抓取优先级（2010+ > 2000s > 1980s > pre-1980）
 
 # ── 常量 ───────────────────────────────────────────────────────────────
 DOMAIN = "player_shot_chart"
@@ -116,7 +117,17 @@ def parse_shot_chart_html(html: str) -> List[Dict]:
     soup = BeautifulSoup(html, "lxml")
     area = soup.find("div", class_="shot-area")
     if area is None:
-        return []
+        # 🔴 BR 经典套路：静态 HTML 里 shot-area 被包在 <!-- --> 注释内，
+        # 由页面 JS 运行时解注入 DOM。在线抓取(渲染后 DOM)能直接找到，
+        # 但本地归档/未渲染快照必须 Comment 感知才解析得到（与 team_lineups 同坑）。
+        for c in soup.find_all(string=lambda t: isinstance(t, Comment)):
+            if "shot-area" in c:
+                inner = BeautifulSoup(c, "lxml")
+                area = inner.find("div", class_="shot-area")
+                if area is not None:
+                    break
+        if area is None:
+            return []
     out: List[Dict] = []
     for d in area.find_all("div", class_=re.compile(r"tooltip")):
         cls = " ".join(d.get("class", []))
@@ -254,15 +265,45 @@ class PlayerShotChartCrawler(BRPlayerPageCrawler):
         cur.close()
         return m
 
-    # ── 枚举 (slug, season, team) 对 ───────────────────────────────
-    def enumerate_pairs(self, conn, priority_gap: bool = False) -> List[Tuple[str, int, str]]:
-        """待抓 (slug, season, team) 对，来自已落库的 player_shooting。
+    def load_active_stars(self, conn) -> set:
+        """现役明星球员集合（slug 文本）：all_star_selections 中登过全明星，
+        且 dim_players.year_to>=2025（即 2024-25 或 2025-26 仍出战 → 现役）。
+        player_id 与 player_shooting 对齐，可直接用于 Tier 判定。"""
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT DISTINCT a.player_id
+            FROM all_star_selections a
+            JOIN dim_players d ON d.player_id = a.player_id
+            WHERE d.year_to >= 2025
+            """
+        )
+        s = {r[0] for r in cur.fetchall()}
+        cur.close()
+        return s
+
+    def load_spurs_pairs(self, conn) -> set:
+        """马刺(SAS)球员的 (player_id, season) 集合，用于 Tier1 优先。
+        按 (球员,赛季) 维度（不再按球队行重复），因 player_shot_chart 唯一键不含 team。"""
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT DISTINCT player_id, season FROM player_shooting WHERE team='SAS'"
+        )
+        s = {(r[0], int(r[1])) for r in cur.fetchall()}
+        cur.close()
+        return s
+
+    # ── 枚举 (slug, season) 对 ───────────────────────────────────
+    def enumerate_pairs(self, conn, priority_gap: bool = False) -> List[Tuple[str, int]]:
+        """待抓 (slug, season) 对，来自已落库的 player_shooting。
 
         排序（优先级从高到低）：
-          ① 马刺(SAS)各赛季数据永远最优先（用户是马刺球迷）；
-          ② 其余按「球员上赛季(2025-26)所在球队的常规赛胜率」降序；
-          ③ 同队并列则按 slug、再按赛季新→旧。
-        这样优秀队伍和球员先入库。胜率榜现算自 dim_games，零额外爬取。
+          〇 赛季分层（全局政策，最外层）：2010~现在 > 2000~2009 > 1980~1999 > 1980 以前；
+          ① 现役明星球员（全明星 + dim_players.year_to>=2025）全部赛季最优先；
+          ② 马刺(SAS)各赛季（用户是马刺球迷）；
+          ③ 其余按「球员上赛季(2025-26)所在球队的常规赛胜率」降序。
+        现役明星 / 马刺 Tier 内部均按赛季新→旧；其余按胜率→赛季新→旧。
+        胜率榜现算自 dim_games，零额外爬取。
 
         排除：① 已在 player_shot_chart 落库；② 已登记失败（404/空页）。
         priority_gap=True 时仅返回「该 (slug,season) 在 player_shot_chart 缺失」的对。
@@ -271,7 +312,7 @@ class PlayerShotChartCrawler(BRPlayerPageCrawler):
         if priority_gap:
             cur.execute(
                 """
-                SELECT DISTINCT ps.player_id, ps.season, ps.team
+                SELECT DISTINCT ps.player_id, ps.season
                 FROM player_shooting ps
                 LEFT JOIN player_shot_chart sc
                        ON sc.player_id = ps.player_id AND sc.season = ps.season
@@ -284,7 +325,7 @@ class PlayerShotChartCrawler(BRPlayerPageCrawler):
         else:
             cur.execute(
                 """
-                SELECT DISTINCT ps.player_id, ps.season, ps.team
+                SELECT DISTINCT ps.player_id, ps.season
                 FROM player_shooting ps
                 LEFT JOIN player_shot_chart sc
                        ON sc.player_id = ps.player_id AND sc.season = ps.season
@@ -294,48 +335,70 @@ class PlayerShotChartCrawler(BRPlayerPageCrawler):
                 WHERE sc.player_id IS NULL AND cf.game_id IS NULL
                 """
             )
-        rows = [(r[0], int(r[1]), r[2]) for r in cur.fetchall() if r[0]]
+        rows = [(r[0], int(r[1])) for r in cur.fetchall() if r[0]]
         cur.close()
-        # ── 优先级排序：马刺最前，其余按上赛季(2026)球队胜率降序 ──
+        # ── 优先级排序：现役明星最前 → 马刺 → 其余按上赛季(2026)球队胜率降序 ──
         ranking = self.load_team_ranking(conn, season=2026)
         team_map = self.load_player_team_map(conn)
+        active_star = self.load_active_stars(conn)
+        spurs_pairs = self.load_spurs_pairs(conn)   # set of (player_id, season)
         SPURS = "SAS"
 
         def _key(row):
-            slug, season, team = row
-            is_spurs = (team == SPURS)
-            last_team = team_map.get(slug, team)
+            slug, season = row
+            is_active_star = (slug in active_star)
+            is_spurs = (slug, season) in spurs_pairs
+            last_team = team_map.get(slug)
             win_pct = ranking.get(last_team, 0.0)
-            return (0 if is_spurs else 1, -win_pct, slug, -int(season))
+            if is_active_star:
+                sub = (0, -int(season), slug)
+            elif is_spurs:
+                sub = (1, -int(season), slug)
+            else:
+                sub = (2, -win_pct, -int(season), slug)
+            # 最外层 = 赛季分层优先级（用户 2026-08-01 政策）：
+            #   2010~现在 > 2000~2009 > 1980~1999 > 1980 以前
+            # 层内保留既有「现役明星→马刺→胜率」子序。
+            return (season_tier(season), sub)
 
         rows.sort(key=_key)
-        n_spurs = sum(1 for r in rows if r[2] == SPURS)
-        logger.info("枚举排序完成：共 %d 对（马刺优先 %d 对），非马刺按 2025-26 胜率降序",
-                    len(rows), n_spurs)
+        n_star = sum(1 for r in rows if r[0] in active_star)
+        n_spurs = sum(1 for r in rows if (r[0], r[1]) in spurs_pairs)
+        logger.info("枚举排序完成：共 %d 对（按(球员,赛季)去重；现役明星 %d 对 / 马刺 %d 对），其余按 2025-26 胜率降序",
+                    len(rows), n_star, n_spurs)
         return rows
 
-    # ── dim_games 缓存（game_date, home, away）→ (game_id, season_type) ──
-    def load_games_cache(self, conn) -> Dict[Tuple[str, str, str], Tuple[str, str]]:
+    # ── dim_games 缓存（game_date, team_abbr）→ (game_id, season_type, home, away) ──
+    def load_games_cache(self, conn) -> Dict[Tuple[str, str], Tuple[str, str, str, str]]:
+        """(比赛日, 球队) → (game_id, season_type, home, away)。
+        同时以主/客队为键，使「按对手查」即可定位比赛（shot chart 每条只带对手与 is_home，
+        而 player_shot_chart 无 team 列，无需球员所属队参与）。"""
         cur = conn.cursor()
         cur.execute(
             "SELECT game_date, home_team_abbr, away_team_abbr, game_id, season_type "
             "FROM dim_games WHERE game_date IS NOT NULL"
         )
-        cache: Dict[Tuple[str, str, str], Tuple[str, str]] = {}
+        cache: Dict[Tuple[str, str], Tuple[str, str, str, str]] = {}
         for gd, h, a, gid, st in cur.fetchall():
             gd = gd.isoformat() if hasattr(gd, "isoformat") else str(gd)
-            cache[(gd, h, a)] = (gid, st)
+            if h:
+                cache[(gd, h)] = (gid, st, h, a)
+            if a:
+                cache[(gd, a)] = (gid, st, h, a)
         cur.close()
         return cache
 
-    def _resolve_game(self, cache, game_date, player_team, opp) -> Tuple[Optional[str], Optional[str]]:
-        if not game_date or not player_team or not opp:
+    def _resolve_game(self, cache, game_date, opponent_abbr) -> Tuple[Optional[str], Optional[str]]:
+        """按 (比赛日, 对手) 定位比赛 → (game_id, season_type)。
+        一条 shot 自带 game_date + opponent_abbr（解析自 tooltip），足以唯一锁定
+        dim_games 中的那场比赛，无需球员所属球队参与（player_shot_chart 也无 team 列）。
+        season_type 归一：'Regular Season'→'Regular'，'Playoffs'→'Playoffs'。"""
+        if not game_date or not opponent_abbr:
             return (None, None)
-        hit = cache.get((game_date, player_team, opp)) or cache.get((game_date, opp, player_team))
+        hit = cache.get((game_date, opponent_abbr))
         if not hit:
             return (None, None)
-        gid, st = hit
-        # season_type 归一：'Regular Season'→'Regular'，'Playoffs'→'Playoffs'
+        gid, st, _home, _away = hit
         if st and st.lower().startswith("playoff"):
             st = "Playoffs"
         elif st and "regular" in st.lower():
@@ -343,9 +406,8 @@ class PlayerShotChartCrawler(BRPlayerPageCrawler):
         return (gid, st)
 
     # ── 解析 + 注入 player/game ─────────────────────────────────────
-    def build_rows(self, conn, slug: str, season: int, team: str,
-                 rec: Dict, games_cache) -> Dict:
-        gid, stype = self._resolve_game(games_cache, rec.get("game_date"), team, rec.get("opponent_abbr"))
+    def build_rows(self, conn, slug: str, season: int, rec: Dict, games_cache) -> Dict:
+        gid, stype = self._resolve_game(games_cache, rec.get("game_date"), rec.get("opponent_abbr"))
         row = dict(rec)
         row["player_id"] = slug
         row["season"] = int(season)
@@ -374,8 +436,7 @@ class PlayerShotChartCrawler(BRPlayerPageCrawler):
         return self._upsert_rows(conn, self.TABLE, uniq, self.CONFLICT_COLS)
 
     # ── 单 (slug,season) 抓取 ─────────────────────────────────────
-    def _crawl_pair(self, conn, driver, slug: str, season: int, team: str,
-                    games_cache) -> int:
+    def _crawl_pair(self, conn, driver, slug: str, season: int, games_cache) -> int:
         """抓取单对。
 
         失败分级（🔴 2026-07-28 修，防瞬态故障污染 crawl_failures）：
@@ -394,13 +455,25 @@ class PlayerShotChartCrawler(BRPlayerPageCrawler):
             if getattr(self, "_last_fetch_cf", False):
                 raise TransientFetchError(f"CF 挑战页: {slug}/{season}")
             raise TransientFetchError(f"空响应/导航失败: {slug}/{season}")
-        self.save_raw_html(slug, season, html)
         recs = parse_shot_chart_html(html)
         if not recs:
+            # 🔴 2026-07-30 修：0 球须区分「真无数据」vs「残页」。
+            # 残页 = 既无 shot-area 容器（含注释版）也无 "No shooting" 提示
+            #   （散点 widget JS 未渲染完就取了 DOM，或 CF 半拦截骨架页）。
+            # 残页绝不登记 crawl_failures（否则永久跳过=静默缺口）、
+            # 也不落归档（防污染本地重放），抛瞬态走上层等待重试。
+            has_area = "shot-area" in html
+            no_data_note = "No shooting" in html
+            if not (has_area or no_data_note):
+                raise TransientFetchError(
+                    f"残页(无shot-area且无无数据提示): {slug}/{season}"
+                )
+            self.save_raw_html(slug, season, html)
             self.register_failure(conn, f"{self.TASK_TYPE}|{slug}|{season}")
-            logger.warning("  ⚠️ %s/%s 页面正常但 0 球（真无数据/结构变）→ 登记", slug, season)
+            logger.warning("  ⚠️ %s/%s 页面完整但 0 球（真无数据）→ 登记", slug, season)
             return 0
-        rows = [self.build_rows(conn, slug, season, team, r, games_cache) for r in recs]
+        self.save_raw_html(slug, season, html)
+        rows = [self.build_rows(conn, slug, season, r, games_cache) for r in recs]
         n = self.upsert(conn, rows)
         conn.commit()
         return n
@@ -414,21 +487,25 @@ class PlayerShotChartCrawler(BRPlayerPageCrawler):
     # 之后长等（真 CF/断网场景，给用户留点验证时间）。
     TRANSIENT_WAITS = [5, 5, 15, 30]   # 第1-4次重试的等待秒数
     TRANSIENT_WAIT_S = 60              # 第5次起
-    TRANSIENT_MAX_RETRY = 30
+    TRANSIENT_MAX_RETRY = 30           # CF 类（全局墙）：沿用大上限 + cf_breaker 冷却，耗尽则整体退出
+    # 🔴 2026-07-30 加固：非 CF 瞬态（残页/WS 拒连/空响应）单对重试上限。
+    # 超过则「本回跳过该对、放行后续」，杜绝单坏 URL 卡死全爬虫（如 bealbr01/2017 残页）。
+    NON_CF_PAIR_MAX_RETRY = 6
 
     def _rebuild_driver(self, old_driver):
-        """瞬态故障后重建浏览器连接（旧会话可能已死）。失败返回 None。"""
+        """瞬态故障后重建浏览器连接：复用同一专用 tab 重连（不关 tab、不新建空白页）。
+
+        改用 common.browser.reconnect_driver —— 它直接重连到本爬虫已开的那个 page
+        target（新开 ws 即可），绝不 quit+重建（那会关掉旧 tab 又开新 about:blank，
+        既闪空白页又漏 tab）。仅当该 target 真死了才全量重建。
+        """
         try:
-            quit_driver()
-        except Exception:  # noqa: BLE001
-            pass
-        try:
-            return self.get_driver()
+            return reconnect_driver()
         except Exception as exc:  # noqa: BLE001
             logger.warning("  [瞬态] 重建浏览器连接失败: %s", exc)
             return None
 
-    # ── 主循环（迭代 (slug,season,team) 对）──────────────────────
+    # ── 主循环（迭代 (slug,season) 对）──────────────────────
     def run_pairs(self, conn, pairs, resume=False, dry_run=False, limit=None,
                   skip_done_check=False):
         if limit is not None:
@@ -439,23 +516,24 @@ class PlayerShotChartCrawler(BRPlayerPageCrawler):
         logger.info("待处理 (slug,season) 对: %d", len(pairs))
         games_cache = self.load_games_cache(conn) if not dry_run else {}
         total = 0
+        skipped_pairs = 0
         driver = None
         try:
             if not dry_run:
                 driver = self.get_driver()
-            for i, (slug, season, team) in enumerate(pairs):
+            for i, (slug, season) in enumerate(pairs):
                 if resume and not skip_done_check and self._pair_done(conn, slug, season):
                     logger.info("  [resume] 跳过 %s/%s（已落库）", slug, season)
                     continue
                 if dry_run:
-                    logger.info("  [dry-run] 计划抓取 %s/%s (team=%s)", slug, season, team)
+                    logger.info("  [dry-run] 计划抓取 %s/%s", slug, season)
                     continue
                 # ── 单对抓取 + 瞬态故障暂停重试（不登记失败）──
                 n = 0
                 attempt = 0
                 while True:
                     try:
-                        n = self._crawl_pair(conn, driver, slug, season, team, games_cache)
+                        n = self._crawl_pair(conn, driver, slug, season, games_cache)
                         break
                     except Exception as exc:  # noqa: BLE001  含 TransientFetchError
                         attempt += 1
@@ -463,26 +541,40 @@ class PlayerShotChartCrawler(BRPlayerPageCrawler):
                             conn.rollback()
                         except Exception:  # noqa: BLE001
                             pass
-                        if attempt > self.TRANSIENT_MAX_RETRY:
-                            logger.error(
-                                "🔴 [瞬态] %s/%s 重试 %d 次仍失败，整体退出（未登记失败，"
-                                "下次 --resume 会重抓）。最后错误: %s",
-                                slug, season, self.TRANSIENT_MAX_RETRY, exc)
-                            logger.info("完成：upsert %d 球（提前退出于第 %d 对）", total, i)
-                            return total
+                        # 区分 CF（全局墙）与非 CF（残页/WS 拒连/空响应）瞬态：
+                        #   CF    → 沿用大上限 + cf_breaker 冷却；耗尽则整体退出（留待真人过验证后 --resume）。
+                        #   非 CF → 小上限；耗尽则「本回跳过该对、放行后续」，杜绝单坏 URL 卡全爬虫。
+                        is_cf = bool(getattr(self, "_last_fetch_cf", False)) or "CF" in str(exc).upper()
+                        cap = self.TRANSIENT_MAX_RETRY if is_cf else self.NON_CF_PAIR_MAX_RETRY
+                        if attempt > cap:
+                            if is_cf:
+                                logger.error(
+                                    "🔴 [CF] %s/%s 连续 %d 次 CF 挑战，整体退出（未登记失败，"
+                                    "请在 Chrome 打开 basketball-reference.com 点验证后 --resume）。"
+                                    "最后错误: %s", slug, season, cap, exc)
+                                logger.info("完成：upsert %d 球（提前退出于第 %d 对）", total, i)
+                                return total
+                            logger.warning(
+                                "⏭️ [跳过] %s/%s 非CF瞬态重试 %d 次仍失败，本回跳过该对"
+                                "（不登记 crawl_failures，下次 --resume 会重抓）。最后错误: %s",
+                                slug, season, cap, exc)
+                            skipped_pairs += 1
+                            break
                         _wait = (self.TRANSIENT_WAITS[attempt - 1]
                                  if attempt <= len(self.TRANSIENT_WAITS)
                                  else self.TRANSIENT_WAIT_S)
                         logger.warning(
-                            "⏸️ [瞬态] %s/%s 抓取失败(第 %d/%d 次): %s → 等 %ds 后重建连接重试"
+                            "⏸️ [瞬态] %s/%s 抓取失败(第 %d/%d 次%s): %s → 等 %ds 后重建连接重试"
                             "（若是 CF，请在 Chrome 打开 basketball-reference.com 点验证）",
-                            slug, season, attempt, self.TRANSIENT_MAX_RETRY, exc, _wait)
+                            slug, season, attempt, cap,
+                            " [CF]" if is_cf else "", exc, _wait)
                         time.sleep(_wait)
                         nd = self._rebuild_driver(driver)
                         if nd is not None:
                             driver = nd
                 total += n
-                logger.info("  %s/%s: upsert %d 球", slug, season, n)
+                if n > 0:
+                    logger.info("  %s/%s: upsert %d 球", slug, season, n)
                 if i < len(pairs) - 1:
                     self.rate_limit()
         finally:
@@ -491,7 +583,7 @@ class PlayerShotChartCrawler(BRPlayerPageCrawler):
                     quit_driver()
                 except Exception:
                     pass
-        logger.info("完成：upsert %d 球（处理 %d 对）", total, len(pairs))
+        logger.info("完成：upsert %d 球（处理 %d 对，跳过 %d 对）", total, len(pairs), skipped_pairs)
         return total
 
     def rework_from_archive(self, slug: str, season: int, conn) -> int:
@@ -500,20 +592,12 @@ class PlayerShotChartCrawler(BRPlayerPageCrawler):
             logger.warning("[rework] 归档缺失: %s", path)
             return 0
         html = path.read_text(encoding="utf-8")
-        team = None
-        cur = conn.cursor()
-        cur.execute("SELECT team FROM player_shooting WHERE player_id=%s AND season=%s LIMIT 1",
-                    (slug, season))
-        r = cur.fetchone()
-        if r:
-            team = r[0]
-        cur.close()
         cache = self.load_games_cache(conn)
         recs = parse_shot_chart_html(html)
         if not recs:
             logger.warning("[rework] %s/%s 解析 0 球", slug, season)
             return 0
-        rows = [self.build_rows(conn, slug, season, team, x, cache) for x in recs]
+        rows = [self.build_rows(conn, slug, season, x, cache) for x in recs]
         n = self.upsert(conn, rows)
         conn.commit()
         logger.info("[rework] %s/%s 重放完成: %d 球", slug, season, n)
@@ -561,15 +645,15 @@ def main() -> None:
     try:
         if args.slugs:
             slugs = [s.strip() for s in args.slugs.split(",") if s.strip()]
-            # 取这些 slug 在 player_shooting 的全部 (slug,season,team)
+            # 取这些 slug 在 player_shooting 的全部 (slug,season)；team 不再用于枚举
             cur = conn.cursor()
-            q = ("SELECT DISTINCT player_id, season, team FROM player_shooting "
+            q = ("SELECT DISTINCT player_id, season FROM player_shooting "
                   "WHERE player_id = ANY(%s)")
             cur.execute(q, (slugs,))
-            pairs = [(r[0], int(r[1]), r[2]) for r in cur.fetchall()]
+            pairs = [(r[0], int(r[1])) for r in cur.fetchall()]
             cur.close()
             if args.season is not None:
-                pairs = [(s, sea, t) for (s, sea, t) in pairs if sea == args.season]
+                pairs = [(s, sea) for (s, sea) in pairs if sea == args.season]
         else:
             pairs = crawler.enumerate_pairs(conn, priority_gap=args.priority_gap)
         # enumerate_pairs 已在 DB 端过滤已完成/已失败对，run_pairs 无需再逐对查 _pair_done

@@ -610,10 +610,25 @@ if __name__ == '__main__':
                         help='本季缓存目录，爬完落盘 JSON 供返工（--rework）')
     parser.add_argument('--rework', type=int, default=None,
                         help='从缓存重放某季（免爬），需配合 --cache-dir')
+    parser.add_argument('--all-seasons', action='store_true',
+                        help='全量：按赛季分层优先级遍历所有赛季（2010+ 先，pre-1980 最后）')
+    parser.add_argument('--start-season', type=int, default=1997,
+                        help='--all-seasons 起始赛季（含）')
+    parser.add_argument('--end-season', type=int, default=2026,
+                        help='--all-seasons 结束赛季（含）')
     args = parser.parse_args()
 
     if args.rework is not None:
         rework_season(args.rework, args.cache_dir or "gamelog_cache")
+    elif args.all_seasons:
+        # 【赛季优先级 2026-08-01】按 season_sort_key 逐季遍历：tier0(2010+) 先、pre-1980 最后。
+        from common.season_priority import season_sort_key, tier_name
+        seasons = sorted(range(args.start_season, args.end_season + 1), key=season_sort_key)
+        print(f"--all-seasons：按赛季分层优先级遍历 {len(seasons)} 个赛季")
+        for s in seasons:
+            print(f"===== season {s} [{tier_name(s)}] =====")
+            run_pipeline(s, args.limit, args.dry_run, True, args.cache_dir)
+    elif args.season:
+        run_pipeline(args.season, args.limit, args.dry_run, args.resume, args.cache_dir)
     else:
-        run_pipeline(args.season, args.limit, args.dry_run,
-                    args.resume, args.cache_dir)
+        print("需指定 --season <结束年> / --all-seasons / --rework <结束年>")

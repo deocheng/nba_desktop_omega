@@ -19,7 +19,7 @@ if pgrep -f "crawl_br_gamelog.py" >/dev/null 2>&1; then
   exit 1
 fi
 
-for S in 1997 1998 1999 2000 2024 2026; do
+for S in 2026 2024 2000 1999 1998 1997; do
   echo "===== $(date) START season $S =====" >> "$LOG"
   $PY external_crawler/crawler/crawl_br_gamelog.py --season $S --resume >> "$LOG" 2>&1
   echo "===== $(date) END season $S (exit $?) =====" >> "$LOG"

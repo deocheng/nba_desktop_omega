@@ -61,10 +61,12 @@ if not logging.getLogger().handlers:
     )
 
 # ── 限速常量 ────────────────────────────────────────────────────────────
-# 每次页面加载前强制等待 6-8s（均值 ~7s，≤~8.5 请求/分钟），防 BR 访问限制。
+# 每次页面加载前强制等待（默认 6-8s，均值 ~7s，≤~8.5 请求/分钟），防 BR 访问限制。
 # 2026-07-27 用户要求间隔降到 ~7s（原 6-12s 偏慢）；保留随机抖动防指纹化。
-RATE_LIMIT_BASE_S = 6.0
-RATE_LIMIT_JITTER_S = 2.0
+# 2026-07-30 用户要求整体放缓 +2s（均值 ~9s/req）以降低 CF 累积风险评分：
+#   可通过环境变量 RATE_LIMIT_BASE_S / RATE_LIMIT_JITTER_S 覆盖（编排器 build_child_env 注入 8.0）。
+RATE_LIMIT_BASE_S = float(os.environ.get("RATE_LIMIT_BASE_S", "6.0"))
+RATE_LIMIT_JITTER_S = float(os.environ.get("RATE_LIMIT_JITTER_S", "2.0"))
 
 # ── DB 连接（口令从环境变量读，禁止硬编码；兜底 PGPASSWORD）────────────────
 DB_CONFIG = dict(
@@ -959,18 +961,34 @@ def _maybe_caffeinate(argv: List[str]) -> None:
 
 
 def _run_all_seasons(crawler, args) -> None:
-    """全量自动爬取：run_pipeline 内部已按 [start,end] 解析范围并队×季走查。
+    """全量自动爬取（赛季分层优先级）。
 
-    ``--resume`` 默认开启（中断可续传，重跑跳过已落库球队）；``--dry-run``
-    仅打印计划；``full=True`` 让「无表/404/CF 未清」干净跳过、不污染
-    ``crawl_failures``。
+    按 season_sort_key 逐季调用 ``run_pipeline``（每季一次、全联盟队），顺序为
+    2010+（tier0）→ 2000-2009（tier1）→ 1980-1999（tier2）→ 1980 以前（tier3），
+    层内近季优先——与降序等价，对齐用户 2026-08-01 政策。
+
+    逐季调用与 run_full_backfill.py 的逐季范式一致；单季内仍是「同会话 Previous
+    Season 回退」优化（full=False 时单季只转一圈）。``--resume`` 默认开启，
+    幂等可断点续传；``--dry-run`` 仅打印计划；``full=False`` 让「无表/404/CF 未清」
+    干净跳过、不污染 ``crawl_failures``。
     """
-    total = crawler.run_pipeline(
-        season=0, resume=True, dry_run=args.dry_run,
-        cache_dir=args.cache_dir, team=args.team,
-        full=True, start_season=args.start_season,
-    )
-    logger.info("全量爬取完成：累计落库 %d 行", total)
+    from common.season_priority import season_sort_key, tier_name
+    _c0 = psycopg2.connect(**DB_CONFIG)
+    try:
+        start, end = crawler._resolve_all_seasons(_c0)
+    finally:
+        _c0.close()
+    if args.start_season:
+        start = max(int(args.start_season), crawler.MIN_SEASON)
+    seasons = sorted(range(start, end + 1), key=season_sort_key)
+    total = 0
+    for s in seasons:
+        logger.info("── 全量季 %d [%s] ──", s, tier_name(s))
+        total += crawler.run_pipeline(
+            s, resume=True, dry_run=args.dry_run,
+            cache_dir=args.cache_dir, team=args.team, full=False,
+        )
+    logger.info("全量爬取完成：累计落库 %d 行（tier 优先序）", total)
 
 
 def dispatch_cli(crawler_cls, description: str) -> None:
