@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数据覆盖时间线 · Coverage Timeline</title>
+<style>
+  :root {
+    --bg: #f5f7fa;
+    --bg-card: #ffffff;
+    --bg-hover: #eef2f7;
+    --border: #e1e8f0;
+    --border-light: #d0d9e4;
+    --text: #2c3e50;
+    --text-dim: #7f8c9b;
+    --text-bright: #1a2533;
+    --accent: #00b88a;
+    --accent-dim: #009670;
+    --accent-bg: rgba(0, 184, 138, 0.1);
+    --mono: 'Cascadia Code','Consolas','Courier New',monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+                 'Microsoft YaHei', Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px; line-height: 1.5;
+  }
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 20px 22px 60px; }
+  .page-header {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    flex-wrap: wrap; gap: 14px; margin-bottom: 14px;
+  }
+  .page-header h2 { margin: 0; font-size: 22px; color: var(--text-bright); }
+  .page-header .sub { color: var(--text-dim); font-size: 12px; margin-top: 2px; }
+  .controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .meta { font-size: 12px; color: var(--text-dim); font-family: var(--mono); }
+  .meta b { color: var(--text); font-weight: 600; }
+  .status-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%;
+    background: var(--text-dim); margin-right: 5px; vertical-align: middle; }
+  .status-dot.ok { background: var(--accent); }
+  .status-dot.err { background: #e74c3c; }
+  .btn {
+    border: 1px solid var(--border); background: var(--bg-card); color: var(--text);
+    border-radius: 8px; padding: 7px 14px; cursor: pointer; font-size: 13px;
+    transition: all .15s;
+  }
+  .btn:hover { background: var(--bg-hover); border-color: var(--border-light); }
+  .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-primary:hover { background: var(--accent-dim); }
+  select.select {
+    border: 1px solid var(--border); background: var(--bg-input, #f0f4f8);
+    color: var(--text); border-radius: 8px; padding: 7px 10px; font-size: 13px;
+  }
+  .card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px 18px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.03);
+  }
+  .card-header { display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px; gap: 10px; }
+  .card-title { font-size: 15px; font-weight: 600; color: var(--text-bright); }
+  .card-badge { font-size: 12px; color: var(--text-dim);
+    background: var(--accent-bg); color: var(--accent-dim);
+    padding: 3px 10px; border-radius: 20px; font-weight: 600; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--text-dim); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .sw { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+  .sw.ok { background: #00b88a; }
+  .sw.warn { background: #f0a020; }
+  .sw.low { background: #e74c3c; }
+  .sw.gap { background: #c0392b;
+    background-image: repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,255,255,.35) 3px, rgba(255,255,255,.35) 6px); }
+  .sw.future { background: #c7ced8; }
+
+  /* banner */
+  .banner { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; }
+  .banner.err { background: #fdecea; color: #c0392b; border: 1px solid #f5c6c0; }
+  .banner.warn { background: #fff8e6; color: #9a6b00; border: 1px solid #f3e0a8; }
+  .banner.ok { background: var(--accent-bg); color: var(--accent-dim); border: 1px solid #bdeedd; }
+
+  /* heatmap */
+  .matrix-scroll { overflow-x: auto; padding-bottom: 6px; }
+  table.matrix { border-collapse: separate; border-spacing: 0; font-size: 11px; }
+  table.matrix th, table.matrix td { border-bottom: 1px solid var(--border); }
+  table.matrix thead th {
+    position: sticky; top: 0; background: var(--bg-card); z-index: 2;
+    padding: 6px 2px; color: var(--text-dim); white-space: nowrap; font-weight: 600;
+    min-width: 34px;
+  }
+  table.matrix thead th.season { writing-mode: vertical-rl; transform: rotate(180deg);
+    height: 92px; }
+  table.matrix tbody th.rowlabel {
+    position: sticky; left: 0; background: var(--bg-card); z-index: 1;
+    text-align: left; padding: 6px 10px 6px 4px; color: var(--text);
+    white-space: nowrap; font-weight: 600; min-width: 190px;
+  }
+  table.matrix td.cell { text-align: center; padding: 0; height: 30px; min-width: 34px;
+    color: #fff; font-weight: 600; cursor: default; }
+  td.cell.ok { background: #00b88a; }
+  td.cell.warn { background: #f0a020; }
+  td.cell.low { background: #e74c3c; }
+  td.cell.gap { background: #c0392b;
+    background-image: repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,255,255,.30) 3px, rgba(255,255,255,.30) 6px); }
+  td.cell.future { background: #c7ced8; color: var(--text-dim); font-weight: 500;
+    background-image: repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(44,62,80,.07) 3px, rgba(44,62,80,.07) 6px); }
+  td.cell .pct { font-size: 10px; opacity: .92; }
+  tr.row-approx td.cell { outline: 1px dashed rgba(255,255,255,.6); outline-offset: -2px; }
+
+  /* span bars */
+  .span-row { display: flex; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--border); }
+  .span-label { width: 190px; flex: 0 0 190px; font-weight: 600; color: var(--text); white-space: nowrap; padding-right: 8px; }
+  .span-track { position: relative; flex: 1 1 auto; height: 22px; }
+  .span-bar { position: absolute; top: 3px; height: 16px; border-radius: 4px;
+    background: var(--accent); min-width: 3px; }
+  .span-bar.approx { background: repeating-linear-gradient(45deg, #8a94a6, #8a94a6 5px, #aab3c2 5px, #aab3c2 10px); }
+  .span-meta { width: 230px; flex: 0 0 230px; font-size: 11px; color: var(--text-dim); text-align: right; padding-left: 8px; font-family: var(--mono); }
+
+  /* attribute */
+  .attr-row { display: flex; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--border); gap: 12px; }
+  .attr-label { width: 240px; flex: 0 0 240px; font-weight: 600; }
+  .attr-track { flex: 1 1 auto; height: 18px; background: var(--bg-hover); border-radius: 9px; overflow: hidden; }
+  .attr-fill { height: 100%; background: var(--accent); border-radius: 9px; }
+  .attr-fill.warn { background: #f0a020; }
+  .attr-fill.low { background: #e74c3c; }
+  .attr-val { width: 200px; flex: 0 0 200px; text-align: right; font-family: var(--mono); font-size: 12px; color: var(--text-dim); }
+  .approx-badge { display: inline-block; font-size: 10px; font-weight: 700; color: #9a6b00;
+    background: #fff8e6; border: 1px solid #f3e0a8; border-radius: 10px; padding: 1px 7px; margin-left: 6px; }
+  .note { font-size: 11px; color: var(--text-dim); margin-top: 6px; line-height: 1.45; }
+  .loading { text-align: center; padding: 50px; color: var(--text-dim); }
+  .spinner { display: inline-block; width: 22px; height: 22px; border: 3px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="page-header">
+    <div>
+      <h2>数据覆盖时间线 · Coverage Timeline</h2>
+      <div class="sub">各数据集逐赛季覆盖率 / 跨度监控 — 缺口一目了然（后端监控风格）</div>
+    </div>
+    <div class="controls">
+      <span class="meta"><span id="statusDot" class="status-dot"></span><span id="statusText">连接中…</span></span>
+      <span class="meta">数据时间 <b id="genAt">—</b></span>
+      <span class="meta">耗时 <b id="dur">—</b>s</span>
+      <span class="meta">刷新 <b id="countdown">10</b>s</span>
+      <select id="winSel" class="select" title="显示最近 N 个赛季">
+        <option value="15">近 15 季</option>
+        <option value="30" selected>近 30 季</option>
+        <option value="9999">全部</option>
+      </select>
+      <button id="refreshBtn" class="btn btn-primary">刷新</button>
+    </div>
+  </div>
+
+  <div id="banner" class="banner ok" style="display:none;"></div>
+  <div id="content">
+    <div class="loading"><div class="spinner"></div> 加载覆盖数据中…</div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var POLL_MS = 10000;
+  var countdown = POLL_MS / 1000;
+  var ticker = null;
+  var lastData = null;
+  var CELL_W = 34; // px, must match CSS min-width
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  function showBanner(type, msg) {
+    var b = $("banner");
+    b.className = "banner " + type;
+    b.style.display = "block";
+    b.textContent = msg;
+  }
+  function hideBanner() { $("banner").style.display = "none"; }
+
+  function colorClass(pct, count) {
+    if (!count || count <= 0) return "gap";
+    if (pct >= 0.95) return "ok";
+    if (pct >= 0.5) return "warn";
+    return "low";
+  }
+
+  function visibleSeasons(seasons, win) {
+    if (!seasons || !seasons.length) return [];
+    if (win >= seasons.length) return seasons.slice();
+    return seasons.slice(seasons.length - win);
+  }
+
+  function render(data) {
+    var seasons = data.seasons || [];
+    var win = parseInt($("winSel").value, 10) || 30;
+    var vis = visibleSeasons(seasons, win);
+    var visIdx = {};
+    vis.forEach(function (s, i) { visIdx[s] = i; });
+
+    var seasonSets = (data.datasets || []).filter(function (d) { return d.by === "season"; });
+    var attrSets = (data.datasets || []).filter(function (d) { return d.by === "attribute" || d.by === "approx"; });
+
+    var html = "";
+
+    // ---- Heatmap ----
+    html += '<div class="card"><div class="card-header"><div class="card-title">覆盖率热力矩阵</div>' +
+            '<div class="legend">' +
+            '<span><i class="sw ok"></i>≥95%</span>' +
+            '<span><i class="sw warn"></i>50–95%</span>' +
+            '<span><i class="sw low"></i>&lt;50%</span>' +
+            '<span><i class="sw gap"></i>缺失 / 0</span>' +
+            '<span><i class="sw future"></i>未开始（未来赛季）</span>' +
+            '</div></div>';
+    html += '<div class="matrix-scroll"><table class="matrix"><thead><tr>' +
+            '<th class="rowlabel">数据集</th>';
+    vis.forEach(function (s) { html += '<th class="season">' + s + '</th>'; });
+    html += '</tr></thead><tbody>';
+    seasonSets.forEach(function (d) {
+      html += '<tr class="' + (d.approx ? "row-approx" : "") + '">' +
+              '<th class="rowlabel">' + d.label + (d.approx ? ' <span class="approx-badge">approx</span>' : '') + '</th>';
+      vis.forEach(function (s) {
+        var c = (d.coverage && d.coverage[s]) || { count: 0, expected: 0, pct: 0, future: false };
+        var isFuture = c.future === true;
+        var cls = isFuture ? "future" : colorClass(c.pct, c.count);
+        var pctTxt = isFuture ? "未开始" : (c.count > 0 ? Math.round(c.pct * 100) + "%" : "·");
+        var tip = d.label + " · " + s + (isFuture ? "\n未开始（赛季尚未开赛，缺失不计入缺口）" :
+          (d.by === "season" ?
+          ("\n" + c.count + " / " + c.expected + " (" + Math.round(c.pct * 100) + "%)") :
+          ("\n" + c.count + " / " + c.expected)));
+        html += '<td class="cell ' + cls + '" title="' + esc(tip) + '"><span class="pct">' + pctTxt + '</span></td>';
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+    if (seasonSets.length === 0) html += '<div class="note">无逐赛季数据集。</div>';
+    html += '</div>';
+
+    // ---- Span bars ----
+    html += '<div class="card"><div class="card-header"><div class="card-title">各数据集覆盖跨度（Gantt）</div>' +
+            '<div class="card-badge">' + seasonSets.length + ' 个</div></div>';
+    if (seasonSets.length) {
+      seasonSets.forEach(function (d) {
+        var sp = d.span || {};
+        var barHtml, metaTxt;
+        if (sp.first && sp.last && visIdx[sp.first] !== undefined) {
+          var i0 = visIdx[sp.first];
+          var i1 = (visIdx[sp.last] !== undefined) ? visIdx[sp.last] : vis.length - 1;
+          var left = (i0 / vis.length) * 100;
+          var width = ((i1 - i0 + 1) / vis.length) * 100;
+          barHtml = '<div class="span-bar' + (d.approx ? ' approx' : '') +
+                    '" style="left:' + left + '%;width:' + width + '%"></div>';
+          metaTxt = sp.first + " → " + sp.last;
+        } else if (sp.first && sp.last) {
+          // span outside current window
+          barHtml = '<div class="span-bar' + (d.approx ? ' approx' : '') +
+                    '" style="left:0;width:100%"></div>';
+          metaTxt = sp.first + " → " + sp.last + " (超出窗口)";
+        } else {
+          barHtml = '';
+          metaTxt = d.approx ? "— (approx)" : "无覆盖";
+        }
+        html += '<div class="span-row"><div class="span-label">' + d.label +
+                (d.approx ? ' <span class="approx-badge">approx</span>' : '') +
+                '</div><div class="span-track">' + barHtml + '</div>' +
+                '<div class="span-meta">' + metaTxt + '</div></div>';
+      });
+    } else {
+      html += '<div class="note">无逐赛季数据集。</div>';
+    }
+    html += '</div>';
+
+    // ---- Attribute / approx ----
+    if (attrSets.length) {
+      html += '<div class="card"><div class="card-header"><div class="card-title">属性 / 近似覆盖</div></div>';
+      attrSets.forEach(function (d) {
+        html += '<div style="margin-bottom:10px;">';
+        html += '<div style="font-weight:600;color:var(--text-bright);">' + d.label +
+                (d.approx ? ' <span class="approx-badge">approx</span>' : '') + '</div>';
+        if (d.by === "attribute" && d.attributes) {
+          var total = d.total || 0;
+          d.attributes.forEach(function (a) {
+            var pct = a.pct || 0;
+            var cls = pct >= 0.95 ? "" : (pct >= 0.5 ? " warn" : " low");
+            var widthPct = Math.round(pct * 100);
+            html += '<div class="attr-row"><div class="attr-label">' + a.label + '</div>' +
+                    '<div class="attr-track"><div class="attr-fill' + cls + '" style="width:' + widthPct + '%"></div></div>' +
+                    '<div class="attr-val">' + a.present.toLocaleString() + ' / ' + total.toLocaleString() +
+                    ' (' + widthPct + '%)</div></div>';
+          });
+        } else if (d.by === "approx") {
+          html += '<div class="attr-row"><div class="attr-label">总条数（无逐季细分）</div>' +
+                  '<div class="attr-track"><div class="attr-fill" style="width:100%"></div></div>' +
+                  '<div class="attr-val">' + (d.total || 0).toLocaleString() + ' 行</div></div>';
+        }
+        if (d.note) html += '<div class="note">' + esc(d.note) + '</div>';
+        if (d.source) html += '<div class="note">来源：' + esc(d.source) + '</div>';
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+
+    $("content").innerHTML = html;
+  }
+
+  function esc(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function applyMeta(data) {
+    $("genAt").textContent = (data.generated_at || "—").replace("T", " ");
+    $("dur").textContent = (data.fetch_duration_seconds != null) ? data.fetch_duration_seconds : "—";
+    $("statusDot").className = "status-dot ok";
+    $("statusText").textContent = "已连接";
+  }
+
+  function tick() {
+    countdown -= 1;
+    if (countdown <= 0) { load(); return; }
+    $("countdown").textContent = countdown;
+  }
+
+  function load() {
+    countdown = POLL_MS / 1000;
+    $("countdown").textContent = countdown;
+    fetch("/coverage", { cache: "no-store" })
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        lastData = data;
+        applyMeta(data);
+        render(data);
+        hideBanner();
+      })
+      .catch(function (err) {
+        $("statusDot").className = "status-dot err";
+        $("statusText").textContent = "后端不可用";
+        if (lastData) {
+          showBanner("warn", "后端不可用（" + err.message + "），正在显示上次成功拉取的数据。");
+          render(lastData);
+        } else {
+          $("content").innerHTML = '<div class="loading">后端不可用：' + esc(err.message) +
+            '<br>请确认后端已重启并注册了 /coverage 路由。</div>';
+          showBanner("err", "无法连接 /coverage：" + err.message);
+        }
+      });
+  }
+
+  $("refreshBtn").addEventListener("click", load);
+  $("winSel").addEventListener("change", function () { if (lastData) render(lastData); });
+
+  load();
+  ticker = setInterval(tick, 1000);
+})();
+</script>
+</body>
+</html>

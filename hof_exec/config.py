@@ -22,16 +22,14 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 # Make ``common`` importable (it lives at the repo root).
-from common.bridge_constants import _CANON  # noqa: E402,F401
-
-# 30 canonical NBA abbreviations (single source of truth from common).
-TEAM_ABBRS: list[str] = sorted(_CANON)
-
-# BR URL slug mapping. Known divergences from the 3-letter canon abbr:
-#   BKN -> BRK ,  CHA -> CHO ; everything else is identity.
-BR_TEAM_SLUGS: dict[str, str] = {abbr: abbr for abbr in TEAM_ABBRS}
-BR_TEAM_SLUGS["BKN"] = "BRK"
-BR_TEAM_SLUGS["CHA"] = "CHO"
+# The 30-team reference maps are now a SINGLE SOURCE in common/team_names
+# (TEAM_ABBRS, BR_TEAM_SLUGS, TEAM_FULL_NAME). Re-export from there (T02);
+# do NOT redefine the slug map here or it forks the single source.
+from common.team_names import (  # noqa: E402,F401
+    BR_TEAM_SLUGS,
+    TEAM_ABBRS,
+    TEAM_FULL_NAME,
+)
 
 
 def load_dotenv(path: str | None = None) -> None:

@@ -20,5 +20,8 @@ curl_cffi==0.15.0
 # BR 球队页爬取依赖（transactions_crawl / hof_exec / crawl_team_pages 用）
 # 之前仅装于 .venv 未写入依赖声明；与 curl_cffi 同理，补回以避免 import 崩溃。
 beautifulsoup4==4.15.0
-undetected-chromedriver==3.5.5
+undetected-chromedriver==3.5.5  # 旧脚本(external_crawler/br_fill_*)仍用，保留声明
 lxml==6.1.1  # 可选：BS4 的更快解析器后端
+# BR 球队页爬取驱动后端（2026-07-16 起改用 Playwright + stealth 绕 CF，替代 uc）
+playwright==1.61.0
+playwright-stealth==2.0.3

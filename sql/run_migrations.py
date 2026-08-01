@@ -54,6 +54,8 @@ def main() -> None:
         sql_dir / "001_create_league_salary_rules.sql",
         sql_dir / "002_seed_league_salary_rules_2025_26.sql",
         sql_dir / "003_backfill_two_way_flag.sql",
+        sql_dir / "006_add_player_nickname.sql",
+        sql_dir / "007_add_player_bio_ext.sql",
     ]
     for f in ordered:
         if not f.exists():

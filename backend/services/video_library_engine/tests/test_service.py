@@ -113,12 +113,33 @@ class TestListGames:
 # ── Service: get_playback (mocked DB + clutch_replay) ──
 
 class TestGetPlayback:
-    def test_no_video_source_raises_40002(self):
+    def test_no_video_source_degrades_without_raise(self):
+        """无录像源时不应整体 abort（原 40002 行为已改为降级）。
+
+        修复后：video_ref 置空、video_ref_type='none'，仍继续用
+        ClutchReplayService 构建 frames/timeline/clutch_segments（这些派生自 PBP，
+        不依赖录像源）。前端在 video_ref 为空时显示占位，战术板 + 时间轴照常渲染。
+        """
         svc = service.VideoLibraryService()
+        mock_cr_result = MagicMock()
+        mock_cr_result.frames = [
+            {"event_index": 0, "t": 0.0},
+            {"event_index": 1, "t": 0.033},
+        ]
+        mock_cr_result.meta = {"frame_count": 2, "fps": 30}
+        mock_cr_result.clutch_segments = []
+        mock_cr_result.clutch_players = []
         with patch.object(service.db, "get_video_source", return_value=None):
-            with pytest.raises(schemas.VideoLibraryError) as exc_info:
-                svc.get_playback("GAME001", "2025")
-            assert exc_info.value.code == 40002
+            with patch.object(svc._clutch_replay, "clutch_replay", return_value=mock_cr_result):
+                with patch.object(service.VideoLibraryService, "_load_pbp_events_as_dicts",
+                                  return_value=[{"event_index": 0, "period": 1, "clock_seconds": 720.0},
+                                                {"event_index": 1, "period": 1, "clock_seconds": 718.0}]):
+                    result = svc.get_playback("GAME001", "2025")
+        # 关键契约：不抛 40002，返回空 video_ref + 非空 frames。
+        assert result.video_ref == ""
+        assert result.video_ref_type == "none"
+        assert result.video_offset_seconds == 0.0
+        assert len(result.frames) == 2
 
     def test_playback_with_frames(self):
         """Full playback path with mocked clutch_replay + events."""

@@ -204,6 +204,30 @@ def load_seasons_available(table_name: str = "fact_player_season_stats") -> list
     return [int(r["s"]) for r in rows]
 
 
+def load_player_honors(player_id: str) -> list[dict]:
+    """Load a player's career honors from ``player_career_honors`` (bio_ext).
+
+    Additive — does not modify any LOCKED function. Uses the Layer-1
+    ``batch_query`` single entry point (SELECT-only, v8 §2 compliant).
+
+    Args:
+        player_id: BBR player_id.
+
+    Returns:
+        list[dict] with columns (player_id, honor_raw, honor_type,
+        honor_count, honor_year, honor_detail). Empty list if no honors.
+    """
+    if not player_id:
+        return []
+    sql = """
+        SELECT player_id, honor_raw, honor_type, honor_count, honor_year, honor_detail
+        FROM public.player_career_honors
+        WHERE player_id = %s
+        ORDER BY honor_year NULLS LAST, honor_type, honor_raw
+    """
+    return batch_query(sql, (player_id,))
+
+
 def search_players(name: str, limit: int = 20) -> list[dict]:
     """Search dim_players by name (case-insensitive ILIKE).
 

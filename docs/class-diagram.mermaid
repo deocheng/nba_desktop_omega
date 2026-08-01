@@ -1,44 +1,74 @@
+%% class-diagram.mermaid — BR player lineup crawl class hierarchy
+%% Extracted from external_crawler/design_lineup.md §3.1
+
 classDiagram
-    class DimPlayers {
-        +player_id varchar PK   «已有»
-        +player_name text        «已有»
-        +source_url text         «已有»
-        +scraped_at timestamp     «已有»
-        +headshot_path text       «新增: 本地绝对路径»
-        +headshot_url text        «新增: 头像图片 URL (BR 域)»
-        +headshot_status varchar(16)  «新增: NULL/ok/missing/failed»
-        +headshot_scraped_at timestamp  «新增: NULL=未抓; upsert 写 now()»
+    class BRTeamPageCrawler {
+        <<base · common/br_team_page.py>>
+        +str DOMAIN
+        +str TASK_TYPE
+        +str TABLE
+        +Tuple CONFLICT_COLS
+        +get_driver() driver
+        +build_url(slug, season, page) str
+        +fetch_team_page(driver, url) str
+        +rate_limit() void
+        +register_failure(conn, token) void
+        +resolve_player(conn, name) Tuple
+        +_upsert_rows(conn, table, rows, conflict_cols) int
+        +parse(html, season_type, team_abbr) list
+        +build_rows(conn, team_abbr, season, season_type, rec) dict
+        +upsert(conn, rows) int
     }
 
-    class HeadshotStore {
-        <<module: common/headshot_store.py>>
-        +HEADSHOT_ROOT Path
-        +SELECTOR str = "#info .media-item img"
-        +headshot_path_for(pid, src) Path
-        +ensure_root() void
-        +extract_headshot_src(html) str|None
-        +download_image(url, dest, referer, cookies) bool
-        +fetch_image_via_cdp(driver, url) bytes|None
-        -_is_valid_image(bytes) bool
+    class BRPlayerPageCrawler {
+        <<intermediate · common/br_player_page.py>>
+        +str RAW_ARCHIVE
+        +str DOMAIN = "player_shooting"
+        +str TABLE = "player_shooting"
+        +build_url(slug) str
+        +save_raw_html(slug, html) Path
+        +enumerate_players(conn, priority_gap) List~str~
+        +_player_done(conn, slug) bool
+        +_quarantine_slug(conn, slug, note) void
+        +_crawl_player(conn, driver, slug) int
+        +_consume_html(conn, slug, html) int
+        +run_players(conn, slugs, resume, dry_run) int
+        +rework_from_archive(slug) int
     }
 
-    class CrawlBrHeadshots {
-        <<module: external_crawler/crawler/crawl_br_headshots.py>>
-        +DB_CONFIG dict
-        +get_players(conn, limit, resume) list
-        +scrape_player(pid, name, driver) tuple
-        +upsert_path(conn, pid, path, url, status) void
-        +run_pipeline(limit, dry_run, resume) void
+    class BRPlayerLineupCrawlerBase {
+        <<NEW · common/br_player_lineup.py>>
+        +str DOMAIN = "player_lineup"
+        +str TASK_TYPE = "br_player_lineup"
+        +str TABLE = "player_lineups"
+        +str QUARANTINE_TABLE = "player_lineups_404"
+        +Tuple CONFLICT_COLS = (player_id, season, season_type, lineup_key)
+        +int MIN_SEASON = 1997
+        +int MAX_SEASON = 2026
+        +build_url(slug, year) str
+        +save_raw_html(slug, year, html) Path
+        +enumerate_lineup_targets(conn) List~Tuple~
+        +_player_done(conn, slug, year) bool
+        +_quarantine_slug(conn, slug, year, note) void
+        +_crawl_player(conn, driver, slug, year) int
+        +_consume_html(conn, slug, year, html) int
+        +run_lineups(conn, targets, resume, dry_run) int
+        +rework_from_archive(slug, year) int
     }
 
-    class BrowserDriver {
-        <<external: common.browser>>
-        +get_driver() Driver
-        +get(url) void
-        +page_source str
+    class PlayerLineupCrawler {
+        <<NEW · crawl_br_player_lineup.py>>
+        +parse(html, season_type, team_abbr) List~Dict~
+        +build_rows(conn, slug, season, season_type, rec) Dict
+        +upsert(conn, rows) int
     }
 
-    CrawlBrHeadshots ..> HeadshotStore : uses
-    CrawlBrHeadshots ..> BrowserDriver : get_driver()
-    CrawlBrHeadshots ..> DimPlayers : UPDATE headshot_*
-    HeadshotStore ..> BrowserDriver : fetch_image_via_cdp(driver)
+    class parse_player_lineups_html {
+        <<pure function · crawl_br_player_lineup.py>>
+        +call(html, slug, year) List~Dict~
+    }
+
+    BRTeamPageCrawler <|-- BRPlayerPageCrawler
+    BRPlayerPageCrawler <|-- BRPlayerLineupCrawlerBase
+    BRPlayerLineupCrawlerBase <|-- PlayerLineupCrawler
+    PlayerLineupCrawler ..> parse_player_lineups_html : delegates parse

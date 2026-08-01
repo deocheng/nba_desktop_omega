@@ -18,6 +18,7 @@ from backend.api.schemas import (
     PlayerBio,
     PlayerDetailResponse,
     PlayerEntityDetail,
+    PlayerHonorsResponse,
     PlayerSearchResponse,
     SeasonCoverage,
     ShootingProfileResponse,
@@ -25,6 +26,7 @@ from backend.api.schemas import (
 from backend.services.metric_engine import (
     get_available_seasons,
     get_player_bios,
+    get_player_honors,
     list_metrics,
     player_metrics_dict,
     search_players_by_name,
@@ -128,6 +130,25 @@ def get_player_detail(
         raise HTTPException(status_code=500, detail=f"compute failed: {exc}")
 
     return PlayerDetailResponse(bio=bio, season=season, metrics=metrics_dict)
+
+
+@router.get("/{player_id}/honors", response_model=PlayerHonorsResponse)
+def get_player_honors_endpoint(player_id: str) -> PlayerHonorsResponse:
+    """bio_ext — list a player's normalized career honors.
+
+    Reads from player_career_honors (populated by the bio_ext backfill crawler).
+    404 if the player_id is unknown. Returns an empty honors list if the
+    player exists but has no scraped honors yet.
+    """
+    bios = get_player_bios([player_id])
+    if not bios:
+        raise HTTPException(
+            status_code=404,
+            detail=f"player {player_id!r} not found in dim_players",
+        )
+    rows = get_player_honors(player_id)
+    honors = [PlayerHonor(**r) for r in rows]
+    return PlayerHonorsResponse(player_id=player_id, honors=honors)
 
 
 @router.get("/{player_id}/shooting-profile", response_model=ShootingProfileResponse)

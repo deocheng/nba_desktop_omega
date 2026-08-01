@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: node-media-server
+  labels:
+    app: node-media-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: node-media-server
+  template:
+    metadata:
+      labels:
+        app: node-media-server
+    spec:
+      containers:
+        - name: node-media-server
+          image: node-media-server:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 1935 # RTMP
+            - containerPort: 8000 # HTTP FLV
+            - containerPort: 8443 # HTTPS FLV
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/config
+      volumes:
+        - name: config-volume
+          configMap:
+            name: node-media-server-config

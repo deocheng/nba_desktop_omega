@@ -26,7 +26,7 @@ def load_draft_picks_with_weight(
     limit: int | None = None,
     season: int | None = None,
 ) -> list[dict]:
-    """Load draft_picks rows with weight + in_dim_players flag.
+    """Load draft_picks rows with weight + in_dim_players flag + wingspan.
 
     Args:
         limit: cap on returned rows (pagination safety). Default None = all.
@@ -34,20 +34,36 @@ def load_draft_picks_with_weight(
 
     Returns:
         list[dict]: each row is a draft_picks row plus
-            ``weight_lbs``, ``weight_kg``, ``in_dim_players`` (bool).
+            ``weight_lbs``, ``weight_kg``, ``in_dim_players`` (bool),
+            and ``wingspan_cm`` (combine measurement; None when no match).
     """
     weight_join = join_player_weight("player_id", table_alias="dp")
     weight_cols = select_weight_cols("p_w")
+    # C: surface wingspan_cm from draft_combine.
+    # DEVIATION FROM BRIEF: the brief assumed a (player_id, season) key on
+    # draft_combine, but that table has NO player_id column — its natural
+    # (UNIQUE) key is (season, player_name). We therefore LEFT JOIN on those
+    # two columns. Unmatched rows yield wingspan_cm = NULL -> frontend shows '—'.
+    combine_join = psql.SQL(
+        " LEFT JOIN draft_combine dc"
+        " ON dp.season = dc.season AND dp.player_name = dc.player_name"
+    )
     base = psql.SQL(
         """
         SELECT
             dp.*,
             {weight_cols},
-            (p_w.player_id IS NOT NULL) AS in_dim_players
+            (p_w.player_id IS NOT NULL) AS in_dim_players,
+            dc.wingspan_cm AS wingspan_cm
         FROM draft_picks dp
         {weight_join}
+        {combine_join}
         """
-    ).format(weight_cols=weight_cols, weight_join=weight_join)
+    ).format(
+        weight_cols=weight_cols,
+        weight_join=weight_join,
+        combine_join=combine_join,
+    )
 
     params: list[Any] = []
     if season is not None:
@@ -60,4 +76,6 @@ def load_draft_picks_with_weight(
     rows = batch_query_composed(base, tuple(params))
     for r in rows:
         r["in_dim_players"] = bool(r.get("in_dim_players"))
+        # Ensure the wingspan key is always present (None when unmatched).
+        r.setdefault("wingspan_cm", None)
     return rows

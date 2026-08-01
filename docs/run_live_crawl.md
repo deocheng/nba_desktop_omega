@@ -67,10 +67,16 @@ bash run_br_team_pages.sh all       # ①②③ 连续
 ## 断点续爬 / CF 命中策略
 - **CF 挑战 / 404 命中即 SKIP 继续**（记日志，不中断整轮）；在线抓取会把 raw HTML
   缓存到 `det2026_br/`，二次运行自动跳过已完成项。
-- **续跑靠双重保险**：① 落库 `upsert` 幂等（`ON CONFLICT` / 孪生 `UPDATE`）；
-  ② raw HTML 离线缓存。重跑安全、无重复行。
-- 日志盯 `SKIP`（应只来自 CF/404/缺页）与 `LOADED <abbr>/<year>: N rows`；
-  收尾打印 `DONE totals: transactions=N hof=M exec=K`。
+- **续跑靠双重保险 + 显式进度文件**：① 落库 `upsert` 幂等（`ON CONFLICT` / 孪生
+  `UPDATE`）；② raw HTML 离线缓存；  ③ 编排器写 `crawl_state.json`（仓库根）记录
+  已完成 abbr 清单，按签名 `kind:year_start-year_end` 划分。参数不变时二次运行
+  自动跳过已完成队（日志 `RESUME skip`）；`--force` 强制重跑所有队；`--reset-state`
+  清空进度文件后重跑。字段格式见 `crawl_state.example.json`：
+  ```json
+  { "signature": "all:2000-2026:online", "completed": ["ATL", "BOS"] }
+  ```
+- 日志盯 `SKIP`（应只来自 CF/404/缺页）、`PROGRESS n/30 teams done` 与
+  `LOADED <abbr>/<year>: N rows`；收尾打印 `DONE totals: transactions=N hof=M exec=K`。
 
 ## 限速建议
 BR/CF 会限流激进请求。建议分批而非一次梭哈：按分区（东/西）或单队循环，

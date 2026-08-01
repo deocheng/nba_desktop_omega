@@ -81,3 +81,29 @@ pbp_raw/
 *.pdf
 # Node 依赖（若前端子项目存在）
 node_modules/
+
+# ── 运行时缓存 / 状态（非源码，2026-08-01 整理加入）──
+.cache
+.watchdog_url_state
+*.lock
+crawl_state*.json
+*_cache
+headshots/
+analysis_*
+*_inventory_*.md
+crawler_watch_*.md
+candidates.json
+notes*.json
+research_list.json
+det2026_br
+raw_archive
+research/
+
+# ── 一次性分析 / 调试脚本（非源码，2026-08-01 整理加入）──
+_dbg_*.py
+_split_*.py
+build_*.py
+analyze_*.py
+gen_*.py
+debug_*
+diag_*.py

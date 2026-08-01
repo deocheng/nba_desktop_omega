@@ -29,7 +29,7 @@ from fastapi.staticfiles import StaticFiles
 
 from backend.api.routers import (
     analytics_builder, batch, career, cba_aux, charts, clutch, clutch_replay,
-    context, crawler, data_import, draft, export, games, intelligence, leaderboard,
+    context, coverage, crawler, data_import, draft, export, games, intelligence, leaderboard,
     metrics, monitor, players, system, teams, trade, tactics, video_library, vs,
     workspace,
 )
@@ -126,6 +126,7 @@ def create_app() -> FastAPI:
     app.include_router(charts.router)
     app.include_router(system.router)
     app.include_router(crawler.router)
+    app.include_router(coverage.router)
     app.include_router(leaderboard.router)
     app.include_router(intelligence.router)
     app.include_router(workspace.router)

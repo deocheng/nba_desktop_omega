@@ -1,34 +1,93 @@
-sequenceDiagram
-    participant Main as crawl_br_headshots.py
-    participant DB as PostgreSQL(dim_players)
-    participant Drv as common.browser Driver (CDP)
-    participant BR as Basketball-Reference
-    participant Store as common.headshot_store
-    participant Disk as /Volumes/12T/.../headshots
+%% sequence-diagram.mermaid — BR player lineup crawl call flow
+%% Extracted from external_crawler/design_lineup.md §4.1
 
-    Main->>DB: connect + get_players(resume, limit)
-    DB-->>Main: [(player_id, player_name), ...]
-    loop 每位球员 (限速 3–6s)
-        Main->>Drv: get(players/{first}/{pid}.html)
-        Drv->>BR: navigate (复用有效 cf_clearance)
-        BR-->>Drv: 渲染 HTML (含 headshot <img>)
-        Main->>Store: extract_headshot_src(page_source)
-        alt 找到 <img>
-            Store-->>Main: 绝对 src URL (BR 域)
-            Main->>Store: download_image(src, dest, referer)
-            alt Tier-1 HTTP 200 + 合法图片
-                Store->>BR: GET headshot (同 CF 会话)
-                BR-->>Store: 图片字节
-                Store->>Disk: write {pid}.jpg (magic 校验)
-            else Tier-1 失败(403/超时)
-                Store->>Drv: fetch_image_via_cdp(src)
-                Drv->>BR: 独立 target 导航图片 URL
-                BR-->>Drv: Network.getResponseBody 字节
-                Store->>Disk: write {pid}.jpg
+sequenceDiagram
+    participant Auto as run_player_lineup_auto.sh
+    participant Runner as run_player_lineup_backfill.sh
+    participant Crawler as PlayerLineupCrawler
+    participant Browser as common/browser.py (CDP)
+    participant DB as PostgreSQL (nba)
+    participant BR as basketball-reference.com
+
+    Note over Auto: ── 启动阶段 ──
+    Auto->>DB: get_gap() — count missing (slug,year) pairs
+    DB-->>Auto: gap = N
+    Auto->>Auto: ensure_chrome() — start CDP Chrome on 9222
+    Auto->>Auto: prompt_cf() — user clears Cloudflare
+
+    Note over Auto: ── 缺口循环 ──
+    loop while gap > 0 (≤MAX_CYCLES)
+        Auto->>Runner: bash run_player_lineup_backfill.sh --resume
+
+        Note over Runner: ── DDL 确保 ──
+        Runner->>DB: CREATE TABLE IF NOT EXISTS player_lineups / player_lineups_404
+        Runner->>DB: CREATE INDEX IF NOT EXISTS ...
+
+        Note over Runner: ── 爬虫调用 ──
+        Runner->>Crawler: python crawl_br_player_lineup.py --resume
+
+        Note over Crawler: ── 枚举目标 ──
+        Crawler->>DB: enumerate_lineup_targets(conn)
+        DB-->>Crawler: [(slug, year), ...] 排除已落库+已隔离
+
+        Note over Crawler: ── CF 握手门禁 ──
+        Crawler->>Browser: get_driver() — CDP 9222
+        Crawler->>Browser: ensure_cf_cleared(driver)
+        Browser->>BR: navigate to BR homepage
+        alt CF challenge
+            Browser-->>Crawler: wait for user to clear CF
+        end
+
+        Note over Crawler: ── (slug, year) 二维迭代 ──
+        loop for each (slug, year) in targets
+            Crawler->>Crawler: _player_done(conn, slug, year)?
+            alt already done (resume)
+                Crawler-->>Crawler: skip
+            else not done
+                Crawler->>Crawler: build_url(slug, year)
+                Crawler->>Browser: fetch_team_page(driver, url)
+                Browser->>BR: GET /players/{letter}/{slug}/lineups/{year}
+                BR-->>Browser: HTML response
+
+                alt 404 (NOT_FOUND_MARKERS)
+                    Browser-->>Crawler: _last_fetch_404 = True
+                    Crawler->>DB: _quarantine_slug(conn, slug, year, "http_404")
+                    Note right of Crawler: 不存档/不解析/不登记crawl_failures
+                else CF challenge (_last_fetch_cf)
+                    Browser-->>Crawler: _last_fetch_cf = True
+                    Crawler->>Browser: ensure_cf_cleared(driver) — pause & wait
+                    Browser->>BR: retry navigation
+                else success (valid HTML)
+                    Browser-->>Crawler: html
+                    Crawler->>Crawler: save_raw_html(slug, year, html)
+                    Note right of Crawler: raw_archive/br_players/{slug}/lineups_{year}.html
+                    Crawler->>Crawler: parse_player_lineups_html(html, slug, year)
+                    Crawler->>Crawler: build_rows(conn, slug, year, Regular, rec) per rec
+                    Crawler->>DB: upsert(conn, rows) — execute_values + ON CONFLICT
+                    DB-->>Crawler: rows inserted/updated
+                    Crawler->>DB: conn.commit()
+                end
+
+                Crawler->>Crawler: rate_limit() — sleep 3-6s (≤15 req/min)
             end
-            Main->>DB: upsert_path(pid, path, url, 'ok')
-        else 无 <img> (BR 本身缺头像)
-            Main->>DB: upsert_path(pid, NULL, NULL, 'missing')
+        end
+
+        Runner-->>Auto: cycle complete
+
+        Note over Auto: ── 缺口重算 ──
+        Auto->>DB: get_gap() — recheck
+        DB-->>Auto: gap = M
+
+        alt gap == 0
+            Auto->>DB: verify_coverage() — coverage_lineup.sql
+            DB-->>Auto: coverage report (universe/covered/pct/gap)
+            Auto-->>Auto: DONE exit 0
+        else gap > 0
+            alt Chrome dead (9222 unreachable)
+                Auto->>Auto: ensure_chrome() — restart
+                Auto->>Auto: prompt_cf()
+            else Chrome alive (cookie expired)
+                Auto->>Auto: continue with --resume (next cycle)
+            end
         end
     end
-    Main->>DB: commit + 打印汇总(ok/missing/failed/skipped)

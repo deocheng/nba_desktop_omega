@@ -47,6 +47,7 @@ from common.player_bio_ext import (
     player_page_url,
     upsert_player_bio_ext,
 )
+from common.player_page_cache import is_valid_player_page
 from backend.core import config  # noqa: E402  —— fail-safe DSN（不回退弱口令 'postgres'）
 
 logging.basicConfig(
@@ -143,6 +144,20 @@ def run_pipeline(limit=None, dry_run=False, resume=False, rate=3.0) -> None:
             html = fetch_player_page(player_id)
             if not html:
                 logger.warning("    抓取失败（CF/网络），记 failed 跳过（保留 NULL 以便 resume）")
+                failed += 1
+                continue
+
+            # 页面有效性门槛（2026-07-31 加固）：
+            # upsert_player_bio_ext() 无论抽到什么都会写 bio_ext_scraped_at=now()，
+            # 而 --resume 正是以该列判「已处理」。若把 CF 挑战页 / 残页 / 截断页
+            # 喂进去，会静默写入全 NULL 且**永久跳过**，属不可逆数据缺失
+            # （违反正确/完整）。注意 fetch_player_page 是 cache-first，其内建的
+            # CF 校验**只覆盖实网分支**，历史脏缓存会绕过 —— 故此处必须再验一次。
+            if not is_valid_player_page(html):
+                logger.warning(
+                    "    页面无效（残页/截断/CF 挑战，len=%d），记 failed 跳过（保留 NULL 以便 resume）",
+                    len(html),
+                )
                 failed += 1
                 continue
 

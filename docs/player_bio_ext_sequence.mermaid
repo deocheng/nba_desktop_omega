@@ -1,0 +1,39 @@
+sequenceDiagram
+    autonumber
+    participant CLI as 命令行 (--resume)
+    participant Crawler as crawl_br_player_bio_ext
+    participant PG as PostgreSQL (5433/nba)
+    participant BR as Basketball-Reference
+    participant Ext as player_bio_ext.extract_*
+
+    CLI->>Crawler: 启动 (--resume / --limit / --dry-run / --rate)
+    Crawler->>PG: SELECT player_id FROM dim_players<br/>WHERE bio_ext_scraped_at IS NULL
+    PG-->>Crawler: player_id 列表 (ORDER BY player_id)
+
+    loop 逐球员 (限速 3s±1s, per-player commit)
+        Crawler->>BR: fetch_player_page(pid)<br/>[curl_cffi impersonate=chrome124]
+        BR-->>Crawler: HTML 或 None (CF 挑战→None)
+
+        alt HTML = None (CF/网络)
+            Crawler->>Crawler: 跳过，保留 bio_ext_scraped_at=NULL<br/>(resume 可重试)
+        else HTML OK
+            Crawler->>Ext: extract_aba_debut / extract_hof /<br/>extract_career_length / extract_relatives /<br/>extract_jersey_numbers / extract_honors
+            Ext-->>Crawler: 解析字段 + honors[dict]
+
+            alt --dry-run
+                Crawler->>Crawler: 仅打印计划，rollback
+            else live
+                Crawler->>PG: UPDATE dim_players SET aba_debut,...,<br/>career_honors_text=array, bio_ext_scraped_at=now()
+                Crawler->>PG: DELETE FROM player_career_honors WHERE player_id
+                Crawler->>PG: INSERT INTO player_career_honors (...)
+                Crawler->>PG: COMMIT (per-player)
+            end
+        end
+    end
+
+    Crawler-->>CLI: 汇总 (ok / empty / failed / skipped)
+
+    Note over PG: player_bio 视图随 dim_players 加列自动暴露
+    PG->>PG: load_players 用 SELECT * → 含新列
+    PG->>PG: GET /players/{id} 经 PlayerBio.from_row 暴露新字段
+    PG->>PG: GET /players/{id}/honors 读 player_career_honors

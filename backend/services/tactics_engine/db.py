@@ -49,7 +49,10 @@ def load_pbp_events(game_id: str, season) -> List[PbPEvent]:
             game_id=str(r["gameid"]),
             season=str(r["season"]),
             period=int(r["period"]),
-            clock_seconds=float(r["clock_seconds"]),
+            # ESPN/BBRef 来源的 PBP 行 clock_seconds 可能全为 NULL（文字表无精确
+            # 时钟），直接 float(None) 会抛 TypeError。NULL 回落 0.0，事件顺序由
+            # event_index（循环下标）保证，时间轴展示降级但不崩溃。
+            clock_seconds=float(r["clock_seconds"] or 0.0),
             event_type=r["event_type"] or "",
             subtype=r["subtype"] or "",
             action_verb=r["action_verb"] or "",

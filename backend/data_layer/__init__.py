@@ -21,6 +21,7 @@ from backend.data_layer.batch_loader import (
     load_games,
     load_team_season_stats,
     load_seasons_available,
+    load_player_honors,
     search_players,
 )
 from backend.data_layer.temp_loader import (
@@ -99,6 +100,8 @@ __all__ = [
     "load_seasons_available",
     # Phase 3 — player search (additive extension)
     "search_players",
+    # bio_ext — player career honors (additive)
+    "load_player_honors",
     # Phase 1 — temp table loaders
     "load_player_gamelog_by_ids",
     "load_players_by_ids",

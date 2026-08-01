@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NBA 爬虫控制台</title>
+<style>
+  :root {
+    --bg: #0d0d10; --panel: #17171c; --panel2: #1f1f26; --border: #2c2c35;
+    --txt: #e8e8ec; --dim: #9a9aa5; --silver: #c4ced4; --accent: #8a9ba8;
+    --green: #34c77b; --red: #e5534b; --amber: #e0a458;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--txt);
+         font: 14px/1.6 -apple-system, "PingFang SC", "Helvetica Neue", sans-serif; }
+  header { display:flex; align-items:center; gap:14px; padding:18px 28px;
+           background:linear-gradient(90deg,#111 0%,#1a1a20 100%); border-bottom:1px solid var(--border); }
+  header .logo { font-size:26px; }
+  header h1 { font-size:19px; letter-spacing:1px; color:var(--silver); font-weight:700; }
+  header .sub { color:var(--dim); font-size:12px; margin-top:2px; }
+  header .right { margin-left:auto; display:flex; gap:10px; align-items:center; }
+  .chip { padding:4px 12px; border-radius:20px; font-size:12px; border:1px solid var(--border); background:var(--panel2); }
+  .chip.ok { color:var(--green); border-color:#1f5c3d; }
+  .chip.bad { color:var(--red); border-color:#6b2b28; }
+  main { max-width:1280px; margin:0 auto; padding:22px 28px 60px; }
+
+  /* 统计卡片 */
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; margin-bottom:26px; }
+  .stat { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px 18px; }
+  .stat .k { color:var(--dim); font-size:12px; margin-bottom:6px; }
+  .stat .v { font-size:22px; font-weight:700; color:var(--silver); font-variant-numeric:tabular-nums; }
+  .stat .s { color:var(--dim); font-size:11px; margin-top:4px; }
+  .stat.sas { border-color:#4a5560; background:linear-gradient(135deg,#17171c 0%,#1d2126 100%); }
+  .stat.sas .k { color:var(--accent); }
+  .bar { height:5px; background:#26262e; border-radius:3px; margin-top:8px; overflow:hidden; }
+  .bar i { display:block; height:100%; background:linear-gradient(90deg,#5f7382,#9fb2c0); border-radius:3px; transition:width .6s; }
+
+  /* 分组与爬虫卡片 */
+  h2 { font-size:14px; color:var(--dim); margin:26px 0 12px; letter-spacing:2px; font-weight:600; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(370px,1fr)); gap:14px; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:15px 17px;
+          display:flex; flex-direction:column; gap:8px; transition:border-color .2s; }
+  .card.running { border-color:#2b6547; box-shadow:0 0 0 1px #1d4732 inset; }
+  .card .top { display:flex; align-items:flex-start; gap:10px; }
+  .card .nm { font-weight:600; font-size:14.5px; }
+  .card .desc { color:var(--dim); font-size:12px; }
+  .dot { width:9px; height:9px; border-radius:50%; margin-top:6px; flex:none; background:#3a3a44; }
+  .dot.on { background:var(--green); box-shadow:0 0 8px var(--green); animation:pulse 2s infinite; }
+  @keyframes pulse { 50% { opacity:.5; } }
+  .meta { display:flex; flex-wrap:wrap; gap:6px; font-size:11px; color:var(--dim); }
+  .tag { background:var(--panel2); border:1px solid var(--border); border-radius:5px; padding:1px 7px; }
+  .tag.br { color:var(--amber); }
+  .card .ops { display:flex; gap:8px; margin-top:4px; }
+
+  /* 详情展开区 */
+  details.dt { margin-top:2px; }
+  details.dt summary { cursor:pointer; font-size:11.5px; color:var(--accent); list-style:none;
+                       user-select:none; }
+  details.dt summary::before { content:'▸ '; }
+  details.dt[open] summary::before { content:'▾ '; }
+  .dtbody { margin-top:8px; display:grid; grid-template-columns:64px 1fr; gap:4px 10px;
+            font-size:11.5px; background:var(--panel2); border:1px solid var(--border);
+            border-radius:8px; padding:10px 12px; }
+  .dtbody .dk { color:var(--dim); white-space:nowrap; }
+  .dtbody .dv { color:var(--txt); word-break:break-all; }
+  .dtbody .dv code { font:11px "SF Mono",Menlo,monospace; color:#a8c7fa;
+                     background:#14141a; border-radius:4px; padding:0 4px; }
+  .dtbody .tbl { display:inline-block; background:#1a2620; border:1px solid #2a4636;
+                 color:#7fd4a5; border-radius:5px; padding:0 7px; margin:1px 4px 1px 0;
+                 font:11px "SF Mono",Menlo,monospace; }
+  button { cursor:pointer; border:1px solid var(--border); background:var(--panel2); color:var(--txt);
+           border-radius:7px; padding:5px 14px; font-size:12.5px; transition:all .15s; }
+  button:hover { border-color:var(--accent); }
+  button.start { color:var(--green); }
+  button.stop { color:var(--red); }
+  button.log { color:var(--dim); }
+  button:disabled { opacity:.35; cursor:not-allowed; }
+
+  /* 日志弹层 */
+  #logModal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:50; }
+  #logModal .box { position:absolute; inset:6% 8%; background:#101014; border:1px solid var(--border);
+                   border-radius:14px; display:flex; flex-direction:column; overflow:hidden; }
+  #logModal .hd { display:flex; align-items:center; padding:13px 20px; border-bottom:1px solid var(--border); }
+  #logModal .hd b { color:var(--silver); }
+  #logModal .hd button { margin-left:auto; }
+  #logBody { flex:1; overflow:auto; padding:16px 20px; font:12px/1.55 "SF Mono",Menlo,monospace;
+             white-space:pre-wrap; color:#b9c4ad; }
+  .toast { position:fixed; bottom:26px; left:50%; transform:translateX(-50%); background:#23232b;
+           border:1px solid var(--border); padding:10px 22px; border-radius:10px; font-size:13px;
+           z-index:99; display:none; max-width:80%; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">🏀</div>
+  <div>
+    <h1>NBA 爬虫控制台</h1>
+    <div class="sub">Basketball-Reference 数据平台 · Go Spurs Go 🖤🩶</div>
+  </div>
+  <div class="right">
+    <span id="cdpChip" class="chip">CDP …</span>
+    <span id="brChip" class="chip">BR …</span>
+    <button onclick="runWatch()">🔍 一键巡检</button>
+  </div>
+</header>
+<main>
+  <div class="stats" id="stats"></div>
+  <div id="groups"></div>
+</main>
+
+<div id="logModal" onclick="if(event.target===this)closeLog()">
+  <div class="box">
+    <div class="hd"><b id="logTitle">日志</b>
+      <label style="margin-left:16px;font-size:12px;color:var(--dim)">
+        <input type="checkbox" id="logFollow" checked> 自动刷新</label>
+      <button onclick="closeLog()">关闭</button></div>
+    <div id="logBody">加载中…</div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+let logTimer = null, curLogId = null, curWatch = false;
+const openDetails = new Set();   // 记住哪些卡片的详情是展开的（轮询重绘后保持）
+
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function trackDetails(el) {
+  const id = el.dataset.id;
+  if (el.open) openDetails.add(id); else openDetails.delete(id);
+}
+
+function toast(msg, ms=3800) {
+  const t = $('#toast'); t.textContent = msg; t.style.display = 'block';
+  clearTimeout(t._h); t._h = setTimeout(()=> t.style.display='none', ms);
+}
+function fmtAge(s) {
+  if (s == null) return '无日志';
+  if (s < 60) return s + 's 前';
+  if (s < 3600) return Math.floor(s/60) + 'm 前';
+  return Math.floor(s/3600) + 'h 前';
+}
+
+async function refresh() {
+  try {
+    const d = await (await fetch('/api/crawlers')).json();
+    $('#cdpChip').className = 'chip ' + (d.cdp_alive ? 'ok' : 'bad');
+    $('#cdpChip').textContent = d.cdp_alive ? 'CDP 9222 ✓' : 'CDP 断开';
+    const nbr = d.running_br.length;
+    $('#brChip').className = 'chip ' + (nbr <= 1 ? 'ok' : 'bad');
+    $('#brChip').textContent = 'BR 并发: ' + nbr;
+
+    const groups = {};
+    d.crawlers.forEach(c => (groups[c.group] = groups[c.group] || []).push(c));
+    let html = '';
+    for (const [g, arr] of Object.entries(groups)) {
+      html += `<h2>${g}</h2><div class="grid">`;
+      for (const c of arr) {
+        const pid = c.procs.length ? `PID ${c.procs[0].pid} · 已跑 ${c.procs[0].etime}` : '';
+        const wasOpen = openDetails.has(c.id);
+        const tbls = (c.tables||[]).map(t=>`<span class="tbl">${esc(t)}</span>`).join('') || '—';
+        html += `<div class="card ${c.running?'running':''}">
+          <div class="top"><span class="dot ${c.running?'on':''}"></span>
+            <div><div class="nm">${c.name}</div><div class="desc">${c.desc}</div></div></div>
+          <div class="meta">
+            ${c.br?'<span class="tag br">BR</span>':''}
+            ${c.needs_cdp?'<span class="tag">CDP</span>':''}
+            <span class="tag">${c.kind}</span>
+            <span class="tag">${c.running ? pid : '未运行'}</span>
+            <span class="tag">日志 ${fmtAge(c.log_age_s)}</span>
+          </div>
+          <details class="dt" data-id="${c.id}" ${wasOpen?'open':''} ontoggle="trackDetails(this)">
+            <summary>详情：落库表 / 缓存 / 启动命令</summary>
+            <div class="dtbody">
+              <span class="dk">落库表</span><span class="dv">${tbls}</span>
+              <span class="dk">数据源</span><span class="dv"><code>${esc(c.url||'—')}</code></span>
+              <span class="dk">缓存</span><span class="dv"><code>${esc(c.cache||'—')}</code></span>
+              <span class="dk">脚本</span><span class="dv"><code>${esc(c.script)}</code></span>
+              <span class="dk">日志</span><span class="dv"><code>${esc(c.log)}</code></span>
+              <span class="dk">启动命令</span><span class="dv"><code>${esc(c.start_cmd||'—')}</code></span>
+              <span class="dk">上次启动</span><span class="dv">${esc(c.last_start||'（无控制台启动记录，可能为外部启动）')}</span>
+            </div>
+          </details>
+          <div class="ops">
+            <button class="start" ${c.running?'disabled':''} onclick="doStart('${c.id}','${c.name}')">▶ 启动</button>
+            <button class="stop" ${c.running?'':'disabled'} onclick="doStop('${c.id}','${c.name}')">■ 停止</button>
+            <button class="log" onclick="openLog('${c.id}','${c.name}')">日志</button>
+          </div></div>`;
+      }
+      html += '</div>';
+    }
+    $('#groups').innerHTML = html;
+  } catch(e) { /* 服务重启间隙静默 */ }
+}
+
+async function refreshStats() {
+  try {
+    const s = await (await fetch('/api/stats')).json();
+    const sc = s.shot_chart || {};
+    const pct = sc.total_pairs ? (100*sc.pairs/sc.total_pairs).toFixed(1) : 0;
+    const sasPct = sc.sas_total ? (100*sc.sas_done/sc.sas_total).toFixed(1) : 0;
+    $('#stats').innerHTML = `
+      <div class="stat sas"><div class="k">🖤 马刺 Shot Chart 进度</div>
+        <div class="v">${sc.sas_done ?? '-'} / ${sc.sas_total ?? '-'}</div>
+        <div class="bar"><i style="width:${sasPct}%"></i></div><div class="s">${sasPct}% 队季对完成</div></div>
+      <div class="stat"><div class="k">Shot Chart 总进度</div>
+        <div class="v">${(sc.balls??0).toLocaleString()} 球</div>
+        <div class="bar"><i style="width:${pct}%"></i></div>
+        <div class="s">${sc.pairs ?? '-'} / ${sc.total_pairs ?? '-'} 对（${pct}%）· ${sc.players ?? '-'} 名球员</div></div>
+      <div class="stat"><div class="k">球队赛季 PBP</div>
+        <div class="v">${s.team_pbp?.team_seasons ?? '-'}</div><div class="s">${s.team_pbp?.teams ?? '-'} 支球队 · 目标 800+ 队季</div></div>
+      <div class="stat"><div class="k">Play-by-Play 总行数</div>
+        <div class="v">${(s.pbp_rows??0).toLocaleString()}</div><div class="s">估算值</div></div>
+      <div class="stat"><div class="k">球员 Gamelog</div>
+        <div class="v">${(s.gamelog_rows??0).toLocaleString()}</div><div class="s">估算值</div></div>
+      <div class="stat"><div class="k">比赛维度表</div>
+        <div class="v">${(s.dim_games??0).toLocaleString()}</div><div class="s">dim_games 总场次</div></div>`;
+  } catch(e) {}
+}
+
+async function doStart(id, name) {
+  if (!confirm(`确认启动「${name}」？`)) return;
+  const r = await fetch(`/api/crawlers/${id}/start`, {method:'POST'});
+  const d = await r.json();
+  if (r.ok) toast(`✅ ${name} 已启动 (PID ${d.pid})`);
+  else if (r.status === 423) {
+    if (confirm('⚠️ ' + d.detail + '\n\n仍要强制并行启动吗？（不推荐）')) {
+      const r2 = await fetch(`/api/crawlers/${id}/start?force=true`, {method:'POST'});
+      const d2 = await r2.json();
+      toast(r2.ok ? `✅ 已强制启动 (PID ${d2.pid})` : '❌ ' + d2.detail);
+    }
+  } else toast('❌ ' + (d.detail || '启动失败'));
+  setTimeout(refresh, 800);
+}
+async function doStop(id, name) {
+  if (!confirm(`确认停止「${name}」？`)) return;
+  const r = await fetch(`/api/crawlers/${id}/stop`, {method:'POST'});
+  const d = await r.json();
+  toast(r.ok ? `⏹ 已停止 PID: ${d.stopped.join(', ') || '（无进程）'}` : '❌ 停止失败');
+  setTimeout(refresh, 800);
+}
+
+async function openLog(id, name) {
+  curLogId = id; curWatch = false;
+  $('#logTitle').textContent = name + ' — 日志（末 200 行）';
+  $('#logModal').style.display = 'block';
+  await loadLog();
+  clearInterval(logTimer);
+  logTimer = setInterval(()=>{ if ($('#logFollow').checked && !curWatch) loadLog(); }, 3000);
+}
+async function loadLog() {
+  if (!curLogId) return;
+  const d = await (await fetch(`/api/crawlers/${curLogId}/log?lines=200`)).json();
+  const b = $('#logBody');
+  const atBottom = b.scrollHeight - b.scrollTop - b.clientHeight < 60;
+  b.textContent = d.log || '(空)';
+  if (atBottom) b.scrollTop = b.scrollHeight;
+}
+function closeLog() { $('#logModal').style.display='none'; clearInterval(logTimer); curLogId=null; }
+
+async function runWatch() {
+  curWatch = true; curLogId = null; clearInterval(logTimer);
+  $('#logTitle').textContent = '🔍 盯梢巡检结果';
+  $('#logModal').style.display = 'block';
+  $('#logBody').textContent = '巡检中，最长 60 秒…';
+  const d = await (await fetch('/api/watch')).json();
+  $('#logBody').textContent = d.output || '(无输出)';
+}
+
+refresh(); refreshStats();
+setInterval(refresh, 4000);
+setInterval(refreshStats, 20000);
+</script>
+</body>
+</html>

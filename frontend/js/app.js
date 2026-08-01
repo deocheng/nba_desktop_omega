@@ -268,7 +268,12 @@ function renderDraft(data) {
       <td style="text-align:center;">${round}</td>
       <td style="text-align:right; font-family:var(--mono);">${pick}</td>
       <td><span class="badge badge-blue">${team}</span></td>
-      <td style="font-weight:600;">${name}</td>
+      <td>
+        <div class="rank-player-cell">
+          <span class="player-avatar sm">${renderPlayerAvatar({ player_id: r.player_id, player_name: r.player_name || r.player_name_orig, headshot_path: r.headshot_path, headshot_status: r.headshot_status }, { size: 'sm' })}</span>
+          <span style="font-weight:600;">${name}</span>
+        </div>
+      </td>
       <td style="text-align:right; font-family:var(--mono);">${wLbs}</td>
       <td style="text-align:right; font-family:var(--mono);">${wKg}</td>
       <td style="text-align:right; font-family:var(--mono);">${wSpan}</td>
@@ -416,13 +421,10 @@ async function selectPlayer(slot, playerId) {
 function renderVSPlayerCard(slot, bio) {
   const card = document.getElementById('player' + slot + 'Card');
   const name = bio.full_name || bio.player_name || 'Unknown';
-  const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
   const team = bio.team_abbr || bio.team || '—';
   const pos = bio.position || '';
-  // 有头像则渲染 <img> 覆盖在圆头像上；加载失败（onerror）自动移除回退到首字母
-  const avatarInner = bio.headshot_path
-    ? `<img class="player-avatar-img" src="/headshots/${encodeURIComponent(bio.player_id || '')}" alt="${escapeHtml(name)}" onerror="this.remove()" loading="lazy">`
-    : escapeHtml(initials);
+  // 统一通过 renderPlayerAvatar 渲染：有图显示头像，加载失败(onerror)自动降级到首字母
+  const avatarInner = renderPlayerAvatar(bio, { size: 'md' });
   card.className = 'player-card player-' + slot + ' has-player';
   card.innerHTML = `
     <div class="player-avatar ${slot === 2 ? 'p2' : ''}">${avatarInner}</div>
@@ -788,8 +790,13 @@ function renderMetricRankings(d) {
     return `<tr>
       <td style="font-weight:700; color:${rankColor};">${r.rank}</td>
       <td>
-        ${nameHtml}
-        ${pos ? `<div class="sub">${pos}</div>` : ''}
+        <div class="rank-player-cell">
+          <span class="player-avatar sm">${renderPlayerAvatar({ player_id: r.player_id, player_name: r.player_name, headshot_path: r.headshot_path, headshot_status: r.headshot_status }, { size: 'sm' })}</span>
+          <div>
+            ${nameHtml}
+            ${pos ? `<div class="sub">${pos}</div>` : ''}
+          </div>
+        </div>
       </td>
       <td style="text-align:right; font-family:var(--mono); font-weight:700; color:var(--accent);">${Number(r.value).toFixed(2)}</td>
       <td style="text-align:right; color:var(--text-dim);">${Number(r.percentile).toFixed(1)}%</td>
@@ -841,8 +848,13 @@ function renderStatRankings(d, source) {
     return `<tr>
       <td style="font-weight:700; color:${rankColor};">${rank}</td>
       <td>
-        ${nameHtml}
-        ${pos ? `<div class="sub">${pos}</div>` : ''}
+        <div class="rank-player-cell">
+          <span class="player-avatar sm">${renderPlayerAvatar({ player_id: p.player_id, player_name: p.player_name || p.name, headshot_path: p.headshot_path, headshot_status: p.headshot_status }, { size: 'sm' })}</span>
+          <div>
+            ${nameHtml}
+            ${pos ? `<div class="sub">${pos}</div>` : ''}
+          </div>
+        </div>
       </td>
       <td><span class="badge badge-blue">${team}</span></td>
       ${statColumns.map(c => {
@@ -965,11 +977,14 @@ async function loadSimilarPlayers(playerId, season, posFilter) {
     tbody.innerHTML = players.map((p, i) => `
       <tr>
         <td style="font-weight:700; color:var(--text-dim);">${i + 1}</td>
-        <td style="font-weight:600;">
-          <a href="javascript:void(0)" onclick="viewSimilarPlayerContext('${escapeHtml(p.player_id)}', '${escapeHtml(p.name || '')}')"
-             style="color:var(--accent); text-decoration:none; hover-text-decoration:underline;">
-            ${escapeHtml(p.name || '')}
-          </a>
+        <td>
+          <div class="rank-player-cell">
+            <span class="player-avatar sm">${renderPlayerAvatar({ player_id: p.player_id, name: p.name, headshot_path: p.headshot_path, headshot_status: p.headshot_status }, { size: 'sm' })}</span>
+            <a href="javascript:void(0)" onclick="viewSimilarPlayerContext('${escapeHtml(p.player_id)}', '${escapeHtml(p.name || '')}')"
+               style="color:var(--accent); text-decoration:none; hover-text-decoration:underline;">
+              ${escapeHtml(p.name || '')}
+            </a>
+          </div>
         </td>
         <td style="color:var(--text-dim);">${escapeHtml([p.team, p.position].filter(Boolean).join(' · '))}</td>
         <td style="text-align:right; font-family:var(--mono); font-weight:700; color:var(--accent);">
@@ -1069,13 +1084,10 @@ function renderCtxVsPlayerCard(slot, bio) {
   const card = document.getElementById('ctxVsPlayer' + slot + 'Card');
   if (!card) return;
   const name = bio.full_name || bio.player_name || 'Unknown';
-  const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
   const team = bio.team_abbr || bio.team || '—';
   const pos = bio.position || '';
-  // 有头像则渲染 <img> 覆盖在圆头像上；加载失败（onerror）自动移除回退到首字母
-  const avatarInner = bio.headshot_path
-    ? `<img class="player-avatar-img" src="/headshots/${encodeURIComponent(bio.player_id || '')}" alt="${escapeHtml(name)}" onerror="this.remove()" loading="lazy">`
-    : escapeHtml(initials);
+  // 统一通过 renderPlayerAvatar 渲染：有图显示头像，加载失败(onerror)自动降级到首字母
+  const avatarInner = renderPlayerAvatar(bio, { size: 'md' });
   card.className = 'player-card ctx-vs-card player-' + slot + ' has-player';
   card.innerHTML = `
     <div class="player-avatar ${slot === 2 ? 'p2' : ''}">${avatarInner}</div>

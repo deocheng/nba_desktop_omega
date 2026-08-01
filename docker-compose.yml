@@ -1,48 +1,14 @@
-# NBACore Studio v8 — Docker Compose
-# Usage: docker compose up -d
-
+version: '3.8'
 services:
-  db:
-    image: postgres:16-alpine
-    container_name: nbacore-db
-    environment:
-      POSTGRES_DB: ${DB_NAME:-nba}
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+  node-media-server:
+    image: node-media-server:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
-      - "${DB_PORT:-5433}:5432"
+      - "1935:1935"   # RTMP
+      - "8000:8000"   # HTTP FLV
+      - "8443:8443"   # HTTPS FLV
     volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-nba}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - ./config:/app/config   # optional custom configuration
     restart: unless-stopped
-
-  app:
-    build: .
-    container_name: nbacore-app
-    ports:
-      - "${SERVER_PORT:-5577}:5577"
-    environment:
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_NAME: ${DB_NAME:-nba}
-      DB_USER: ${DB_USER:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD}
-      SERVER_HOST: 0.0.0.0
-      SERVER_PORT: 5577
-      CACHE_DIR: .cache/metric_engine
-      DEBUG: "false"
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
-    volumes:
-      - appcache:/app/.cache/metric_engine
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: unless-stopped
-
-volumes:
-  pgdata:
-  appcache:

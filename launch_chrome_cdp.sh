@@ -8,7 +8,7 @@
 # 关闭：直接关掉这个 Chrome 窗口即可（cookie 同步会随之停止，crawler 用最后一份有效 cookie 续跑）。
 
 CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-PORT=9222
+PORT=9223   # 避开 agent 沙箱可能残留占用 9222 的 Chrome 僵尸（无 GUI，无法手动过 CF）
 PROFILE="/tmp/chrome_cdp_profile"
 
 if [ ! -x "$CHROME" ]; then

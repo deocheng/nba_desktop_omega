@@ -45,6 +45,7 @@ from common.br_team_page import (
     _row_data_stats,
 )
 from common.browser import ensure_cf_cleared
+from common.player_page_cache import is_valid_player_page
 
 logger = logging.getLogger("player_page_extras")
 
@@ -422,12 +423,33 @@ class PlayerPageExtrasCrawler(BRTeamPageCrawler):
         return out
 
     def _player_done(self, conn, slug: str) -> bool:
-        """以 player_game_highs 是否有该 slug 行判定整页已抓（5 类同源同页）。"""
+        """判定整页已处理（「是否已尝试」语义，2026-08-01 修复）。
+
+        旧逻辑只查 player_game_highs 是否有行 → 无 Game Highs 表的新秀
+        （如 Caleb Wilson / wilsoca01）永远判未完成、每轮重抓（曾单日被抓 124 次）。
+        现改为三态任一即视为完成：
+          1) dim_players.player_page_extras_scraped_at 非空（成功落库标记）
+          2) player_page_extras_404 已隔离（确认 404）
+          3) crawl_failures 已登记该 slug（瞬态重试耗尽）
+        与 bio_ext 的 resume 语义统一。
+        """
         cur = conn.cursor()
-        cur.execute("SELECT 1 FROM player_game_highs WHERE player_id=%s LIMIT 1", (slug,))
-        f = cur.fetchone() is not None
-        cur.close()
-        return f
+        try:
+            cur.execute(
+                "SELECT 1 FROM dim_players WHERE player_id=%s "
+                "AND player_page_extras_scraped_at IS NOT NULL LIMIT 1", (slug,))
+            if cur.fetchone() is not None:
+                return True
+            cur.execute(
+                "SELECT 1 FROM player_page_extras_404 WHERE slug=%s LIMIT 1", (slug,))
+            if cur.fetchone() is not None:
+                return True
+            cur.execute(
+                "SELECT 1 FROM crawl_failures WHERE task_type='br_player_page_extras' "
+                "AND game_id=%s LIMIT 1", (f"player_page_extras|{slug}|all",))
+            return cur.fetchone() is not None
+        finally:
+            cur.close()
 
     def _quarantine_slug(self, conn, slug: str) -> None:
         if conn is None:
@@ -438,6 +460,30 @@ class PlayerPageExtrasCrawler(BRTeamPageCrawler):
                 "INSERT INTO player_page_extras_404 (slug, note) VALUES (%s, %s) "
                 "ON CONFLICT (slug) DO NOTHING", (slug, "http_404"))
             conn.commit()
+        finally:
+            cur.close()
+
+    def _mark_scraped(self, conn, slug: str) -> None:
+        """成功解析落库后标记整页已尝试（幂等；slug 不在 dim_players 时静默跳过）。
+
+        写入 player_page_extras_scraped_at，作为 resume 的「已完成」判据。
+        即便该页解析出 0 行（如新秀无 Game Highs 表），只要页有效即标记，
+        避免每轮重抓（修复 wilsoca01 类死循环）。
+        """
+        if conn is None:
+            return
+        cur = conn.cursor()
+        try:
+            cur.execute(
+                "UPDATE dim_players SET player_page_extras_scraped_at = now() "
+                "WHERE player_id=%s", (slug,))
+            conn.commit()
+        except Exception as _e:  # noqa: BLE001
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+            logger.warning("_mark_scraped 写入失败（已忽略）: %s", _e)
         finally:
             cur.close()
 
@@ -460,8 +506,19 @@ class PlayerPageExtrasCrawler(BRTeamPageCrawler):
                 return 0
             self.register_failure(conn, f"player_page_extras|{slug}|all")
             return 0
+        # 页面有效性门槛（2026-08-01 加固）：fetch_team_page 已筛 CF/404，
+        # 此处再验一次，拦截「通过了 CF 标记但 DOM 未渲染完/截断」的脏页，
+        # 避免把脏页静默标记完成、造成不可逆缺口。与 bio_ext 同构。
+        if not is_valid_player_page(html):
+            logger.warning(
+                "    页面无效（残页/截断/CF 挑战，len=%d），记 failed 跳过（保留重试）",
+                len(html))
+            self.register_failure(conn, f"player_page_extras|{slug}|all")
+            return 0
         self.save_raw_html(slug, html)
-        return self._consume(conn, slug, html)
+        n = self._consume(conn, slug, html)
+        self._mark_scraped(conn, slug)   # 成功落库后标完成，杜绝死循环
+        return n
 
     def _consume(self, conn, slug: str, html: str) -> int:
         recs = []

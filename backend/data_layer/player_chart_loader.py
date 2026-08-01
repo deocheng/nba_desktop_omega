@@ -129,7 +129,7 @@ def get_player_advanced(season: int, limit: int, sort_by: str) -> list[dict]:
 
     sql = f"""
         WITH ranked AS (
-            SELECT p.season, p.player, p.team, p.pos, p.g, p.mp,
+            SELECT p.season, p.player_id, p.player, p.team, p.pos, p.g, p.mp,
                    p.per, p.ts_percent, p.x3p_ar, p.f_tr,
                    p.orb_percent, p.drb_percent, p.trb_percent,
                    p.ast_percent, p.stl_percent, p.blk_percent,
@@ -141,7 +141,7 @@ def get_player_advanced(season: int, limit: int, sort_by: str) -> list[dict]:
             WHERE p.season = %s AND p.g >= 10
               AND p.team NOT IN ('2TM', '3TM', '4TM', 'TOT')
         )
-        SELECT season, player, team, pos, g, mp,
+        SELECT season, player_id, player, team, pos, g, mp,
                per, ts_percent, x3p_ar, f_tr,
                orb_percent, drb_percent, trb_percent,
                ast_percent, stl_percent, blk_percent,
@@ -285,7 +285,7 @@ def get_player_per_game(season: int, limit: int, sort_by: str) -> list[dict]:
 
     sql = f"""
         WITH ranked AS (
-            SELECT player AS player_name, team, g, mp_per_game AS mp,
+            SELECT player_id, player AS player_name, team, g, mp_per_game AS mp,
                    pts_per_game AS pts, trb_per_game AS reb, ast_per_game AS ast,
                    stl_per_game AS stl, blk_per_game AS blk, tov_per_game AS tov,
                    fg_percent AS fg_pct, x3p_percent AS fg3_pct, ft_percent AS ft_pct,
@@ -296,7 +296,7 @@ def get_player_per_game(season: int, limit: int, sort_by: str) -> list[dict]:
               AND team NOT IN ('2TM', '3TM', '4TM', 'TOT')
               AND (season_type = 'Regular' OR season_type IS NULL)
         )
-        SELECT player_name, team, g, mp, pts, reb, ast, stl, blk, tov,
+        SELECT player_id, player_name, team, g, mp, pts, reb, ast, stl, blk, tov,
                fg_pct, fg3_pct, ft_pct, e_fg_pct
         FROM ranked WHERE rn = 1
         ORDER BY {sort_key} DESC NULLS LAST

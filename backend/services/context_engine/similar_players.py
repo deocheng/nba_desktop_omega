@@ -23,6 +23,9 @@ class SimilarPlayer:
     name: str
     team: str | None
     position: str | None
+    # 增量：本地头像（来自 player_bio 视图，经 get_player_bios 返回）
+    headshot_path: str | None = None
+    headshot_status: str | None = None
 
 
 def find_similar_players(
@@ -119,6 +122,8 @@ def find_similar_players(
             name=bio.get("player_name") or bio.get("full_name") or pid,
             team=bio.get("team"),
             position=bio.get("position"),
+            headshot_path=bio.get("headshot_path"),
+            headshot_status=bio.get("headshot_status"),
         ))
 
     return results

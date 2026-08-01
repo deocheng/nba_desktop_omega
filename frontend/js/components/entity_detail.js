@@ -153,12 +153,15 @@
     const bio = d.bio || {};
     const name = bio.full_name || bio.player_name || entityState.id;
     const sub = [bio.team_abbr || bio.team, bio.position].filter(Boolean).join(' · ');
+    // 头像：复用统一 helper（bio 已含 headshot_path/headshot_status；无图自动降级首字母）
+    const avatar = renderPlayerAvatar(bio, { size: 'lg' });
     const metricsHtml = renderKVTable(d.metrics || {});
     const seasonsHtml = renderSeasonsChips('player', entityState.id, d.seasons || []);
     const body = document.getElementById('entityOverlayBody');
     body.innerHTML = `
       <div class="entity-detail">
         <div class="entity-detail-head">
+          <div class="entity-detail-avatar"><div class="player-avatar lg">${avatar}</div></div>
           <div>
             <div class="entity-name">${escapeHtml(name)}</div>
             <div class="entity-sub">${escapeHtml(sub)} · ${seasonLabel(d.season)}</div>

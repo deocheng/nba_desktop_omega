@@ -102,6 +102,8 @@ def evaluate_metric(
                 value=r.value,
                 percentile=r.percentile,
                 sample_size=r.sample_size,
+                headshot_path=bios.get(r.player_id, {}).get("headshot_path"),
+                headshot_status=bios.get(r.player_id, {}).get("headshot_status"),
             )
             for r in rankings
         ],

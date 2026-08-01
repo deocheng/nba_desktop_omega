@@ -650,6 +650,36 @@ body {
   background: rgba(59, 130, 246, .12);
   color: var(--info);
 }
+
+/* ── Player avatar: initials fallback + size modifiers (headshot 统一接入) ── */
+.player-avatar.sm { width: 34px; height: 34px; margin-bottom: 0; font-size: 13px; }
+.player-avatar.lg { width: 88px; height: 88px; }
+.player-avatar-initials {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  line-height: 1;
+  box-sizing: border-box;
+  user-select: none;
+}
+.player-avatar-initials.sm { font-size: 12px; }
+.player-avatar-initials.md { font-size: 22px; }
+.player-avatar-initials.lg { font-size: 30px; }
+.player-avatar-initials.square { border-radius: 12%; }
+
+/* Rankings / draft / similar: inline avatar + name in one cell */
+.rank-player-cell { display: flex; align-items: center; gap: 10px; }
+.rank-player-cell .player-avatar { flex: 0 0 auto; }
+
+/* Entity detail overlay: avatar beside the title */
+.entity-detail-head { display: flex; align-items: center; gap: 16px; }
+.entity-detail-avatar { flex: 0 0 auto; }
+.entity-detail-avatar .player-avatar { margin-bottom: 0; }
 .player-name {
   font-size: 16px;
   font-weight: 700;

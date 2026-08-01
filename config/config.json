@@ -1,0 +1,27 @@
+api:
+  log_level: debug
+  secret: nodemedia2017privatekey
+  allow_origin: '*'
+  auth:
+    play: false
+    publish: false
+    jwt:
+      secret: nodemedia2017privatekey
+      expiresIn: 24h
+      algorithm: HS256
+      users:
+        - username: admin
+          password: admin123
+ffmpeg:
+  path: ffmpeg
+trans:
+  ffmpeg:
+    bin: ffmpeg
+    args:
+      - '-c:v'
+      - 'copy'
+      - '-c:a'
+      - 'aac'
+      - '-f'
+      - 'flv'
+      - 'rtmp://localhost/live/{streamName}'

@@ -15,6 +15,7 @@ import logging
 from backend.data_layer import (
     load_player_gamelog,
     load_player_gamelog_by_ids,
+    load_player_honors,
     load_player_season_stats,
     load_player_team_share,
     load_players,
@@ -142,6 +143,22 @@ def search_players_by_name(name: str, limit: int = 20) -> list[dict]:
     Returns: list[dict] with dim_players columns.
     """
     return search_players(name, limit=limit)
+
+
+def get_player_honors(player_id: str) -> list[dict]:
+    """Fetch a player's career honors from player_career_honors (bio_ext).
+
+    Args:
+        player_id: BBR player_id
+
+    Returns: list[dict] with (player_id, honor_raw, honor_type, honor_count,
+             honor_year, honor_detail). Empty list if no honors.
+
+    Layer isolation: API → metric_engine → data_layer → db.
+    """
+    if not player_id:
+        return []
+    return load_player_honors(player_id)
 
 
 def get_available_seasons(table_name: str = "fact_player_season_stats") -> list[int]:

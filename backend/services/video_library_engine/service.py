@@ -86,31 +86,34 @@ class VideoLibraryService:
         Raises :class:`VideoLibraryError` with code 40002 if no video source
         is registered for the game.
         """
-        # (1) Get video source — raises 40002 if no source registered.
+        # (1) Get video source — 无录像源时**降级**而非整体 abort：
+        #     frames / timeline / clutch_segments 全部由 ClutchReplayService
+        #     （PBP 派生）构建，完全不依赖录像源；录像源仅用于可选的 <video> 元素
+        #     （video_ref），前端在 video_ref 为空时显示 "No video source" 占位。
+        #     因此无录像源应走「正常构建帧」路径，不应 raise 40002。
         src = db.get_video_source(gameid, season)
         if src is None:
-            raise schemas.VideoLibraryError(
-                40002,
-                f"该场无录像来源: game {gameid} season {season}",
-            )
-
-        offset = float(src.get("video_offset_seconds", 0.0))
-        source_type = str(src.get("source", "other"))
-
-        # Determine video_ref and video_ref_type.
-        if source_type == "local_file" and src.get("local_path"):
-            video_ref = f"/video-library/media/{src['id']}"
-            video_ref_type = "local"
-        elif src.get("video_url"):
-            video_ref = str(src["video_url"])
-            video_ref_type = "url"
-        elif src.get("local_path"):
-            # Fallback: treat as local even if source label differs.
-            video_ref = f"/video-library/media/{src['id']}"
-            video_ref_type = "local"
-        else:
+            offset = 0.0
             video_ref = ""
-            video_ref_type = "url"
+            video_ref_type = "none"
+        else:
+            offset = float(src.get("video_offset_seconds", 0.0))
+            source_type = str(src.get("source", "other"))
+
+            # Determine video_ref and video_ref_type.
+            if source_type == "local_file" and src.get("local_path"):
+                video_ref = f"/video-library/media/{src['id']}"
+                video_ref_type = "local"
+            elif src.get("video_url"):
+                video_ref = str(src["video_url"])
+                video_ref_type = "url"
+            elif src.get("local_path"):
+                # Fallback: treat as local even if source label differs.
+                video_ref = f"/video-library/media/{src['id']}"
+                video_ref_type = "local"
+            else:
+                video_ref = ""
+                video_ref_type = "url"
 
         # (2) Reuse ClutchReplayService to get frames + meta + clutch segments.
         try:

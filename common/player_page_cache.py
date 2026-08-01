@@ -51,6 +51,39 @@ def cache_path(player_id: str) -> Path:
     return CACHE_ROOT / first / f"{player_id}.html"
 
 
+# ── 页面有效性判据(公共) ──────────────────────────────────────────────
+# 抽样 500 张缓存页实测(2026-07-31):
+#   * id="meta" 覆盖率 497/500 = 99.4%, 2 张无 meta 的均非合法球员页;
+#   * 正常球员页长度 p1=123k / p50=368k, 故 20000 阈值保守安全。
+# 用途: 任何「解析出空结果就登记 crawl_failures / 写 scraped_at 时间戳」的
+# 爬虫, 在落"确定性空结果"前必须先过此校验; 否则 CF 挑战页 / 截断页会被
+# 误判为"确认无数据"并被 resume 永久跳过 —— 造成不可逆的数据缺失。
+MIN_VALID_PAGE_LEN = 20000
+# 全部小写, 匹配时对 html.lower() 做 in 判断
+CF_CHALLENGE_MARKS = (
+    "just a moment",
+    "checking your browser",
+    "cf-browser-verification",
+    "attention required",
+    "challenge-platform",
+    "enable javascript and cookies",
+)
+
+
+def is_valid_player_page(html: Optional[str]) -> bool:
+    """判断 HTML 是否为「完整可信的 BR 球员页」。
+
+    True 仅当: 长度 >= MIN_VALID_PAGE_LEN 且 不含 CF 挑战特征 且 含 id="meta"。
+    None / 空串 / 残页 / 截断页 / CF 挑战页 一律 False。
+    """
+    if not html or len(html) < MIN_VALID_PAGE_LEN:
+        return False
+    low = html.lower()
+    if any(mark in low for mark in CF_CHALLENGE_MARKS):
+        return False
+    return 'id="meta"' in html
+
+
 def is_cached(player_id: str) -> bool:
     """该球员主页面是否已缓存(文件存在且 >0 字节)。"""
     p = cache_path(player_id)

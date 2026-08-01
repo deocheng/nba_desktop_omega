@@ -43,6 +43,7 @@ from backend.services.metric_engine.batch_loader import (
     available_source_tables,
     get_available_seasons,
     get_player_bios,
+    get_player_honors,
     load_metric_input,
     search_players_by_name,
 )
@@ -85,6 +86,7 @@ __all__ = [
     "load_metric_input",
     "available_source_tables",
     "get_player_bios",
+    "get_player_honors",
     "search_players_by_name",
     # Cache
     "CacheEngine",

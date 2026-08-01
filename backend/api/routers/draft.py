@@ -9,6 +9,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Query
 
 from backend.data_layer.draft_loader import load_draft_picks_with_weight
+from backend.services.metric_engine import get_player_bios
 
 router = APIRouter(prefix="/draft", tags=["draft"])
 
@@ -28,4 +29,14 @@ def draft_history(
     has no master-player page, so the UI should show "无资料" rather than link.
     """
     rows = load_draft_picks_with_weight(limit=limit, season=season)
+
+    # 增量：附上本地头像（headshot_path/headshot_status），复用 player_bio 视图。
+    # 仅做最小扩展：不影响 in_dim_players / weight 等既有字段与排序。
+    _ids = [r.get("player_id") for r in rows if r.get("player_id")]
+    _bios = {b["player_id"]: b for b in (get_player_bios(_ids) if _ids else [])}
+    for r in rows:
+        _b = _bios.get(r.get("player_id"), {})
+        r["headshot_path"] = _b.get("headshot_path")
+        r["headshot_status"] = _b.get("headshot_status")
+
     return {"count": len(rows), "rows": rows}

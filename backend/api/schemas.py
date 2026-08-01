@@ -40,6 +40,9 @@ class RankingItem(BaseModel):
     value: float
     percentile: float
     sample_size: int
+    # 增量：本地头像（与 PlayerBio 一致；前端用于统一渲染头像 + 首字母降级）
+    headshot_path: str | None = None       # 12TB 盘绝对路径（status='ok' 时存在）
+    headshot_status: str | None = None     # NULL/ok/missing/failed
 
 
 class EvaluateResponse(BaseModel):
@@ -72,15 +75,31 @@ class PlayerBio(BaseModel):
     experience: str | None = None
     year_from: int | None = None
     year_to: int | None = None
+    # 增量：球员本人绰号（见 sql/006_add_player_nickname.sql；多名时为逗号分隔列表）
+    nickname: str | None = None
     # 增量：本地头像（headshot）落盘信息（见 docs/ARCH_headshots_incremental.md）
     headshot_path: str | None = None       # 12TB 盘绝对路径（status='ok' 时存在）
     headshot_status: str | None = None     # NULL/ok/missing/failed
+    # 增量：bio_ext 7 维度（见 sql/007_add_player_bio_ext.sql）
+    aba_debut: str | None = None           # ABA 首秀日期（ISO）；NULL=无 ABA
+    died: str | None = None                # 离世日期（ISO）；NULL=在世/未知
+    hof_inducted_year: int | None = None   # 名人堂入选年份；NULL=非名人堂
+    hof_as: str | None = None              # 入选身份 Player/Coach/Contributor
+    is_hall_of_famer: bool | None = None   # 是否名人堂（派生自 hof_inducted_year）
+    career_length_years: int | None = None # 生涯长度（年）
+    relatives: str | None = None           # 亲属文本（逗号/分号分隔）
+    jersey_numbers: list[str] | None = None  # 生涯球衣号码（去重数组）
+    career_honors_text: list[str] | None = None  # 生涯荣誉清单（去重数组，展示镜像）
 
     @classmethod
     def from_row(cls, row: dict) -> "PlayerBio":
         """Build from a dim_players row (handles date/datetime → str)."""
         bd = row.get("birth_date")
         bd_str = bd.isoformat() if bd is not None else None
+        aba = row.get("aba_debut")
+        aba_str = aba.isoformat() if aba is not None else None
+        died = row.get("died")
+        died_str = died.isoformat() if died is not None else None
         return cls(
             player_id=str(row.get("player_id", "")),
             player_name=row.get("player_name"),
@@ -99,14 +118,42 @@ class PlayerBio(BaseModel):
             experience=row.get("experience"),
             year_from=row.get("year_from"),
             year_to=row.get("year_to"),
+            nickname=row.get("nickname"),
             headshot_path=row.get("headshot_path"),
             headshot_status=row.get("headshot_status"),
+            aba_debut=aba_str,
+            died=died_str,
+            hof_inducted_year=row.get("hof_inducted_year"),
+            hof_as=row.get("hof_as"),
+            is_hall_of_famer=row.get("is_hall_of_famer"),
+            career_length_years=row.get("career_length_years"),
+            relatives=row.get("relatives"),
+            jersey_numbers=row.get("jersey_numbers"),
+            career_honors_text=row.get("career_honors_text"),
         )
 
 
 class PlayerSearchResponse(BaseModel):
     players: list[PlayerBio]
     count: int
+
+
+# ── bio_ext 荣誉（见 sql/007_add_player_bio_ext.sql / common/player_bio_ext.py）──
+
+class PlayerHonor(BaseModel):
+    """A single normalized career honor (from player_career_honors)."""
+    player_id: str
+    honor_raw: str                         # 原始文本: "16x All Star" / "1983 NBA Champ"
+    honor_type: str                        # 归一化枚举（见 ARCH §4.1）
+    honor_count: int | None = None         # "16x"→16；无次数→None
+    honor_year: int | None = None          # "1983" / "1993"；无→None
+    honor_detail: str | None = None        # 补充: HoF "Player" / NBA 75th "Team"
+
+
+class PlayerHonorsResponse(BaseModel):
+    """Response for GET /players/{id}/honors."""
+    player_id: str
+    honors: list[PlayerHonor] = []
 
 
 class PlayerDetailResponse(BaseModel):
@@ -297,6 +344,9 @@ class SimilarPlayerItem(BaseModel):
     name: str
     team: str | None = None
     position: str | None = None
+    # 增量：本地头像（与 PlayerBio 一致；前端用于统一渲染头像 + 首字母降级）
+    headshot_path: str | None = None       # 12TB 盘绝对路径（status='ok' 时存在）
+    headshot_status: str | None = None     # NULL/ok/missing/failed
 
 
 class SimilarPlayersResponse(BaseModel):

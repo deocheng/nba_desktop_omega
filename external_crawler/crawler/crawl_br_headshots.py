@@ -225,9 +225,9 @@ def run_pipeline(limit=None, dry_run=False, resume=False) -> None:
                 failed += 1
             logger.info("    → %s", status)
 
-            # 限速 3-6s（与 gamelog 一致）
+            # 限速 5-8s（用户 2026-07-30 要求整体放缓 +2s 以降低 CF 风险；原 3-6s）
             if i < len(players) - 1:
-                time.sleep(3 + random.uniform(0, 3))
+                time.sleep(5 + random.uniform(0, 3))
     finally:
         if driver is not None:
             try:

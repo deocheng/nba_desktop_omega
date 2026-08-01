@@ -240,8 +240,11 @@ def fetch_image_via_cdp(driver, url: str, timeout: int = 30) -> bytes | None:
         target_name = urllib.parse.urlparse(url).path.rstrip("/").split("/")[-1]
 
         async def _go() -> bytes | None:
+            # proxy=None：CDP ws 必须直连本机，绕过环境注入的死代理
+            # （HTTP(S)_PROXY 污染会致 Errno 61，见 browser.py 同注）。
             async with websockets.connect(
-                target_ws, max_size=None, ping_interval=None, open_timeout=15
+                target_ws, max_size=None, ping_interval=None, open_timeout=15,
+                proxy=None,
             ) as ws:
                 _cid = {"v": 0}
 

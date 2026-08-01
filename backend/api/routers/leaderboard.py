@@ -9,6 +9,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Path, Query
 
 from backend.data_layer import get_player_advanced, get_player_per_game
+from backend.services.metric_engine import get_player_bios
 
 router = APIRouter(prefix="/leaderboard", tags=["leaderboard"])
 
@@ -86,6 +87,15 @@ def leaderboard(
         raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"leaderboard fetch failed: {exc}")
+
+    # 增量：附上本地头像（headshot_path/headshot_status），复用 player_bio 视图。
+    # 仅做最小 SELECT 扩展语义的等价实现，不改变排序/分页逻辑。
+    _ids = [r.get("player_id") for r in rows if r.get("player_id")]
+    _bios = {b["player_id"]: b for b in (get_player_bios(_ids) if _ids else [])}
+    for r in rows:
+        _b = _bios.get(r.get("player_id"), {})
+        r["headshot_path"] = _b.get("headshot_path")
+        r["headshot_status"] = _b.get("headshot_status")
 
     return {
         "leaderboard": rows,

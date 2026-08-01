@@ -76,12 +76,16 @@ _BREAKER = CFBreaker(
     backoff=int(_os.environ.get("CF_BACKOFF", "30")),
     cooldown=int(_os.environ.get("CF_COOLDOWN", "600")),
     max_cooldowns=int(_os.environ.get("CF_MAX_COOLDOWNS", "0")),
+    cooldown_max=int(_os.environ.get("CF_COOLDOWN_MAX", "3600")),
+    cooldown_growth=float(_os.environ.get("CF_COOLDOWN_GROWTH", "2.0")),
+    cooldown_trigger_s=int(_os.environ.get("CF_COOLDOWN_TRIGGER_S", "120")),
 )
 _CF_INNER_TRIES = 3  # 单页面内部重试上限（< breach_limit，避免单球员就触发熔断）
 
 
 def configure_breaker(breach_limit=None, backoff=None, cooldown=None,
-                      max_cooldowns=None) -> None:
+                      max_cooldowns=None, cooldown_max=None,
+                      cooldown_growth=None, cooldown_trigger_s=None) -> None:
     """运行时调参（爬虫 CLI 可调用，覆盖 env / 默认值）。"""
     if breach_limit is not None:
         _BREAKER.breach_limit = int(breach_limit)
@@ -91,6 +95,12 @@ def configure_breaker(breach_limit=None, backoff=None, cooldown=None,
         _BREAKER.cooldown = int(cooldown)
     if max_cooldowns is not None:
         _BREAKER.max_cooldowns = int(max_cooldowns)
+    if cooldown_max is not None:
+        _BREAKER.cooldown_max = int(cooldown_max)
+    if cooldown_growth is not None:
+        _BREAKER.cooldown_growth = float(cooldown_growth)
+    if cooldown_trigger_s is not None:
+        _BREAKER.cooldown_trigger_s = int(cooldown_trigger_s)
 
 
 # ---------------------------------------------------------------------------
@@ -489,6 +499,159 @@ def _cdp_http_get(path: str):
         return _json.loads(_r.read())
 
 
+def _cdp_http_put(path: str, data: str = ""):
+    """Send a CDP HTTP ``PUT`` (e.g. ``/json/new?<url>``) straight to the
+    reachable CDP endpoint, bypassing any proxy (same as ``_cdp_http_get``).
+
+    Using ``PUT /json/new?about:blank`` to open a fresh page target is more
+    reliable than the browser-level ``Target.createTarget`` websocket command,
+    which can chase a *stale advertised debugging port* (e.g. 60348) and wedge
+    the crawler retrying a dead connection. HTTP hits the known-good port
+    directly.
+    """
+    import urllib.request as _u
+    _opener = _u.build_opener(_u.ProxyHandler({}))
+    req = _u.Request(
+        f"{_CDP_BASE()}{path}", data=data.encode("utf-8"),
+        method="PUT", headers={"Content-Type": "application/json"})
+    with _opener.open(req, timeout=10) as _r:
+        return _json.loads(_r.read())
+
+
+def _cdp_create_target():
+    """Create a fresh blank page target and return its ``/json`` entry dict, or
+    ``(None, last_error)``.
+
+    Order matters (2026-07-30 空白页抢焦点根因)：
+
+    1. **primary**: browser-ws ``Target.createTarget`` with ``background: true``
+       — 在**后台**建 tab，不把 Chrome 窗口切到最前。用户实测 HTTP 版每次
+       建 tab 都抢焦点、切回浏览器，输入被打断，体验极差。stale-port 风险
+       已由 ``_cdp_ws_url``（强制 host+port = 配置端口）+ ``proxy=None``
+       （绕过环境死代理）双重化解，ws 现在是可靠的。
+    2. **fallback**: HTTP ``PUT /json/new``（会前台抢焦点，仅在 ws 不可用时
+       兜底；HTTP 层早已绕代理）。
+
+    Up to ``_CDP_CREATE_TARGET_TRIES`` attempts.
+    """
+    last_err = None
+    for _attempt in range(1, _CDP_CREATE_TARGET_TRIES + 1):
+        # primary: Target.createTarget background:true（后台建 tab，不抢焦点）
+        try:
+            cres = _cdp_call_browser(
+                "Target.createTarget",
+                {"url": "about:blank", "newWindow": False, "background": True})
+            tid = (cres or {}).get("targetId")
+            if tid:
+                targets = _cdp_http_get("/json")
+                entry = next((t for t in targets if t.get("id") == tid), None)
+                if entry:
+                    return entry, None
+        except Exception as _e:  # noqa: BLE001
+            last_err = _e
+        # fallback: HTTP PUT /json/new（前台打开、会抢焦点，仅兜底）
+        try:
+            res = _cdp_http_put("/json/new?about:blank")
+            if res and res.get("id") and res.get("webSocketDebuggerUrl"):
+                logger.warning(
+                    "CDP 建 target 走了 HTTP 兜底（前台 tab，可能抢焦点）；"
+                    "ws 主通道失败原因: %s", last_err)
+                return res, None
+        except Exception as _e:  # noqa: BLE001
+            last_err = _e
+        logger.warning(
+            "CDP 创建 target 尝试 %d/%d 失败 (%s)；%ss 后重试…",
+            _attempt, _CDP_CREATE_TARGET_TRIES, last_err, _CDP_CREATE_TARGET_WAIT)
+        time.sleep(_CDP_CREATE_TARGET_WAIT)
+    return None, last_err
+
+
+_CDP_OWN_TID_FILE = "/tmp/br_crawler_cdp_tid"
+
+
+def _cdp_close_own_target() -> None:
+    """Close the page target THIS crawler opened last time (persisted in
+    ``_CDP_OWN_TID_FILE``), if it is still alive in the user's Chrome.
+
+    Fixes stray blank tabs left after a crawler is killed (not cleanly quit):
+    the next run reads this file and closes the orphan on startup, so tabs
+    never accumulate. Only ever closes a tab whose id we ourselves wrote, so
+    the user's own tabs are never touched.
+    """
+    if not _CDP:
+        return
+    try:
+        with open(_CDP_OWN_TID_FILE) as _f:
+            _old = _f.read().strip()
+    except Exception:
+        return
+    if not _old:
+        return
+    try:
+        _cdp_call_browser("Target.closeTarget", {"targetId": _old})
+    except Exception:  # noqa: BLE001 - best-effort
+        pass
+
+
+def _cdp_record_own_target(tid: str) -> None:
+    """Remember the page target id we just opened, for later cleanup."""
+    if not _CDP or not tid:
+        return
+    try:
+        with open(_CDP_OWN_TID_FILE, "w") as _f:
+            _f.write(tid)
+    except Exception:  # noqa: BLE001 - best-effort
+        pass
+
+
+def _cdp_close_stray_blank_targets() -> None:
+    """Best-effort close of any leftover *blank* page targets.
+
+    A killed crawler leaves its dedicated blank tab open; over many restarts
+    these pile up as empty tabs the user sees. We only touch pages whose URL is
+    exactly ``about:blank`` (or empty) — a real user page always has a URL, so
+    this never closes the user's own tabs.
+    """
+    if not _CDP:
+        return
+    try:
+        targets = _cdp_http_get("/json")
+    except Exception:
+        return
+    for t in targets:
+        if t.get("type") == "page" and t.get("url") in ("about:blank", ""):
+            tid = t.get("id")
+            if not tid:
+                continue
+            try:
+                _cdp_call_browser("Target.closeTarget", {"targetId": tid})
+            except Exception:  # noqa: BLE001 - best-effort
+                pass
+
+
+def _read_own_tid():
+    """Return the crawler's own page target id (if recorded), else None."""
+    if not _CDP:
+        return None
+    try:
+        with open(_CDP_OWN_TID_FILE) as _f:
+            return _f.read().strip() or None
+    except Exception:
+        return None
+
+
+def _cdp_find_target(tid: str):
+    """Return the ``/json`` entry for ``tid`` if it is still a live page target."""
+    try:
+        targets = _cdp_http_get("/json")
+    except Exception:
+        return None
+    for t in targets:
+        if t.get("id") == tid and t.get("type") == "page":
+            return t
+    return None
+
+
 def _cdp_call_browser(method: str, params=None, timeout=30):
     """Send one CDP command to the *browser* endpoint, return its result."""
     import asyncio
@@ -498,8 +661,13 @@ def _cdp_call_browser(method: str, params=None, timeout=30):
     bws = _cdp_ws_url(ver["webSocketDebuggerUrl"])
 
     async def go():
+        # proxy=None：CDP 永远是本机 localhost，绝不能走环境注入的
+        # HTTP(S)_PROXY（沙箱/父会话常注入死代理如 127.0.0.1:61914，
+        # websockets>=14 默认读代理环境变量 → Errno 61 全灭：验活失败、
+        # closeTarget 关不掉 → 空白 tab 只建不关越积越多）。
         async with websockets.connect(
-            bws, max_size=None, ping_interval=None, open_timeout=15
+            bws, max_size=None, ping_interval=None, open_timeout=15,
+            proxy=None,
         ) as ws:
             await ws.send(_json.dumps({"id": 1, "method": method, "params": params or {}}))
             while True:
@@ -562,8 +730,11 @@ class _RawCDPDriver:
         import websockets
 
         async def go():
+            # proxy=None：同 _cdp_call_browser —— CDP ws 必须直连本机，
+            # 绕过环境注入的死代理（见 2026-07-30 空白页泄漏根因）。
             async with websockets.connect(
-                target_ws, max_size=None, ping_interval=None, open_timeout=15
+                target_ws, max_size=None, ping_interval=None, open_timeout=15,
+                proxy=None,
             ) as ws:
                 await ws.send(_json.dumps({"id": 1, "method": method, "params": params or {}}))
                 while True:
@@ -721,49 +892,50 @@ def _build_driver_cdp():
     _CDP = True
 
     base = _CDP_BASE()
-    # 1. open a dedicated blank page target. On a freshly launched CDP Chrome
-    #    the target subsystem can lag the websocket by a second or two, so
-    #    Target.createTarget may fail with "no browser is open". Poll + retry
-    #    instead of silently reusing a possibly-blank existing page.
-    tid = None
-    last_err = None
-    for _attempt in range(1, _CDP_CREATE_TARGET_TRIES + 1):
-        try:
-            res = _cdp_call_browser(
-                "Target.createTarget", {"url": "about:blank", "newWindow": False})
-            tid = (res or {}).get("targetId")
-            if tid:
-                break
-        except Exception as _e:  # noqa: BLE001
-            last_err = _e
-            logger.warning(
-                "CDP createTarget 尝试 %d/%d 失败 (%s)；%ss 后重试…",
-                _attempt, _CDP_CREATE_TARGET_TRIES, _e, _CDP_CREATE_TARGET_WAIT)
-            time.sleep(_CDP_CREATE_TARGET_WAIT)
-    # 2. resolve its page-level websocket URL (with a short retry: the freshly
-    #    created target may not yet appear in /json immediately after creation).
-    entry = None
-    for _attempt in range(1, _CDP_CREATE_TARGET_TRIES + 1):
-        try:
-            targets = _cdp_http_get("/json")
-        except Exception as _e:  # noqa: BLE001
-            last_err = _e
-            targets = []
-        entry = next((t for t in targets if t.get("id") == tid), None) if tid else None
-        if entry:
-            break
-        time.sleep(_CDP_CREATE_TARGET_WAIT)
+    # 1. open a *dedicated* blank page target via HTTP ``PUT /json/new`` — this
+    #    is more reliable than the browser-level ``Target.createTarget``
+    #    websocket command, which can chase a stale advertised debugging port
+    #    (e.g. 60348) and wedge the crawler retrying a dead connection. The
+    #    HTTP endpoint always hits the reachable CDP port directly, so the
+    #    crawler never drives the user's own visible tab.
+    # Reuse our own previously-opened tab if it is still alive, instead of
+    # opening a fresh blank tab on every reconnect — that flash of a blank page
+    # is exactly what the operator was seeing. Fall back to a new tab only when
+    # the old one died.
+    own_tid = _read_own_tid()
+    if own_tid:
+        _entry = _cdp_find_target(own_tid)
+        if _entry:
+            _page_ws = _cdp_ws_url(_entry["webSocketDebuggerUrl"])
+            try:
+                _cdp_validate_target(_page_ws, own_tid)
+                logger.info("复用专用 tab (target %s) — 不新建空白页", own_tid)
+                return _RawCDPDriver(_page_ws, own_tid)
+            except Exception:  # noqa: BLE001 - 旧 tab 死了，下面新建
+                try:
+                    _cdp_call_browser("Target.closeTarget", {"targetId": own_tid})
+                except Exception:
+                    pass
+    # 旧 tab 不存在/已死：清理残留再新建
+    _cdp_close_own_target()
+    _cdp_close_stray_blank_targets()
+    entry, last_err = _cdp_create_target()
     if not entry:
         # Last-resort fallback: reuse an existing page target. Loud warning so
         # the operator knows we are NOT driving a clean tab we just opened.
         logger.warning(
-            "CDP createTarget 重试 %d 次仍失败（%s）；回退到复用已有页面目标",
+            "CDP 创建 target 重试 %d 次仍失败（%s）；回退到复用已有页面目标",
             _CDP_CREATE_TARGET_TRIES, last_err)
         try:
             targets = _cdp_http_get("/json")
         except Exception:  # noqa: BLE001
             targets = []
-        entry = next((t for t in targets if t.get("type") == "page"), None)
+        _pages = [t for t in targets if t.get("type") == "page"]
+        # 优先复用无主的 about:blank（多半是此前泄漏的空白页，正好回收），
+        # 绝不优先抢用户正在看的真实页面。
+        entry = next(
+            (t for t in _pages if t.get("url") in ("about:blank", "")),
+            None) or next(iter(_pages), None)
         if not entry or "webSocketDebuggerUrl" not in entry:
             raise RuntimeError(
                 "CDP: 无法创建或复用任何可用 page target（用户 Chrome 未就绪？）")
@@ -772,12 +944,14 @@ def _build_driver_cdp():
             "connected to user Chrome via raw CDP (reused target %s); driving it directly",
             entry.get("id", ""))
         _cdp_validate_target(page_ws, entry.get("id", ""))  # 死 target 直接抛错
+        _cdp_record_own_target(entry.get("id", ""))
         return _RawCDPDriver(page_ws, entry.get("id", ""))
     page_ws = _cdp_ws_url(entry["webSocketDebuggerUrl"])
     logger.info(
-        "connected to user Chrome via raw CDP (target %s); driving it directly", tid
-    )
-    _cdp_validate_target(page_ws, tid)  # 连接前验证：死 target 直接抛错让上层换一个
+        "connected to user Chrome via raw CDP (target %s); driving it directly",
+        entry.get("id", ""))
+    _cdp_validate_target(page_ws, entry.get("id", ""))  # 连接前验证：死 target 直接抛错让上层换一个
+    _cdp_record_own_target(entry.get("id", ""))
     return _RawCDPDriver(page_ws, entry.get("id", ""))
 
 
@@ -835,6 +1009,39 @@ def get_driver():
         _DRIVER = _build_driver()
         _INVALID = False
     return _DRIVER
+
+
+def reconnect_driver():
+    """Re-establish the shared driver WITHOUT spawning a new blank tab.
+
+    On a transient fault we want to reuse the *same* page target we already
+    opened (just reconnect its websocket) — never close it and open a fresh
+    ``about:blank`` (that flash of a blank page is exactly what the operator
+    was seeing, and it also leaked tabs). Falls back to a full rebuild only
+    when the target has truly died.
+    """
+    global _DRIVER, _INVALID
+    with _LOCK:
+        own_tid = _read_own_tid()
+        if _CDP and own_tid:
+            entry = _cdp_find_target(own_tid)
+            if entry and entry.get("webSocketDebuggerUrl"):
+                page_ws = _cdp_ws_url(entry["webSocketDebuggerUrl"])
+                try:
+                    _cdp_validate_target(page_ws, own_tid)
+                    _DRIVER = _RawCDPDriver(page_ws, own_tid)
+                    _INVALID = False
+                    logger.info("复用同一专用 tab 重连 (target %s) — 不新建空白页", own_tid)
+                    return _DRIVER
+                except Exception:  # noqa: BLE001 - 旧 target 死了，下面全量重建
+                    pass
+        # target 不存在/已死：全量重建（少数情况）
+        _teardown(_DRIVER)
+        _DRIVER = None
+        _INVALID = True
+        _DRIVER = _build_driver()
+        _INVALID = False
+        return _DRIVER
 
 
 def reset_driver() -> None:

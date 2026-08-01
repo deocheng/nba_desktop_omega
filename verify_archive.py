@@ -23,11 +23,11 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
 
-from common.bridge_constants import get_pg_conn, PROJECT_ROOT  # noqa: E402
+from common.bridge_constants import get_pg_conn, ARCHIVE_ROOT  # noqa: E402
 import raw_archiver  # noqa: E402
 
-BR_ROOT = os.path.join(PROJECT_ROOT, "raw_archive", "br")
-ESPN_ROOT = os.path.join(PROJECT_ROOT, "raw_archive", "espn")
+BR_ROOT = os.path.join(ARCHIVE_ROOT, "br")
+ESPN_ROOT = os.path.join(ARCHIVE_ROOT, "espn")
 
 
 def list_br_html():
@@ -85,7 +85,7 @@ def main():
         for f in nonempty_br + nonempty_espn:
             if not raw_archiver.verify_sha256(f):
                 sha_fail += 1
-                print(f"  ! 哈希不符/缺 .sha256: {os.path.relpath(f, PROJECT_ROOT)}", flush=True)
+                print(f"  ! 哈希不符/缺 .sha256: {os.path.relpath(f, ARCHIVE_ROOT)}", flush=True)
 
     # DB 计数（连不上也只做文件层校验，不崩）
     conn = None

@@ -1,0 +1,92 @@
+classDiagram
+    %% ── 数据层 ──
+    class dim_players {
+        +player_id text PK
+        +player_name text
+        +full_name text
+        +nickname text
+        +headshot_status text
+        +aba_debut date
+        +hof_inducted_year integer
+        +hof_as text
+        +is_hall_of_famer boolean
+        +career_length_years integer
+        +relatives text
+        +jersey_numbers text[]
+        +career_honors_text text[]
+        +bio_ext_scraped_at timestamp
+    }
+
+    class player_career_honors {
+        +id bigserial PK
+        +player_id text FK
+        +honor_raw text
+        +honor_type text
+        +honor_count integer
+        +honor_year integer
+        +honor_detail text
+        +source_url text
+        +scraped_at timestamp
+    }
+
+    class player_bio {
+        <<view over dim_players>>
+        +player_id
+        +nickname
+        +aba_debut
+        +hof_inducted_year
+        +hof_as
+        +is_hall_of_famer
+        +career_length_years
+        +relatives
+        +jersey_numbers
+        +career_honors_text
+    }
+
+    %% ── 抽取 / 爬虫层 ──
+    class PlayerBioExtExtractor {
+        +fetch_player_page(pid) str
+        +extract_aba_debut(html) date
+        +extract_hof(html) dict
+        +extract_career_length(html) int
+        +extract_relatives(html) str
+        +extract_jersey_numbers(html) list
+        +extract_honors(html) list~dict~
+        +parse_honor_line(text) dict
+    }
+
+    class PlayerBioExtCrawler {
+        +get_players(limit, resume) list
+        +upsert_player_bio_ext(conn, pid, data)
+        +run_pipeline(limit, dry_run, resume, rate)
+    }
+
+    %% ── API 层 ──
+    class PlayerBio {
+        +aba_debut
+        +hof_inducted_year
+        +hof_as
+        +is_hall_of_famer
+        +career_length_years
+        +relatives
+        +jersey_numbers
+        +career_honors_text
+        +from_row(row) PlayerBio
+    }
+
+    class PlayerHonor {
+        +honor_raw text
+        +honor_type text
+        +honor_count int
+        +honor_year int
+        +honor_detail text
+    }
+
+    %% ── 关系 ──
+    dim_players ||--o{ player_career_honors : "1 player → N honors (FK, cascade)"
+    dim_players ||--|| player_bio : "view mirrors columns"
+    PlayerBioExtCrawler ..> PlayerBioExtExtractor : uses
+    PlayerBioExtCrawler ..> dim_players : "UPDATE (per-player commit)"
+    PlayerBioExtCrawler ..> player_career_honors : "DELETE + INSERT"
+    player_bio ..> PlayerBio : "SELECT * → from_row"
+    player_career_honors ..> PlayerHonor : "GET /players/{id}/honors"
