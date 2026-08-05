@@ -74,7 +74,7 @@ CRAWLERS = [
          log=f"{LOG_DIR}/headshots_crawl.log", pattern="crawl_br_headshots.py",
          br=True, needs_cdp=True, desc="球员头像图片下载",
          tables=["dim_players（headshot_path/headshot_status/headshot_scraped_at 列）"],
-         cache="/Volumes/12T/NBA/球星/headshots/{player_id}.{jpg|png}",
+         cache="/Volumes/12T/NBA/headshots/{player_id}.{jpg|png}",
          url="basketball-reference.com/players/{x}/{slug}.html（<img> 头像）"),
     dict(id="nicknames", name="球员绰号", group="球员数据", kind="py",
          script="external_crawler/crawler/crawl_br_nicknames.py", args=[],

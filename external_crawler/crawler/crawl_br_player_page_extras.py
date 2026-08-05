@@ -46,6 +46,7 @@ from common.br_team_page import (
 )
 from common.browser import ensure_cf_cleared
 from common.player_page_cache import is_valid_player_page
+from common.season_type_norm import canon_season_type  # season_type 写入约定统一对齐 dim_games
 
 logger = logging.getLogger("player_page_extras")
 
@@ -115,7 +116,7 @@ def parse_game_highs(html: str, season_type: str) -> List[Dict]:
         if not s or s == "Season" or se is None:
             continue
         out.append({
-            "season_type": season_type,
+            "season_type": canon_season_type(season_type),
             "season_end": se,
             "season_text": s,
             "age": safe_int(v.get("age")),
@@ -253,7 +254,7 @@ def parse_adj_shooting(html: str, season_type: str) -> List[Dict]:
         if not s or s == "Season" or se is None:
             continue
         out.append({
-            "season_type": season_type,
+            "season_type": canon_season_type(season_type),
             "season_end": se,
             "season_text": s,
             "age": safe_int(v.get("age")),

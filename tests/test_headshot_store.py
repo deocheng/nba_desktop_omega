@@ -49,7 +49,7 @@ CF_HTML = (
     "</body></html>"
 ).encode("utf-8")
 
-REAL_ROOT = Path("/Volumes/12T/NBA/球星/headshots")
+REAL_ROOT = Path("/Volumes/12T/NBA/headshots")
 
 PLAYER_ID = "jamesle01"
 IMG_URL = "https://www.basketball-reference.com/req/202605210/images/headshots/jamesle01.jpg"
@@ -102,7 +102,7 @@ def test_is_valid_image_false_for_cf_challenge_html():
 
 # ── headshot_path_for ─────────────────────────────────────────────────────
 def test_real_root_constant_matches_spec():
-    """落盘根目录必须是 /Volumes/12T/NBA/球星/headshots（不与现有按姓名目录冲突）。"""
+    """落盘根目录必须是 /Volumes/12T/NBA/headshots（不与现有按姓名目录冲突）。"""
     assert str(store.HEADSHOT_ROOT) == str(REAL_ROOT)
 
 

@@ -42,6 +42,7 @@ from bs4 import BeautifulSoup, Comment
 from common.br_player_page import BRPlayerPageCrawler, DB_CONFIG
 from common.browser import quit_driver, reconnect_driver  # 模块级（基类无这些方法，勿用 self.xxx）
 from common.season_priority import season_tier  # 赛季抓取优先级（2010+ > 2000s > 1980s > pre-1980）
+from common.season_type_norm import canon_season_type  # season_type 写入约定统一对齐 dim_games
 
 # ── 常量 ───────────────────────────────────────────────────────────────
 DOMAIN = "player_shot_chart"
@@ -392,18 +393,14 @@ class PlayerShotChartCrawler(BRPlayerPageCrawler):
         """按 (比赛日, 对手) 定位比赛 → (game_id, season_type)。
         一条 shot 自带 game_date + opponent_abbr（解析自 tooltip），足以唯一锁定
         dim_games 中的那场比赛，无需球员所属球队参与（player_shot_chart 也无 team 列）。
-        season_type 归一：'Regular Season'→'Regular'，'Playoffs'→'Playoffs'。"""
+        season_type 直接透传 dim_games 权威值，经 canon_season_type 归一（保证与 dim_games 字典一致，不再 remap 成 'Regular'）。"""
         if not game_date or not opponent_abbr:
             return (None, None)
         hit = cache.get((game_date, opponent_abbr))
         if not hit:
             return (None, None)
         gid, st, _home, _away = hit
-        if st and st.lower().startswith("playoff"):
-            st = "Playoffs"
-        elif st and "regular" in st.lower():
-            st = "Regular"
-        return (gid, st)
+        return (gid, canon_season_type(st))
 
     # ── 解析 + 注入 player/game ─────────────────────────────────────
     def build_rows(self, conn, slug: str, season: int, rec: Dict, games_cache) -> Dict:

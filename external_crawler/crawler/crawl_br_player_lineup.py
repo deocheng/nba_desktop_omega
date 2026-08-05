@@ -38,6 +38,7 @@ import psycopg2
 from bs4 import BeautifulSoup
 
 from common.br_player_lineup import BRPlayerLineupCrawlerBase, DB_CONFIG
+from common.season_type_norm import canon_season_type  # season_type 写入约定统一对齐 dim_games
 from common.br_team_page import (
     extract_player_links,
     safe_float,
@@ -142,7 +143,7 @@ def _parse_lineups_table(soup: BeautifulSoup, table_id: str,
             continue
         csk = cell.get("csk") if cell is not None else None
         rec: Dict = {
-            "season_type": season_type,
+            "season_type": canon_season_type(season_type),
             "lineup_size": size,
             "players": players,  # List[Tuple[slug, name]]，长度须为 size
             "ranker": safe_int(vals.get("ranker")),
@@ -245,7 +246,7 @@ class PlayerLineupCrawler(BRPlayerLineupCrawlerBase):
         row: Dict = {
             "player_id": slug,
             "season": season,
-            "season_type": season_type,
+            "season_type": canon_season_type(season_type),
             "lineup_size": rec.get("lineup_size"),
             "lineup_key": lineup_key,
         }

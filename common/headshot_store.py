@@ -26,7 +26,7 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 # ── 常量 ──────────────────────────────────────────────────────────────────
-HEADSHOT_ROOT = Path("/Volumes/12T/NBA/球星/headshots")
+HEADSHOT_ROOT = Path("/Volumes/12T/NBA/headshots")
 SELECTOR = "#info .media-item img"                 # 已实测验证（Architect 实测 LeBron James 命中 1 个 <img>）
 BR_HEADSHOT_HOST = "https://www.basketball-reference.com"
 DESKTOP_UA = (

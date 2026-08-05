@@ -31,6 +31,7 @@ from typing import Dict, List, Optional
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from bs4 import BeautifulSoup
+from common.season_type_norm import canon_season_type  # season_type 写入约定统一对齐 dim_games
 from common.br_team_page import (
     BRTeamPageCrawler,
     build_arg_parser,
@@ -141,7 +142,7 @@ class OnOffCrawler(BRTeamPageCrawler):
         row: Dict = {
             "team_abbr": team_abbr,
             "season": season,
-            "season_type": season_type,
+            "season_type": canon_season_type(season_type),
             "br_player_id": slug or br_pid,
             "player_id": nba_pid,
             "player_name": name,

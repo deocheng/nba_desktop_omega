@@ -40,6 +40,7 @@ from common.br_player_page import BRPlayerPageCrawler, DB_CONFIG
 from common.br_team_page import safe_int, safe_float
 from common.browser import quit_driver  # 基类无 quit_driver 方法，勿用 self.quit_driver
 from common.season_priority import season_tier  # 赛季抓取优先级（2010+ > 2000s > 1980s > pre-1980）
+from common.season_type_norm import canon_season_type  # season_type 写入约定统一对齐 dim_games
 
 
 DOMAIN = "player_shooting"
@@ -137,7 +138,7 @@ def parse_per_season_shooting(html: str) -> List[Dict]:
         "corner_3_point_percent": None,
         "num_heaves_attempted": None,
         "num_heaves_made": None,
-        "season_type": "Regular",
+        "season_type": canon_season_type("Regular"),
         "weight": None,
     }
     return [rec]
@@ -165,7 +166,7 @@ class PlayerShootingCrawler(BRPlayerPageCrawler):
     def _pair_done(self, conn, slug: str, season: int) -> bool:
         cur = conn.cursor()
         cur.execute(
-            "SELECT 1 FROM player_shooting WHERE player_id=%s AND season=%s AND season_type='Regular' LIMIT 1",
+            "SELECT 1 FROM player_shooting WHERE player_id=%s AND season=%s AND season_type='Regular Season' LIMIT 1",
             (slug, season),
         )
         found = cur.fetchone() is not None
@@ -204,7 +205,7 @@ class PlayerShootingCrawler(BRPlayerPageCrawler):
             WHERE fps.season >= 1997 AND fps.season <= 2026
               AND fps.player_id IS NOT NULL
               AND NOT EXISTS (SELECT 1 FROM player_shooting ps
-                             WHERE ps.player_id=fps.player_id AND ps.season=fps.season AND ps.season_type='Regular')
+                             WHERE ps.player_id=fps.player_id AND ps.season=fps.season AND ps.season_type='Regular Season')
               AND NOT EXISTS (SELECT 1 FROM crawl_failures cf
                              WHERE cf.task_type='br_player_shooting'
                                AND cf.game_id='br_player_shooting|'||fps.player_id||'|'||fps.season::text)

@@ -45,6 +45,7 @@ logger = logging.getLogger(__name__)
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from bs4 import BeautifulSoup
+from common.season_type_norm import canon_season_type  # season_type 写入约定统一对齐 dim_games
 from bs4.element import Comment
 
 from common.br_team_page import (
@@ -157,7 +158,7 @@ class TeamPBPCrawler(BRTeamPageCrawler):
         row: Dict = {
             "team_abbr": team_abbr,
             "season": season,
-            "season_type": season_type,
+            "season_type": canon_season_type(season_type),
             "table_id": rec.get("table_id"),
             "row_label": rec.get("row_label"),
             "data_stat": rec.get("data_stat"),
@@ -227,7 +228,7 @@ class TeamPBPCrawler(BRTeamPageCrawler):
                 out.append({
                     "team_abbr": slug,
                     "season": season,
-                    "season_type": season_type,
+                    "season_type": canon_season_type(season_type),
                     "table_id": table_id,
                     "row_label": label,
                     "data_stat": ds,

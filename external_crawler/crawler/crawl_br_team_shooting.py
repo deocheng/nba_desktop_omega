@@ -26,6 +26,7 @@ from typing import Dict, List, Optional
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from bs4 import BeautifulSoup
+from common.season_type_norm import canon_season_type  # season_type 写入约定统一对齐 dim_games
 from common.br_team_page import (
     BRTeamPageCrawler,
     build_arg_parser,
@@ -160,7 +161,7 @@ class TeamShootingCrawler(BRTeamPageCrawler):
         row = dict(rec)
         row["team_abbr"] = team_abbr
         row["season"] = season
-        row["season_type"] = season_type
+        row["season_type"] = canon_season_type(season_type)
         return row
 
     def upsert(self, conn, rows: List[Dict]) -> int:

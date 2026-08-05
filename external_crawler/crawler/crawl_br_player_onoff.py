@@ -43,6 +43,7 @@ from bs4 import BeautifulSoup
 
 from common.br_player_onoff import BRPlayerOnOffCrawlerBase, DB_CONFIG
 from common.br_team_page import safe_float, _row_data_stats
+from common.season_type_norm import canon_season_type  # season_type 写入约定统一对齐 dim_games
 
 # split_id 原始文本 -> 规范化 split 值（BR 用 U+2212 减号 "On − Off"）。
 SPLIT_NORMALIZE = {
@@ -126,7 +127,7 @@ def _parse_onoff_table(soup: BeautifulSoup, table_id: str,
             continue
         mp, min_pct = _parse_mp(split, vals.get("mp"))
         rec: Dict = {
-            "season_type": season_type,
+            "season_type": canon_season_type(season_type),
             "split": split,
             "team_id": (vals.get("team_id") or None),
             "mp": mp,
@@ -190,7 +191,7 @@ class PlayerOnOffCrawler(BRPlayerOnOffCrawlerBase):
         row: Dict = {
             "player_id": slug,
             "season": season,
-            "season_type": season_type,
+            "season_type": canon_season_type(season_type),
             "split": rec.get("split"),
             "team_id": rec.get("team_id"),
             "mp": rec.get("mp"),

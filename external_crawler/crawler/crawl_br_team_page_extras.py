@@ -43,6 +43,7 @@ from common.br_team_page import (
     safe_float,
 )
 from common.browser import ensure_cf_cleared
+from common.season_type_norm import canon_season_type  # season_type 写入约定统一对齐 dim_games
 
 logger = logging.getLogger("team_page_extras")
 
@@ -352,7 +353,7 @@ class TeamPageExtrasCrawler(BRTeamPageCrawler):
             logger.info("  [roster] %s/%d: %d 球员", slug, season, len(roster))
         # Per 36（Regular + Playoffs）
         for st in ("Regular", "Playoffs"):
-            per36 = [dict(r, team_abbr=slug, season=season, season_type=st)
+            per36 = [dict(r, team_abbr=slug, season=season, season_type=canon_season_type(st))
                      for r in parse_team_per36(html, st)]
             if per36:
                 n += self._upsert_rows(conn, "team_per_36", per36,
