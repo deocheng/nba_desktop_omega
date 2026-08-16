@@ -1,0 +1,245 @@
+#!/usr/bin/env bash
+# =============================================================================
+# crawler_watchdog.sh — NBA 爬虫 看门狗 + 守护包装
+#
+# 解决的历史失效：
+#   1) 守护失效：之前用 WorkBuddy run_in_background 启动 driver，网络抖动时被
+#      整条进程树回收；setsid(macOS 无) / launchctl submit|load(被沙箱拦) 均不可用。
+#      → 本看门狗用 `nohup bash crawler_watchdog.sh >/dev/null 2>&1 &` 启动，
+#        进程脱离 WorkBuddy 后台任务追踪——❌ 旧结论已证伪：实测 nohup & 在普通 Bash
+#        调用返回时即被 WorkBuddy 回收(30s 内死)。看门狗改由 run_in_background 启动。
+#   2) 看门狗失效：之前 cdp_monitor/cdp_restart 已从 driver 移除，crawler 死无人
+#      发现、无人拉起。→ 本脚本常驻监控 driver + CDP Chrome。
+#
+# 判定"卡死"用【数据库写入进度】(player_gamelog 当前季行数是否增长)，而非日志
+#   mtime：CF 墙时爬虫疯狂写 ERR 行（mtime 很新）但行数不动，mtime 法会漏判。
+#
+# 用法（WorkBuddy 环境）：
+#   启动(常驻): 用 Bash 工具 run_in_background 执行 `bash crawler_watchdog.sh`
+#               ⚠ 不要用 `nohup ... &` —— WorkBuddy 普通 Bash 调用返回时会回收该进程。
+#   查看状态:   bash crawler_watchdog.sh status
+#   停止:       bash crawler_watchdog.sh stop     (写 stop 标志，看门狗下一轮退出)
+# =============================================================================
+set -u
+
+PROJECT="/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
+CRAWLER="$PROJECT/external_crawler/crawler"
+DRIVER="$CRAWLER/recrawl_2004_2026_autofill.sh"
+LAUNCH_CHROME="$PROJECT/launch_chrome_cdp.sh"
+LOGDIR="$PROJECT/logs"
+WATCHLOG="$LOGDIR/crawler_watchdog.log"
+STATUS="$LOGDIR/crawler_watchdog.status"
+HEARTBEAT="$LOGDIR/crawler_watchdog.heartbeat"
+PIDFILE="$LOGDIR/crawler_watchdog.pid"
+STOPFLAG="$LOGDIR/crawler_watchdog.stop"
+STATE="$LOGDIR/recrawl_done_2004_2026.txt"
+FAILURES="$LOGDIR/recrawl_failed_2004_2026.txt"
+# 500 绕开清单产生的 BYPASSED 季：剩余缺口均为 BR 源站 500，不计入 STATE（不谎报完成）
+BYPASSED="$LOGDIR/recrawl_bypassed_2004_2026.txt"
+# 停止控制：此文件存在且内容为某季 → 该季跑完（完成或放弃）后即停止整栈，不再续跑后续季
+STOP_AFTER_FLAG="$LOGDIR/stop_after_season.flag"
+PSQL="/opt/homebrew/opt/postgresql@18/bin/psql"
+CDP_PORT=9223
+DBPASS=$(grep '^DB_PASSWORD=' "$PROJECT/.env" 2>/dev/null | head -1 | cut -d= -f2-)
+
+# 调参
+SLEEP_LOOP=30            # 主循环间隔(秒)
+STALL_MINUTES=30         # 当前季行数多久无增长判定为卡死
+MAX_STALL=3              # 连续卡死几次 → 判定 CF 墙 → PAUSE 退出
+DRIVER_OUT="$LOGDIR/crawler_watchdog.driver.out"
+
+log(){ echo "$(date '+%Y-%m-%d %H:%M:%S') $*" | tee -a "$WATCHLOG"; }
+set_status(){ echo "$1" > "$STATUS"; date '+%Y-%m-%d %H:%M:%S' > "$HEARTBEAT"; echo "  $1" >> "$HEARTBEAT"; }
+
+# ---- 进程脱离：用 python os.setsid 创建新会话/进程组（macOS 无 setsid 命令）----
+# 用途：Chrome / driver 与看门狗分属不同会话，平台回收后台任务(killpg)只杀看门狗、
+#       不杀爬虫树；新看门狗可 re-attach 续跑（cdp_alive 探 9223 + pgrep 查 driver）。
+PY_BIN="/Users/deocheng/.workbuddy/binaries/python/versions/3.13.12/bin/python3"
+detach(){ "$PY_BIN" -c "import os,sys; os.setsid(); os.execvp(sys.argv[1], sys.argv[1:])" "$@"; }
+
+# ---- CDP(9223) 健康检查：端口活着即可（用 GET /json/version，绝不新建 tab）----
+# 注意：曾用 `PUT /json/new?about:blank` 探活，每次调用都会新建一个空白 tab 且
+# 永不清 → 空白页越积越多（主循环每 30s + Chrome 重启重试每 2s 都调，爆量）。
+# 改成 GET /json/version：仅返回 HTTP 200 表示 9223 在听，零 tab 创建，功能等价。
+cdp_alive(){
+  local code
+  code=$(curl -s --noproxy '*' --max-time 5 -o /dev/null -w '%{http_code}' "http://127.0.0.1:$CDP_PORT/json/version" 2>/dev/null)
+  [ "$code" = "200" ]
+}
+
+# ---- 启动 CDP Chrome（复用 launch_chrome_cdp.sh，含广告黑洞/数据盘检查/迁移）----
+start_chrome(){
+  if cdp_alive; then return 0; fi
+  log "[cdp] Chrome 不存活，尝试重启 (launch_chrome_cdp.sh)..."
+  detach env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy \
+    bash "$LAUNCH_CHROME" >> "$LOGDIR/crawler_watchdog.chrome.out" 2>&1 &
+  for i in $(seq 1 30); do
+    sleep 2
+    if cdp_alive; then log "[cdp] Chrome 已重启 (9223 活)"; return 0; fi
+  done
+  log "[cdp] !! Chrome 重启后 60s 内未就绪（可能需人工过 CF）"
+  return 1
+}
+
+# ---- 当前正在爬的季（取最新 crawler 日志文件名中的年份）----
+# 注：macOS 的 BSD find 不支持 -printf，改用 ls -t（按 mtime 降序，GNU/Linux 同兼容）
+current_season(){
+  local f
+  f=$(ls -t "$LOGDIR"/recrawl_gamelog_*.log 2>/dev/null | head -1)
+  [ -z "$f" ] && { echo ""; return; }
+  basename "$f" | sed -E 's/.*recrawl_gamelog_([0-9]+).*/\1/'
+}
+
+# ---- 当前季 player_gamelog 行数 ----
+season_rows(){
+  local S=$1
+  [ -z "$S" ] && { echo 0; return; }
+  PGPASSWORD="$DBPASS" "$PSQL" -h localhost -p 5433 -U postgres -d nba -t -A -c \
+    "SELECT count(*) FROM player_gamelog WHERE season=$S;" 2>/dev/null | tail -1
+}
+
+# ---- STATE 中已完成的季数（verify_gaps 真通过才写入）----
+state_count(){
+  [ -f "$STATE" ] || { echo 0; return; }
+  grep -cE '^[0-9]{4}$' "$STATE"
+}
+
+# ---- 已「处理完」的季数 = STATE(真通过) + BYPASSED(500绕开) + FAILURES(真缺口放弃) ----
+# 看门狗以此判定整栈是否可退出，避免 BYPASSED/FAILURES 季不计入 STATE 导致空转重启。
+done_count(){
+  local n=0
+  [ -f "$STATE" ]    && n=$((n + $(grep -cE '^[0-9]{4}$' "$STATE" 2>/dev/null || echo 0)))
+  [ -f "$BYPASSED" ] && n=$((n + $(grep -cE '^[0-9]{4}$' "$BYPASSED" 2>/dev/null || echo 0)))
+  [ -f "$FAILURES" ] && n=$((n + $(grep -cE '^[0-9]{4}$' "$FAILURES" 2>/dev/null || echo 0)))
+  echo "$n"
+}
+
+# ---- 卡死检测：当前季行数在 STALL_MINUTES 内无增长 ----
+last_rows=""; last_ts=0
+is_stalled(){
+  local S now rows age
+  S=$(current_season)
+  [ -z "$S" ] && return 1
+  now=$(date +%s)
+  rows=$(season_rows "$S")
+  rows=${rows:-0}
+  if [ "$rows" != "$last_rows" ]; then
+    last_rows=$rows; last_ts=$now
+    return 1   # 有增长 → 未卡死
+  fi
+  age=$(( (now - last_ts) / 60 ))
+  if [ "$age" -ge "$STALL_MINUTES" ]; then
+    return 0   # 长时间无增长 → 卡死
+  fi
+  return 1
+}
+
+# ============================ 命令分支 ============================
+case "${1:-}" in
+  status)
+    echo "=== crawler_watchdog 状态 ==="
+    if [ -f "$STATUS" ]; then cat "$STATUS"; else echo "(无状态文件)"; fi
+    echo "--- 进程 ---"
+    pgrep -af crawler_watchdog.sh || echo "看门狗未运行"
+    pgrep -af recrawl_2004_2026_autofill.sh || echo "driver 未运行"
+    pgrep -af crawl_br_gamelog.py || echo "crawler 未运行"
+    echo "--- 9223 ---"; cdp_alive && echo "alive" || echo "down"
+    exit 0 ;;
+  stop)
+    touch "$STOPFLAG"
+    echo "已写 stop 标志，看门狗将在下个循环退出。"
+    exit 0 ;;
+esac
+
+# ============================ 单例锁 ============================
+if [ -f "$PIDFILE" ]; then
+  OLD=$(cat "$PIDFILE" 2>/dev/null)
+  if [ -n "$OLD" ] && kill -0 "$OLD" 2>/dev/null; then
+    log "看门狗已在运行 (pid $OLD)，退出。"
+    exit 0
+  fi
+fi
+echo $$ > "$PIDFILE"
+trap 'rm -f "$PIDFILE"; log "[watchdog] 退出 (pid $$)"; exit 0' INT TERM EXIT
+
+# ============================ 主循环 ============================
+log "===== WATCHDOG START (pid $$) ====="
+stall_count=0
+while true; do
+  # 0) 停止标志
+  if [ -f "$STOPFLAG" ]; then
+    rm -f "$STOPFLAG" "$PIDFILE"
+    log "[watchdog] 收到 stop 标志，退出。"
+    exit 0
+  fi
+
+  # 1) 全部 23 季完成(含 500 绕开/真缺口放弃) → 成功退出（避免空跑）
+  SC=$(done_count)
+  if [ "$SC" -ge 23 ]; then
+    set_status "DONE: 23 季全部处理完 (STATE+BYPASSED+FAILURES)"
+    log "[watchdog] 已处理 $SC/23 季 (STATE+BYPASSED+FAILURES) → 全部完成，退出。"
+    rm -f "$PIDFILE"
+    exit 0
+  fi
+
+  # 2) CDP Chrome 健康
+  if ! cdp_alive; then
+    start_chrome || { log "[cdp] 重启失败，60s 后重试"; sleep 60; continue; }
+  fi
+
+  # 2.5) 停止控制：若配置「跑完即停」的目标季已结束（完成或放弃），且 driver 已推进到其它季
+  #      → 杀 driver 并退出，不再续跑（防御 recrawl 旧代码越过目标季继续跑的情况）。
+  if [ -f "$STOP_AFTER_FLAG" ]; then
+    STOPS=$(cat "$STOP_AFTER_FLAG" 2>/dev/null)
+    if [ -n "$STOPS" ] && { grep -qxF "$STOPS" "$STATE" 2>/dev/null || grep -qxF "$STOPS" "$FAILURES" 2>/dev/null; }; then
+      CS=$(current_season)
+      if [ "$CS" != "$STOPS" ]; then
+        log "[watchdog] 目标季 $STOPS 已结束，driver 已转向 $CS —— 按 stop_after_season 停止整栈。"
+        pkill -f recrawl_2004_2026_autofill.sh 2>/dev/null
+        pkill -f crawl_br_gamelog.py 2>/dev/null
+        rm -f "$PIDFILE"
+        exit 0
+      fi
+    fi
+  fi
+
+  # 3) driver 是否在跑
+  if ! pgrep -f recrawl_2004_2026_autofill.sh >/dev/null; then
+    # 3.5) 停止控制：目标季已结束且 driver 未运行 → 不重启，直接退出
+    if [ -f "$STOP_AFTER_FLAG" ]; then
+      STOPS=$(cat "$STOP_AFTER_FLAG" 2>/dev/null)
+      if [ -n "$STOPS" ] && { grep -qxF "$STOPS" "$STATE" 2>/dev/null || grep -qxF "$STOPS" "$FAILURES" 2>/dev/null; }; then
+        log "[watchdog] 目标季 $STOPS 已结束且 driver 未运行 —— 按 stop_after_season 停止，不重启。"
+        rm -f "$PIDFILE"
+        exit 0
+      fi
+    fi
+    log "[driver] 未运行，拉起 driver (当前 STATE=$SC/23)"
+    set_status "RUNNING (restart)"
+    # 脱离看门狗进程组独立成会话：平台回收后台任务只杀看门狗、不杀爬虫树
+    detach bash "$DRIVER" >> "$DRIVER_OUT" 2>&1 &
+    sleep 5
+    continue
+  fi
+
+  # 4) 卡死 / CF 墙检测
+  if is_stalled; then
+    stall_count=$((stall_count + 1))
+    log "[stall] 检测到卡死(当前季 $STALL_MINUTES 分钟内无写入)，stall_count=$stall_count"
+    pkill -f crawl_br_gamelog.py 2>/dev/null
+    pkill -f recrawl_2004_2026_autofill.sh 2>/dev/null
+    sleep 5
+    if [ "$stall_count" -ge "$MAX_STALL" ]; then
+      set_status "PAUSED: 连续 $MAX_STALL 次卡死，疑似 CF 墙 — 需人工过 Cloudflare 验证后重启看门狗"
+      log "[watchdog] 连续 $MAX_STALL 次卡死 → 判定 CF 墙，PAUSE 并退出。人工过验证后重新: bash start_watchdog_detached.sh"
+      rm -f "$PIDFILE"
+      exit 0
+    fi
+    continue
+  else
+    stall_count=0
+  fi
+
+  set_status "RUNNING (done=$SC/23)"
+  sleep "$SLEEP_LOOP"
+done

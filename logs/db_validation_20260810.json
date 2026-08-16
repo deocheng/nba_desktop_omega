@@ -1,0 +1,1242 @@
+{
+  "tables": [
+    {
+      "table": "_404_safe_stage",
+      "approx_rows": 209,
+      "has_season": false
+    },
+    {
+      "table": "all_star_selections",
+      "approx_rows": 2058,
+      "has_season": true,
+      "season_min": 1951,
+      "season_max": 2026,
+      "season_count": 75
+    },
+    {
+      "table": "analysis_flows",
+      "approx_rows": -1,
+      "has_season": false
+    },
+    {
+      "table": "backfill_review",
+      "approx_rows": -1,
+      "has_season": true,
+      "season_min": null,
+      "season_max": null,
+      "season_count": 0
+    },
+    {
+      "table": "bf_stage_20260804",
+      "approx_rows": 202810,
+      "has_season": true,
+      "season_min": 1997,
+      "season_max": 2025,
+      "season_count": 28
+    },
+    {
+      "table": "coach_crawl_status",
+      "approx_rows": -1,
+      "has_season": false
+    },
+    {
+      "table": "coach_stats",
+      "approx_rows": 2101,
+      "has_season": true,
+      "season_min": "1946-47",
+      "season_max": "2025-26",
+      "season_count": 80
+    },
+    {
+      "table": "coaches",
+      "approx_rows": 390,
+      "has_season": false
+    },
+    {
+      "table": "crawl_failures",
+      "approx_rows": 6528,
+      "has_season": false
+    },
+    {
+      "table": "dim_draft_history",
+      "approx_rows": 8446,
+      "has_season": true,
+      "season_min": 1947,
+      "season_max": 2026,
+      "season_count": 80
+    },
+    {
+      "table": "dim_franchise",
+      "approx_rows": 67,
+      "has_season": false
+    },
+    {
+      "table": "dim_games",
+      "approx_rows": 74570,
+      "has_season": true,
+      "season_min": 1947,
+      "season_max": 2026,
+      "season_count": 80
+    },
+    {
+      "table": "dim_games_bak_20260806b",
+      "approx_rows": 4071,
+      "has_season": true,
+      "season_min": 2024,
+      "season_max": 2026,
+      "season_count": 3
+    },
+    {
+      "table": "dim_games_bak_20260806c",
+      "approx_rows": 85,
+      "has_season": true,
+      "season_min": 2026,
+      "season_max": 2026,
+      "season_count": 1
+    },
+    {
+      "table": "dim_games_bak_20260806d",
+      "approx_rows": 120,
+      "has_season": true,
+      "season_min": 1961,
+      "season_max": 2025,
+      "season_count": 7
+    },
+    {
+      "table": "dim_games_nbaid_bak_20260807",
+      "approx_rows": 3798,
+      "has_season": true,
+      "season_min": 2024,
+      "season_max": 2026,
+      "season_count": 3
+    },
+    {
+      "table": "dim_players",
+      "approx_rows": 5477,
+      "has_season": false
+    },
+    {
+      "table": "dim_teams",
+      "approx_rows": -1,
+      "has_season": false
+    },
+    {
+      "table": "draft_combine",
+      "approx_rows": 1202,
+      "has_season": true,
+      "season_min": 2001,
+      "season_max": 2023,
+      "season_count": 18
+    },
+    {
+      "table": "draft_pick_corrections",
+      "approx_rows": 94,
+      "has_season": false
+    },
+    {
+      "table": "draft_summary",
+      "approx_rows": 79,
+      "has_season": true,
+      "season_min": 1947,
+      "season_max": 2025,
+      "season_count": 79
+    },
+    {
+      "table": "end_of_season_teams",
+      "approx_rows": 6777,
+      "has_season": true,
+      "season_min": 1947,
+      "season_max": 2026,
+      "season_count": 80
+    },
+    {
+      "table": "espn_boxscore",
+      "approx_rows": 4774,
+      "has_season": true,
+      "season_min": 2023,
+      "season_max": 2026,
+      "season_count": 4
+    },
+    {
+      "table": "fact_player_season_stats",
+      "approx_rows": 45073,
+      "has_season": true,
+      "season_min": 1947,
+      "season_max": 2026,
+      "season_count": 80
+    },
+    {
+      "table": "fact_team_season_stats",
+      "approx_rows": 1818,
+      "has_season": true,
+      "season_min": 1947,
+      "season_max": 2026,
+      "season_count": 80
+    },
+    {
+      "table": "fct_pbp_shots",
+      "approx_rows": 7787173,
+      "has_season": true,
+      "season_min": 1997,
+      "season_max": 2026,
+      "season_count": "skip(>5M)"
+    },
+    {
+      "table": "game_id_map",
+      "approx_rows": 74797,
+      "has_season": true,
+      "season_min": 1947,
+      "season_max": 2026,
+      "season_count": 80
+    },
+    {
+      "table": "game_id_map_allstar",
+      "approx_rows": 72,
+      "has_season": true,
+      "season_min": 1951,
+      "season_max": 2023,
+      "season_count": 72
+    },
+    {
+      "table": "game_referees",
+      "approx_rows": -1,
+      "has_season": true,
+      "season_min": null,
+      "season_max": null,
+      "season_count": 0
+    },
+    {
+      "table": "game_videos",
+      "approx_rows": -1,
+      "has_season": true,
+      "season_min": null,
+      "season_max": null,
+      "season_count": 0
+    },
+    {
+      "table": "good_name_map",
+      "approx_rows": 18028,
+      "has_season": false
+    },
+    {
+      "table": "homeaway_fix_map",
+      "approx_rows": 4126,
+      "has_season": true,
+      "season_min": 2016,
+      "season_max": 2025,
+      "season_count": 10
+    },
+    {
+      "table": "homeaway_fix_map2",
+      "approx_rows": 485,
+      "has_season": true,
+      "season_min": 1950,
+      "season_max": 1974,
+      "season_count": 21
+    },
+    {
+      "table": "injuries",
+      "approx_rows": 83,
+      "has_season": false
+    },
+    {
+      "table": "league_averages",
+      "approx_rows": 178,
+      "has_season": true,
+      "season_min": 1947,
+      "season_max": 2026,
+      "season_count": 80
+    },
+    {
+      "table": "league_salary_rules",
+      "approx_rows": -1,
+      "has_season": true,
+      "season_min": "2025-26",
+      "season_max": "2025-26",
+      "season_count": 1
+    },
+    {
+      "table": "pbp_parse_issues",
+      "approx_rows": 182684,
+      "has_season": false
+    },
+    {
+      "table": "pbp_semantic",
+      "approx_rows": 519140,
+      "has_season": false
+    },
+    {
+      "table": "play_by_play_bak_20260730",
+      "approx_rows": 18446872,
+      "has_season": true,
+      "season_min": 1997,
+      "season_max": 2026,
+      "season_count": "skip(>5M)"
+    },
+    {
+      "table": "play_by_play_p_1997",
+      "approx_rows": 561418,
+      "has_season": true,
+      "season_min": 1997,
+      "season_max": 1997,
+      "season_count": 1
+    },
+    {
+      "table": "play_by_play_p_1998",
+      "approx_rows": 570419,
+      "has_season": true,
+      "season_min": 1998,
+      "season_max": 1998,
+      "season_count": 1
+    },
+    {
+      "table": "play_by_play_p_1999",
+      "approx_rows": 356510,
+      "has_season": true,
+      "season_min": 1999,
+      "season_max": 1999,
+      "season_count": 1
+    },
+    {
+      "table": "play_by_play_p_2000",
+      "approx_rows": 546336,
+      "has_season": true,
+      "season_min": 2000,
+      "season_max": 2000,
+      "season_count": 1
+    },
+    {
+      "table": "play_by_play_p_2001",
+      "approx_rows": 602342,
+      "has_season": true,
+      "season_min": 2001,
+      "season_max": 2001,
+      "season_count": 1
+    },
+    {
+      "table": "play_by_play_p_2002",
+      "approx_rows": 601636,
+      "has_season": true,
+      "season_min": 2002,
+      "season_max": 2002,
+      "season_count": 1
+    },
+    {
+      "table": "play_by_play_p_2003",
+      "approx_rows": 606687,
+      "has_season": true,
+      "season_min": 2003,
+      "season_max": 2003,
+      "season_count": 1
+    },
+    {
+      "table": "play_by_play_p_2004",
+      "approx_rows": 602023,
+      "has_season": true,
+      "season_min": 2004,
+      "season_max": 2004,
+      "season_count": 1
+    },
+    {
+      "table": "play_by_play_p_2005",
+      "approx_rows": 630209,
+      "has_season": true,
+      "season_min": 2005,
+      "season_max": 2005,
+      "season_count": 1
+    },
+    {
+      "table": "play_by_play_p_2006",
+      "approx_rows": 625271,
+      "has_season": true,
+      "season_min": 2006,
+      "season_max": 2006,
+      "season_count": 1
+    },
+    {
+      "table": "play_by_play_p_2007",
+      "approx_rows": 623183,
+      "has_season": true,
+      "season_min": 2007,
+      "season_max": 2007,
+      "season_count": 1
+    },
+    {
+      "table": "play_by_play_p_2008",
+      "approx_rows": 619089,
+      "has_season": true,
+      "season_min": 2008,
+      "season_max": 2008,
+      "season_count": 1
+    },
+    {
+      "table": "play_by_play_p_2009",
+      "approx_rows": 614002,
+      "has_season": true,
+      "season_min": 2009,
+      "season_max": 2009,
+      "season_count": 1
+    },
+    {
+      "table": "play_by_play_p_2010",
+      "approx_rows": 617216,
+      "has_season": true,
+      "season_min": 2010,
+      "season_max": 2010,
+      "season_count": 1
+    },
+    {
+      "table": "play_by_play_p_2011",
+      "approx_rows": 582836,
+      "has_season": true,
+      "season_min": 2011,
+      "season_max": 2011,
+      "season_count": 1
+    },
+    {
+      "table": "play_by_play_p_2012",
+      "approx_rows": 471765,
+      "has_season": true,
+      "season_min": 2012,
+      "season_max": 2012,
+      "season_count": 1
+    },
+    {
+      "table": "play_by_play_p_2013",
+      "approx_rows": 618219,
+      "has_season": true,
+      "season_min": 2013,
+      "season_max": 2013,
+      "season_count": 1
+    },
+    {
+      "table": "play_by_play_p_2014",
+      "approx_rows": 680336,
+      "has_season": true,
+      "season_min": 2014,
+      "season_max": 2014,
+      "season_count": 1
+    },
+    {
+      "table": "play_by_play_p_2015",
+      "approx_rows": 683337,
+      "has_season": true,
+      "season_min": 2015,
+      "season_max": 2015,
+      "season_count": 1
+    },
+    {
+      "table": "play_by_play_p_2016",
+      "approx_rows": 687676,
+      "has_season": true,
+      "season_min": 2016,
+      "season_max": 2016,
+      "season_count": 1
+    },
+    {
+      "table": "play_by_play_p_2017",
+      "approx_rows": 678154,
+      "has_season": true,
+      "season_min": 2017,
+      "season_max": 2017,
+      "season_count": 1
+    },
+    {
+      "table": "play_by_play_p_2018",
+      "approx_rows": 662947,
+      "has_season": true,
+      "season_min": 2018,
+      "season_max": 2018,
+      "season_count": 1
+    },
+    {
+      "table": "play_by_play_p_2019",
+      "approx_rows": 615245,
+      "has_season": true,
+      "season_min": 2019,
+      "season_max": 2019,
+      "season_count": 1
+    },
+    {
+      "table": "play_by_play_p_2020",
+      "approx_rows": 533820,
+      "has_season": true,
+      "season_min": 2020,
+      "season_max": 2020,
+      "season_count": 1
+    },
+    {
+      "table": "play_by_play_p_2021",
+      "approx_rows": 591041,
+      "has_season": true,
+      "season_min": 2021,
+      "season_max": 2021,
+      "season_count": 1
+    },
+    {
+      "table": "play_by_play_p_2022",
+      "approx_rows": 670854,
+      "has_season": true,
+      "season_min": 2022,
+      "season_max": 2022,
+      "season_count": 1
+    },
+    {
+      "table": "play_by_play_p_2023",
+      "approx_rows": 674845,
+      "has_season": true,
+      "season_min": 2023,
+      "season_max": 2023,
+      "season_count": 1
+    },
+    {
+      "table": "play_by_play_p_2024",
+      "approx_rows": 660026,
+      "has_season": true,
+      "season_min": 2024,
+      "season_max": 2024,
+      "season_count": 1
+    },
+    {
+      "table": "play_by_play_p_2025",
+      "approx_rows": 610407,
+      "has_season": true,
+      "season_min": 2025,
+      "season_max": 2025,
+      "season_count": 1
+    },
+    {
+      "table": "play_by_play_p_2026",
+      "approx_rows": 890502,
+      "has_season": true,
+      "season_min": 2026,
+      "season_max": 2026,
+      "season_count": 1
+    },
+    {
+      "table": "play_by_play_p_default",
+      "approx_rows": 0,
+      "has_season": true,
+      "season_min": null,
+      "season_max": null,
+      "season_count": 0
+    },
+    {
+      "table": "player_adjusted_shooting",
+      "approx_rows": 31088,
+      "has_season": false
+    },
+    {
+      "table": "player_all_star_games",
+      "approx_rows": 1515,
+      "has_season": false
+    },
+    {
+      "table": "player_award_shares",
+      "approx_rows": 3527,
+      "has_season": true,
+      "season_min": 1948,
+      "season_max": 2026,
+      "season_count": 79
+    },
+    {
+      "table": "player_career_honors",
+      "approx_rows": 3155,
+      "has_season": false
+    },
+    {
+      "table": "player_career_totals",
+      "approx_rows": 4874,
+      "has_season": false
+    },
+    {
+      "table": "player_contracts",
+      "approx_rows": 648,
+      "has_season": true,
+      "season_min": "2025-26",
+      "season_max": "2025-26",
+      "season_count": 1
+    },
+    {
+      "table": "player_contracts_league",
+      "approx_rows": 537,
+      "has_season": true,
+      "season_min": "2025-26",
+      "season_max": "2025-26",
+      "season_count": 1
+    },
+    {
+      "table": "player_epm",
+      "approx_rows": 13255,
+      "has_season": true,
+      "season_min": 2002,
+      "season_max": 2026,
+      "season_count": 25
+    },
+    {
+      "table": "player_epm_actual",
+      "approx_rows": 602,
+      "has_season": true,
+      "season_min": 2026,
+      "season_max": 2026,
+      "season_count": 1
+    },
+    {
+      "table": "player_game_highs",
+      "approx_rows": 28621,
+      "has_season": false
+    },
+    {
+      "table": "player_gamelog",
+      "approx_rows": 1440572,
+      "has_season": true,
+      "season_min": 1947,
+      "season_max": 2026,
+      "season_count": 80
+    },
+    {
+      "table": "player_gamelog_bak_20260806b",
+      "approx_rows": 87436,
+      "has_season": true,
+      "season_min": 2024,
+      "season_max": 2026,
+      "season_count": 3
+    },
+    {
+      "table": "player_gamelog_bak_20260806d",
+      "approx_rows": 90,
+      "has_season": true,
+      "season_min": 2024,
+      "season_max": 2024,
+      "season_count": 1
+    },
+    {
+      "table": "player_gamelog_bak_pid_20260807",
+      "approx_rows": 1140176,
+      "has_season": true,
+      "season_min": 1947,
+      "season_max": 2026,
+      "season_count": 71
+    },
+    {
+      "table": "player_gamelog_dirty_bak_20260805",
+      "approx_rows": 1175382,
+      "has_season": true,
+      "season_min": 2001,
+      "season_max": 2026,
+      "season_count": 26
+    },
+    {
+      "table": "player_gamelog_dup_20260807",
+      "approx_rows": 128,
+      "has_season": true,
+      "season_min": 2023,
+      "season_max": 2025,
+      "season_count": 2
+    },
+    {
+      "table": "player_gamelog_dup_bak_20260805",
+      "approx_rows": 2429,
+      "has_season": true,
+      "season_min": 2013,
+      "season_max": 2025,
+      "season_count": 3
+    },
+    {
+      "table": "player_gamelog_gidfull_bak_20260807",
+      "approx_rows": 611329,
+      "has_season": true,
+      "season_min": 1947,
+      "season_max": 2026,
+      "season_count": 47
+    },
+    {
+      "table": "player_gamelog_nameless_20260807",
+      "approx_rows": 10954,
+      "has_season": true,
+      "season_min": 1972,
+      "season_max": 2025,
+      "season_count": 12
+    },
+    {
+      "table": "player_gamelog_orphan_brnull_20260807",
+      "approx_rows": -1,
+      "has_season": true,
+      "season_min": 2026,
+      "season_max": 2026,
+      "season_count": 1
+    },
+    {
+      "table": "player_gamelog_quarantine_20260806",
+      "approx_rows": -1,
+      "has_season": true,
+      "season_min": 2025,
+      "season_max": 2025,
+      "season_count": 1
+    },
+    {
+      "table": "player_gamelog_recrawl_bak_20260805",
+      "approx_rows": 572888,
+      "has_season": true,
+      "season_min": 2004,
+      "season_max": 2022,
+      "season_count": 19
+    },
+    {
+      "table": "player_gamelog_recrawl_bak_20260805_2326",
+      "approx_rows": 106095,
+      "has_season": true,
+      "season_min": 2023,
+      "season_max": 2026,
+      "season_count": 4
+    },
+    {
+      "table": "player_id_bridge",
+      "approx_rows": 9321,
+      "has_season": false
+    },
+    {
+      "table": "player_id_bridge_1to1",
+      "approx_rows": 2867,
+      "has_season": false
+    },
+    {
+      "table": "player_lineups",
+      "approx_rows": 685964,
+      "has_season": true,
+      "season_min": 1997,
+      "season_max": 2026,
+      "season_count": 30
+    },
+    {
+      "table": "player_lineups_404",
+      "approx_rows": 17,
+      "has_season": false
+    },
+    {
+      "table": "player_name_unified",
+      "approx_rows": 7497,
+      "has_season": false
+    },
+    {
+      "table": "player_onoff",
+      "approx_rows": 61988,
+      "has_season": true,
+      "season_min": 1997,
+      "season_max": 2026,
+      "season_count": 30
+    },
+    {
+      "table": "player_onoff_404",
+      "approx_rows": 5,
+      "has_season": false
+    },
+    {
+      "table": "player_page_extras_404",
+      "approx_rows": -1,
+      "has_season": false
+    },
+    {
+      "table": "player_page_overview",
+      "approx_rows": 4548,
+      "has_season": false
+    },
+    {
+      "table": "player_play_by_play",
+      "approx_rows": 18254,
+      "has_season": true,
+      "season_min": 1997,
+      "season_max": 2026,
+      "season_count": 30
+    },
+    {
+      "table": "player_playoffs_series",
+      "approx_rows": 16777,
+      "has_season": false
+    },
+    {
+      "table": "player_salaries_historical",
+      "approx_rows": 12386,
+      "has_season": true,
+      "season_min": 2000,
+      "season_max": 2025,
+      "season_count": 26
+    },
+    {
+      "table": "player_season_info",
+      "approx_rows": 33339,
+      "has_season": true,
+      "season_min": 1947,
+      "season_max": 2026,
+      "season_count": 80
+    },
+    {
+      "table": "player_season_splits",
+      "approx_rows": 1032183,
+      "has_season": true,
+      "season_min": 2001,
+      "season_max": 2026,
+      "season_count": 26
+    },
+    {
+      "table": "player_shooting",
+      "approx_rows": 24353,
+      "has_season": true,
+      "season_min": 1997,
+      "season_max": 2026,
+      "season_count": 30
+    },
+    {
+      "table": "player_shooting_404",
+      "approx_rows": -1,
+      "has_season": false
+    },
+    {
+      "table": "player_shot_chart",
+      "approx_rows": 6066819,
+      "has_season": true,
+      "season_min": 1997,
+      "season_max": 2026,
+      "season_count": "skip(>5M)"
+    },
+    {
+      "table": "player_similarity_scores",
+      "approx_rows": 45266,
+      "has_season": false
+    },
+    {
+      "table": "player_weight_history",
+      "approx_rows": 5473,
+      "has_season": false
+    },
+    {
+      "table": "starting_lineups",
+      "approx_rows": 2654,
+      "has_season": true,
+      "season_min": 2025,
+      "season_max": 2026,
+      "season_count": 2
+    },
+    {
+      "table": "team_coaches",
+      "approx_rows": 660,
+      "has_season": true,
+      "season_min": 2024,
+      "season_max": 2026,
+      "season_count": 3
+    },
+    {
+      "table": "team_depth_chart",
+      "approx_rows": 655,
+      "has_season": true,
+      "season_min": 2025,
+      "season_max": 2025,
+      "season_count": 1
+    },
+    {
+      "table": "team_executives",
+      "approx_rows": 382,
+      "has_season": false
+    },
+    {
+      "table": "team_game_splits",
+      "approx_rows": 5510,
+      "has_season": true,
+      "season_min": 2020,
+      "season_max": 2026,
+      "season_count": 3
+    },
+    {
+      "table": "team_hof",
+      "approx_rows": 2062,
+      "has_season": true,
+      "season_min": "1946-47",
+      "season_max": "2021-22",
+      "season_count": 76
+    },
+    {
+      "table": "team_leaderboards",
+      "approx_rows": 5150,
+      "has_season": true,
+      "season_min": 2024,
+      "season_max": 2026,
+      "season_count": 3
+    },
+    {
+      "table": "team_lineups",
+      "approx_rows": 55440,
+      "has_season": true,
+      "season_min": 1997,
+      "season_max": 2026,
+      "season_count": 30
+    },
+    {
+      "table": "team_logos",
+      "approx_rows": 1803,
+      "has_season": true,
+      "season_min": 1947,
+      "season_max": 2026,
+      "season_count": 80
+    },
+    {
+      "table": "team_on_off",
+      "approx_rows": 5621,
+      "has_season": true,
+      "season_min": 2008,
+      "season_max": 2026,
+      "season_count": 19
+    },
+    {
+      "table": "team_page_raw",
+      "approx_rows": 435008,
+      "has_season": true,
+      "season_min": 2007,
+      "season_max": 2026,
+      "season_count": 20
+    },
+    {
+      "table": "team_payroll",
+      "approx_rows": -1,
+      "has_season": true,
+      "season_min": "2025-26",
+      "season_max": "2025-26",
+      "season_count": 1
+    },
+    {
+      "table": "team_pbp_raw",
+      "approx_rows": 116753,
+      "has_season": true,
+      "season_min": 2000,
+      "season_max": 2026,
+      "season_count": 27
+    },
+    {
+      "table": "team_per_36",
+      "approx_rows": 2484,
+      "has_season": true,
+      "season_min": 2024,
+      "season_max": 2026,
+      "season_count": 3
+    },
+    {
+      "table": "team_referees",
+      "approx_rows": 2175,
+      "has_season": true,
+      "season_min": 2026,
+      "season_max": 2026,
+      "season_count": 1
+    },
+    {
+      "table": "team_roster",
+      "approx_rows": 1720,
+      "has_season": true,
+      "season_min": 2024,
+      "season_max": 2026,
+      "season_count": 3
+    },
+    {
+      "table": "team_shooting",
+      "approx_rows": -1,
+      "has_season": true,
+      "season_min": null,
+      "season_max": null,
+      "season_count": 0
+    },
+    {
+      "table": "team_stats_per_100_poss",
+      "approx_rows": 1462,
+      "has_season": true,
+      "season_min": 1974,
+      "season_max": 2026,
+      "season_count": 53
+    },
+    {
+      "table": "team_stats_per_game",
+      "approx_rows": 1818,
+      "has_season": true,
+      "season_min": 1947,
+      "season_max": 2026,
+      "season_count": 80
+    },
+    {
+      "table": "team_summaries",
+      "approx_rows": 1818,
+      "has_season": true,
+      "season_min": 1947,
+      "season_max": 2026,
+      "season_count": 80
+    },
+    {
+      "table": "trade_semantics",
+      "approx_rows": 904,
+      "has_season": false
+    },
+    {
+      "table": "transactions",
+      "approx_rows": 27409,
+      "has_season": false
+    },
+    {
+      "table": "workspace_charts",
+      "approx_rows": -1,
+      "has_season": false
+    },
+    {
+      "table": "workspace_datasets",
+      "approx_rows": -1,
+      "has_season": false
+    },
+    {
+      "table": "workspace_formulas",
+      "approx_rows": -1,
+      "has_season": false
+    },
+    {
+      "table": "workspaces",
+      "approx_rows": 1,
+      "has_season": false
+    }
+  ],
+  "pbp": [
+    {
+      "partition": "play_by_play_p_1997",
+      "rows": 561418,
+      "distinct_games": 1261,
+      "dim_games": 1262,
+      "covered": 1261,
+      "coverage_pct": 99.9
+    },
+    {
+      "partition": "play_by_play_p_1998",
+      "rows": 570419,
+      "distinct_games": 1261,
+      "dim_games": 1261,
+      "covered": 1261,
+      "coverage_pct": 100.0
+    },
+    {
+      "partition": "play_by_play_p_1999",
+      "rows": 356510,
+      "distinct_games": 791,
+      "dim_games": 791,
+      "covered": 791,
+      "coverage_pct": 100.0
+    },
+    {
+      "partition": "play_by_play_p_2000",
+      "rows": 546336,
+      "distinct_games": 1189,
+      "dim_games": 1265,
+      "covered": 1189,
+      "coverage_pct": 94.0
+    },
+    {
+      "partition": "play_by_play_p_2001",
+      "rows": 602342,
+      "distinct_games": 1260,
+      "dim_games": 1261,
+      "covered": 1260,
+      "coverage_pct": 99.9
+    },
+    {
+      "partition": "play_by_play_p_2002",
+      "rows": 601636,
+      "distinct_games": 1274,
+      "dim_games": 1275,
+      "covered": 1274,
+      "coverage_pct": 99.9
+    },
+    {
+      "partition": "play_by_play_p_2003",
+      "rows": 606687,
+      "distinct_games": 1277,
+      "dim_games": 1279,
+      "covered": 1277,
+      "coverage_pct": 99.8
+    },
+    {
+      "partition": "play_by_play_p_2004",
+      "rows": 602962,
+      "distinct_games": 1275,
+      "dim_games": 1275,
+      "covered": 1275,
+      "coverage_pct": 100.0
+    },
+    {
+      "partition": "play_by_play_p_2005",
+      "rows": 630742,
+      "distinct_games": 1315,
+      "dim_games": 1315,
+      "covered": 1315,
+      "coverage_pct": 100.0
+    },
+    {
+      "partition": "play_by_play_p_2006",
+      "rows": 625830,
+      "distinct_games": 1320,
+      "dim_games": 1431,
+      "covered": 1231,
+      "coverage_pct": 86.0
+    },
+    {
+      "partition": "play_by_play_p_2007",
+      "rows": 623704,
+      "distinct_games": 1310,
+      "dim_games": 1430,
+      "covered": 1310,
+      "coverage_pct": 91.6
+    },
+    {
+      "partition": "play_by_play_p_2008",
+      "rows": 619320,
+      "distinct_games": 1317,
+      "dim_games": 1423,
+      "covered": 1317,
+      "coverage_pct": 92.6
+    },
+    {
+      "partition": "play_by_play_p_2009",
+      "rows": 614008,
+      "distinct_games": 1315,
+      "dim_games": 1426,
+      "covered": 1315,
+      "coverage_pct": 92.2
+    },
+    {
+      "partition": "play_by_play_p_2010",
+      "rows": 617338,
+      "distinct_games": 1313,
+      "dim_games": 1431,
+      "covered": 1313,
+      "coverage_pct": 91.8
+    },
+    {
+      "partition": "play_by_play_p_2011",
+      "rows": 617738,
+      "distinct_games": 1312,
+      "dim_games": 1431,
+      "covered": 1312,
+      "coverage_pct": 91.7
+    },
+    {
+      "partition": "play_by_play_p_2012",
+      "rows": 503273,
+      "distinct_games": 1075,
+      "dim_games": 1105,
+      "covered": 1075,
+      "coverage_pct": 97.3
+    },
+    {
+      "partition": "play_by_play_p_2013",
+      "rows": 618265,
+      "distinct_games": 1315,
+      "dim_games": 1431,
+      "covered": 1303,
+      "coverage_pct": 91.1
+    },
+    {
+      "partition": "play_by_play_p_2014",
+      "rows": 680336,
+      "distinct_games": 1425,
+      "dim_games": 1435,
+      "covered": 1425,
+      "coverage_pct": 99.3
+    },
+    {
+      "partition": "play_by_play_p_2015",
+      "rows": 683337,
+      "distinct_games": 1421,
+      "dim_games": 1430,
+      "covered": 1421,
+      "coverage_pct": 99.4
+    },
+    {
+      "partition": "play_by_play_p_2016",
+      "rows": 687676,
+      "distinct_games": 1417,
+      "dim_games": 1426,
+      "covered": 1417,
+      "coverage_pct": 99.4
+    },
+    {
+      "partition": "play_by_play_p_2017",
+      "rows": 678154,
+      "distinct_games": 1401,
+      "dim_games": 1413,
+      "covered": 1401,
+      "coverage_pct": 99.2
+    },
+    {
+      "partition": "play_by_play_p_2018",
+      "rows": 662947,
+      "distinct_games": 1382,
+      "dim_games": 1389,
+      "covered": 1382,
+      "coverage_pct": 99.5
+    },
+    {
+      "partition": "play_by_play_p_2019",
+      "rows": 653033,
+      "distinct_games": 1313,
+      "dim_games": 1313,
+      "covered": 1313,
+      "coverage_pct": 100.0
+    },
+    {
+      "partition": "play_by_play_p_2020",
+      "rows": 567547,
+      "distinct_games": 1138,
+      "dim_games": 1139,
+      "covered": 1138,
+      "coverage_pct": 99.9
+    },
+    {
+      "partition": "play_by_play_p_2021",
+      "rows": 591041,
+      "distinct_games": 1218,
+      "dim_games": 1226,
+      "covered": 1218,
+      "coverage_pct": 99.3
+    },
+    {
+      "partition": "play_by_play_p_2022",
+      "rows": 670854,
+      "distinct_games": 1381,
+      "dim_games": 1392,
+      "covered": 1381,
+      "coverage_pct": 99.2
+    },
+    {
+      "partition": "play_by_play_p_2023",
+      "rows": 674845,
+      "distinct_games": 1381,
+      "dim_games": 1389,
+      "covered": 1381,
+      "coverage_pct": 99.4
+    },
+    {
+      "partition": "play_by_play_p_2024",
+      "rows": 660026,
+      "distinct_games": 1358,
+      "dim_games": 1319,
+      "covered": 1271,
+      "coverage_pct": 96.4
+    },
+    {
+      "partition": "play_by_play_p_2025",
+      "rows": 610407,
+      "distinct_games": 1237,
+      "dim_games": 1321,
+      "covered": 1237,
+      "coverage_pct": 93.6
+    },
+    {
+      "partition": "play_by_play_p_2026",
+      "rows": 890502,
+      "distinct_games": 1738,
+      "dim_games": 1322,
+      "covered": 1301,
+      "coverage_pct": 98.4
+    }
+  ]
+}

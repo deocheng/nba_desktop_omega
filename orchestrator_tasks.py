@@ -262,6 +262,24 @@ TASKS = [
         "probe_sql": _EPM_HISTORY_GAP_SQL,
         "log": "/Volumes/12T/NBA/epm_history_crawl.log",
     },
+    # ── G2 team_shooting：已下线，勿重新接入（2026-08-05 实证）────────────
+    # crawl_br_team_shooting.py 的前提是「BR 主队页含 team_shooting /
+    # opponent_shooting 表，行=zone」。实测 ATL/2024、BOS/2025、ATL|LAL/2026
+    # 三季三队的归档 HTML：这两个表 id **根本不存在**，队页只有球员级
+    # `shooting` 表（距离桶是 *列*：pct_fga_00_03 / fg_pct_00_03 …，队级值在
+    # tfoot 的 "Team Totals" 行）。故该爬虫对任何队任何季都解析出 0 行，只会
+    # 逐队写 crawl_failures。接入调度 = 纯烧 CDP 窗口 + 污染失败表。
+    # 需先重写解析（Team Totals 行 → 距离桶行）并确认表语义后再接入。
+    {
+        # G6 缺口补全：team_on_off 缺 1997-2007。全历史回填，复用 BRTeamPageCrawler。
+        "name": "team_on_off",
+        "cmd": [".venv/bin/python", "external_crawler/crawler/crawl_br_team_onoff.py",
+                "--all-seasons", "--resume", "--cache-dir", "br_onoff_cache"],
+        "deps": [],
+        "priority": 45,
+        "probe_sql": None,
+        "log": "/Volumes/12T/NBA/team_on_off_crawl.log",
+    },
 ]
 
 TASK_BY_NAME = {t["name"]: t for t in TASKS}

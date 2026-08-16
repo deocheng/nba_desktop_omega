@@ -72,13 +72,13 @@ import os as _os  # 模块级，供下方 _BREAKER 读取 CF_* 环境变量
 from .cf_breaker import CFBreaker  # noqa: E402  (同包, 仅依赖标准库)
 
 _BREAKER = CFBreaker(
-    breach_limit=int(_os.environ.get("CF_BREACH_LIMIT", "5")),
+    breach_limit=int(_os.environ.get("CF_BREACH_LIMIT", "2")),
     backoff=int(_os.environ.get("CF_BACKOFF", "30")),
     cooldown=int(_os.environ.get("CF_COOLDOWN", "600")),
     max_cooldowns=int(_os.environ.get("CF_MAX_COOLDOWNS", "0")),
     cooldown_max=int(_os.environ.get("CF_COOLDOWN_MAX", "3600")),
     cooldown_growth=float(_os.environ.get("CF_COOLDOWN_GROWTH", "2.0")),
-    cooldown_trigger_s=int(_os.environ.get("CF_COOLDOWN_TRIGGER_S", "120")),
+    cooldown_trigger_s=int(_os.environ.get("CF_COOLDOWN_TRIGGER_S", "30")),
 )
 _CF_INNER_TRIES = 3  # 单页面内部重试上限（< breach_limit，避免单球员就触发熔断）
 
@@ -509,6 +509,7 @@ def _cdp_http_put(path: str, data: str = ""):
     the crawler retrying a dead connection. HTTP hits the known-good port
     directly.
     """
+    import json as _json
     import urllib.request as _u
     _opener = _u.build_opener(_u.ProxyHandler({}))
     req = _u.Request(
@@ -756,63 +757,108 @@ class _RawCDPDriver:
         return (r or {}).get("result", {}).get("value")
 
     # -- public WebDriver-like surface --------------------------------------
-    def get(self, url: str, _tries: int = _CF_INNER_TRIES) -> None:
-        """Navigate to ``url`` and ride out a Cloudflare challenge.
+    def get(self, url: str, _nav_tries: int = 4) -> None:
+        """Navigate to ``url`` with network-fault self-healing + CF ride-through.
 
-        The BR Cloudflare interstitial (English "Checking your browser" /
-        "Verify you are human", or zh-CN "请稍候… / 正在进行安全验证")
-        forwards to the real page automatically a few seconds after
-        navigation *if* a valid ``cf_clearance`` cookie is present. So we
-        navigate once, then POLL until it clears (valid cookie → a few
-        seconds) or the wait budget is spent.
-
-        On a *stale* cookie the page never forwards, so we keep the
-        ``/tmp/br_cf_challenge.flag`` sentinel ON and sleep ~30s per
-        round, giving the user time to click through in the 9222 window.
-        The crawler thus PAUSES in place (does NOT spin failing requests
-        against every player) and auto-resumes the moment CF clears.
-        Only raises ``CFChallengeError`` if it stays challenged past the
-        whole budget (~30 min) — a genuine "user never came back" case.
+        Network faults (navigate timeout / WebSocket HTTP 500 / connection
+        refused / half-rendered page / Target crashed) are now *retried*
+        instead of being silently swallowed as a "non-CF" page:
+          * any CDP send/eval error -> rebuild the shared driver and retry,
+          * navigated but content not ready -> Page.reload and retry,
+          * Cloudflare challenge -> delegate to the shared breaker (wait for
+            the user to click through, then auto-resume).
         """
         import time as _t
         last_err = None
-        for _ in range(_tries):
+        for _attempt in range(1, _nav_tries + 1):
             try:
                 self._send(self._ws, "Page.enable", timeout=30)
                 self._send(self._ws, "Page.navigate", {"url": url}, timeout=40)
-            except Exception as _e:  # noqa: BLE001 - navigation may be delayed
+                if self._wait_ready(timeout=20) and not self._is_challenged():
+                    self._flag_cf(False)
+                    return
+                if self._is_challenged():
+                    self._flag_cf(True)
+                    decision = _BREAKER.on_breach()
+                    if decision == "giveup":
+                        self._flag_cf(False)
+                        raise CFChallengeError(
+                            f"Cloudflare challenge not cleared after breaker gave up: {last_err}"
+                        )
+                    logger.warning(
+                        "Cloudflare challenge active — solve it in the browser "
+                        "window (click through); crawler auto-resumes"
+                    )
+                    continue  # 下一轮重新 navigate（等同 reload）；不显式 reload 以免打断用户手动过 CF
+                # navigated but content not ready (half-render) -> reload + retry
+                logger.warning(
+                    "页面未就绪(尝试 %d/%d)，reload 重试", _attempt, _nav_tries)
+                self._reload()
+                _t.sleep(min(3 * _attempt, 15))
+            except CFChallengeError:
+                raise
+            except Exception as _e:  # noqa: BLE001 - hard network fault
                 last_err = _e
-            # poll up to ~20s for the challenge to auto-forward
-            cleared = False
-            for _w in range(40):
-                _t.sleep(0.5)
-                try:
-                    if not self._is_challenged():
-                        cleared = True
-                        break
-                except Exception:  # noqa: BLE001
-                    pass
-            if cleared:
-                self._flag_cf(False)
-                return
-            # still challenged → feed the shared breaker (does backoff/cooldown
-            # sleep internally; on "giveup" it returns that decision).
-            self._flag_cf(True)
-            decision = _BREAKER.on_breach()
-            if decision == "giveup":
-                self._flag_cf(False)
-                raise CFChallengeError(
-                    f"Cloudflare challenge not cleared after breaker gave up: {last_err}"
-                )
-            logger.warning(
-                "Cloudflare challenge active — solve it in the browser "
-                "window (click through); crawler auto-resumes"
-            )
-        # Inner retries exhausted for this one page (CF still up). With the
-        # shared breaker, a site-wide storm would already have cooled down
-        # (and self-resumed) *across* players; a single stubborn page is
-        # just skipped — no raise by default, so callers never crash on CF.
+                logger.warning(
+                    "CDP 故障(尝试 %d/%d)：%s；重建 driver 重试",
+                    _attempt, _nav_tries, _e)
+                self._rebuild_driver()
+                _t.sleep(min(3 * _attempt, 15))
+        # Inner retries exhausted (network still bad or CF still up). With the
+        # shared breaker, a site-wide CF storm would already have cooled down
+        # across players; a single stubborn page is just skipped — no raise by
+        # default, so callers never crash on CF.
         self._flag_cf(False)
+
+    # -- network-fault self-healing helpers ---------------------------------
+    def _reload(self, timeout: int = 40) -> None:
+        """Best-effort reload the current page target."""
+        try:
+            self._send(self._ws, "Page.reload", {"ignoreCache": False}, timeout=timeout)
+        except Exception:  # noqa: BLE001 - caller decides next step
+            pass
+
+    def _wait_ready(self, timeout: float = 20) -> bool:
+        """Return True once the page is actually rendered (ready + non-CF).
+
+        A CF interstitial is detected early and returns False so ``get`` can
+        hand off to the breaker immediately instead of burning the whole
+        budget polling. A half-rendered / blank page returns False so ``get``
+        reloads and retries.
+        """
+        import time as _t
+        deadline = _t.time() + timeout
+        while _t.time() < deadline:
+            try:
+                if self._is_challenged():
+                    return False
+                rs = self._eval("document.readyState")
+                txt = self._eval(
+                    "(() => (document.body ? document.body.innerText.length : 0))()"
+                ) or 0
+                if rs == "complete" and isinstance(txt, int) and txt > 100:
+                    return True
+            except Exception:  # noqa: BLE001 - transient / crashed
+                pass
+            _t.sleep(0.5)
+        return False
+
+    def _rebuild_driver(self) -> None:
+        """Rebuild the shared CDP driver (fresh page target) and point self at it.
+
+        Used when the websocket to the user's Chrome is rejected (HTTP 500 /
+        connection refused / Target crashed) — a hard network fault the old
+        code silently swallowed (crawler then skipped the player). Reuses the
+        same dedicated tab when it is merely disconnected, else opens a new one.
+        """
+        try:
+            reset_driver()
+            nd = reconnect_driver()  # returns a fresh _RawCDPDriver on a target
+            self._ws = nd._ws
+            self._tid = nd._tid
+            logger.info("CDP driver 已重建（网络故障自愈）")
+        except Exception as _e:  # noqa: BLE001
+            logger.error("CDP driver 重建失败: %s", _e)
 
     def _navigate(self, url: str, timeout: int = 40) -> None:
         """Fire-and-forget navigation (no CF poll); the caller owns the poll.

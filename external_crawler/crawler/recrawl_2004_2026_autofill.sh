@@ -1,0 +1,173 @@
+#!/usr/bin/env bash
+# recrawl_2004_2026_autofill.sh — 自动重爬 + 每季自检 + 缺口补齐
+#
+# 设计（用户 2026-08-06 要求：每季爬完停下自检，有缺失立刻补齐）：
+#   1. 近季优先倒序（2026→2004）。
+#   2. 每季前台跑完爬虫 → 立刻自检（门禁=verify_gaps.py 逐人完整性+比赛覆盖，附加 minutes 填充率）。
+#   3. 自检不达标 → 幂等重跑该季补齐缺口（最多 MAX_RETRY 次；爬虫按 (gameid,br_player_id)
+#      删除重插，安全）。
+#   4. 达标 → 写 STATE，进入下一季。
+#   5. 某季达到最大重试仍不达标 → 记录到 failures 文件并停止整体（不无限空转），
+#      等人工释放主机内存后重跑；STATE 已完成的季会被跳过，未完成的季会重跑。
+#
+# 依赖：用户已手动启动并保持 Chrome(9223) 开着（cf_clearance 在磁盘 profile，无需重过 CF）。
+# 不自动重启 Chrome（低内存下重启反而越重启越胖：会话恢复 + target 泄漏双重累积）。
+# 若 9223 不可达 → 直接报错停止，等人工恢复。
+
+ROOT=/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13
+CRAWLER=$ROOT/external_crawler/crawler
+PY=$ROOT/.venv/bin/python
+LOGDIR=$ROOT/logs
+mkdir -p "$LOGDIR"
+STATE=$LOGDIR/recrawl_done_2004_2026.txt
+MASTERLOG=$LOGDIR/recrawl_2004_2026_autofill.log
+FAILURES=$LOGDIR/recrawl_failed_2004_2026.txt
+# 500 绕开清单：BR 源站 500 的球员 br_id 记入此文件，recrawl 不再重爬、直接跳过
+BYPASS_FILE=$LOGDIR/gamelog_500_bypass.txt
+# 已标记 BYPASSED 的季：剩余缺口全部为 BR 500 绕开项，待 BR 恢复后清此文件重跑
+BYPASSED=$LOGDIR/recrawl_bypassed_2004_2026.txt
+# 停止控制：若此文件存在且内容为某季（如 2026），则该季跑完（完成或放弃）后即停止，
+# 不再继续后续赛季。供「当前赛季跑完就停」使用。看门狗也会读它来决定是否续跑。
+STOP_AFTER_FLAG=$LOGDIR/stop_after_season.flag
+
+# 本季解析结果落盘缓存目录：爬完写 gamelog_<season>.json，供 --rework 免重爬重放。
+# 缺了它 = 每次修完 dim_games 都得重新过一遍 BR（几百个球员页），代价极高。
+CACHE_DIR=$CRAWLER/gamelog_cache
+mkdir -p "$CACHE_DIR"
+
+MAX_RETRY=5              # 每季最多额外重跑次数（补齐缺口）
+GAME_COV_THRESH=0.995    # 比赛覆盖达标线（允许极少量全 DNP 场缺失）
+MIN_PCT_THRESH=99.0      # minutes 填充达标线（DNP 本就 NULL，不计入缺失）
+
+export DB_PASSWORD="$(grep '^DB_PASSWORD=' "$ROOT/.env" | head -1 | cut -d= -f2-)"
+export BROWSER_BACKEND=cdp
+export CHROME_CDP_URL=http://127.0.0.1:9223
+unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy
+export NO_PROXY='*' no_proxy='*'
+export PGPASSWORD="$DB_PASSWORD"
+PSQL=/opt/homebrew/opt/postgresql@18/bin/psql
+
+# 近季优先倒序；STATE 中已记录的季自动跳过，不受顺序影响。
+# 2026-08-09 扩展下界至 1980（用户要求 1980~2013 全量爬取；原下界 2004）。
+# 2026-08-10 恢复全量范围：2003 跑完后自主续补 1980–2012（用户"继续填补其他缺口"授权）。
+# 支持 SEASONS_OVERRIDE 环境变量：控制台可「指定某一季」定向补爬（如 SEASONS_OVERRIDE=2003），
+# 不传则使用下方全量默认范围（保持原有自主续补行为不变）。
+SEASONS=( ${SEASONS_OVERRIDE:-2026 2025 2024 2023 2022 2021 2020 2019 2018 2017 2016 2015 2014 2013 2012 2011 2010 2009 2008 2007 2006 2005 2004 2003 2002 2001 2000 1999 1998 1997 1996 1995 1994 1993 1992 1991 1990 1989 1988 1987 1986 1985 1984 1983 1982 1981 1980} )
+
+cd "$CRAWLER"
+echo "===== AUTOFILL START $(date) =====" | tee -a "$MASTERLOG"
+
+# Chrome 活体检查：不可达直接停，避免无谓空转。
+if ! curl -s --noproxy '*' --max-time 5 http://127.0.0.1:9223/json/version >/dev/null 2>&1; then
+  echo "!! Chrome(9223) 不可达 —— 请先启动 launch_chrome_cdp.sh 并保持窗口。停止。" | tee -a "$MASTERLOG"
+  exit 2
+fi
+
+# 自检（门禁）：返回 0=达标, 1=不达标（缺口详情打印到 MASTERLOG）
+#   核心门禁 = verify_gaps.py（逐人完整性 + 比赛覆盖，rc=0=通过），
+#   这是用户 2026-08-06 确立的「数据完整性唯一权威门禁」，替代原 count(distinct) 粗糙指标。
+#   附加质量门槛 = minutes 填充率 >= MIN_PCT_THRESH（防脏批如 2026 的 65% 误判完成）。
+selfcheck() {
+  local S=$1
+  echo "  [verify_gaps $S] ============" | tee -a "$MASTERLOG"
+  local vg_rc=0
+  "$PY" verify_gaps.py "$S" </dev/null >> "$MASTERLOG" 2>&1 || vg_rc=$?
+  local min_pct
+  min_pct=$("$PSQL" -h localhost -p 5433 -U postgres -d nba -t -A -c "
+    SELECT round(100.0*count(*) FILTER (WHERE minutes IS NOT NULL)/NULLIF(count(*),0),1)
+    FROM player_gamelog WHERE season=$S AND br_player_id IS NOT NULL AND br_player_id <> '';")
+  echo "  [selfcheck $S] min_pct=${min_pct:-0} (需>=$MIN_PCT_THRESH)" | tee -a "$MASTERLOG"
+  if [ "$vg_rc" = "0" ] && awk "BEGIN{exit !(${min_pct:-0} >= $MIN_PCT_THRESH)}"; then
+    return 0
+  fi
+  if [ "$vg_rc" != "0" ]; then
+    echo "  [selfcheck $S] 不达标: verify_gaps 发现逐人/覆盖缺口" | tee -a "$MASTERLOG"
+  else
+    echo "  [selfcheck $S] 不达标: min_pct=${min_pct:-0} < $MIN_PCT_THRESH" | tee -a "$MASTERLOG"
+  fi
+  return 1
+}
+
+for S in "${SEASONS[@]}"; do
+  if grep -qxF "$S" "$STATE" 2>/dev/null; then
+    echo "----- skip season $S (STATE 已记录) -----" | tee -a "$MASTERLOG"
+    continue
+  fi
+  if grep -qxF "$S" "$BYPASSED" 2>/dev/null; then
+    echo "----- skip season $S (已标记 BYPASSED: 剩余缺口均为 BR 500 绕开项) -----" | tee -a "$MASTERLOG"
+    continue
+  fi
+  if grep -qxF "$S" "$FAILURES" 2>/dev/null; then
+    echo "----- skip season $S (已标记 FAILURES: 真缺口达最大重试, 待人工处理) -----" | tee -a "$MASTERLOG"
+    continue
+  fi
+
+  # 清本季 gameid 与 dim_games 错配的旧编码行（重爬按当前 gameid 删不掉会留脏副本）
+  "$PSQL" -h localhost -p 5433 -U postgres -d nba -t -A -c "
+    DELETE FROM player_gamelog gl WHERE season=$S
+      AND (gameid IS NULL OR NOT EXISTS (SELECT 1 FROM dim_games d WHERE d.season=$S AND d.nba_api_id = gl.gameid::bigint));" \
+    2>&1 | sed "s/^/[pre-delete $S] /" | tee -a "$MASTERLOG"
+
+  attempt=0
+  while true; do
+    attempt=$((attempt + 1))
+    LOG="$LOGDIR/recrawl_gamelog_${S}.log"
+    echo "===== $(date) [$S] attempt $attempt/$((MAX_RETRY + 1)) START =====" | tee -a "$MASTERLOG"
+
+    # 智能补齐：先算 verify_gaps 缺口球员，只爬缺口（避免每季从 A 全量重跑）
+    GAPFILE="/tmp/gap_${S}.txt"
+    RAW_GAP="/tmp/gap_raw_${S}.txt"
+    "$PY" verify_gaps.py "$S" --missing-ids </dev/null > "$RAW_GAP" 2>/dev/null
+    cp "$RAW_GAP" "$GAPFILE"
+    # 过滤已绕开的 500 球员（BR 源站错误，反复撞只会烧 IP），不再重爬
+    if [ -f "$BYPASS_FILE" ]; then
+      grep -vxF -f "$BYPASS_FILE" "$GAPFILE" > "${GAPFILE}.f" 2>/dev/null && mv "${GAPFILE}.f" "$GAPFILE"
+    fi
+    raw_n=$(wc -l < "$RAW_GAP" | tr -d ' ')
+    fil_n=$(wc -l < "$GAPFILE" | tr -d ' ')
+    exc_n=$((raw_n - fil_n))
+    if [ -s "$GAPFILE" ]; then
+      echo "  [$S] 智能补齐：仅爬 $fil_n 名缺口球员（已排除 $exc_n 个 500 绕开项）" | tee -a "$MASTERLOG"
+      ./crawl_with_timeout.sh 1200 "$PY" crawl_br_gamelog.py --season "$S" --only-br-ids "$GAPFILE" --bypass-500-file "$BYPASS_FILE" --cache-dir "$CACHE_DIR" </dev/null >> "$LOG" 2>&1
+    else
+      # GAPFILE 空：可能无缺口，或剩余缺口全为 BR 500 绕开项
+      if "$PY" verify_gaps.py "$S" </dev/null >/dev/null 2>&1; then
+        echo "  [$S] 无逐人缺口且 verify_gaps 通过 → 跳过爬取，直接自检" | tee -a "$MASTERLOG"
+      elif [ -s "$RAW_GAP" ]; then
+        # 有缺口球员但全部已被 500 绕开 → 标记 BYPASSED，跳过本季（不空转）
+        echo "  [$S] 剩余缺口 $raw_n 人全部为 BR 500 绕开项 → 标记 BYPASSED，跳过本季" | tee -a "$MASTERLOG"
+        echo "$S" >> "$BYPASSED"
+        break
+      else
+        echo "  [$S] 无逐人缺口但比赛覆盖不足 → 整季重跑兜底" | tee -a "$MASTERLOG"
+        ./crawl_with_timeout.sh 1200 "$PY" crawl_br_gamelog.py --season "$S" --bypass-500-file "$BYPASS_FILE" --cache-dir "$CACHE_DIR" </dev/null >> "$LOG" 2>&1
+      fi
+    fi
+    RC=$?
+    echo "===== $(date) [$S] attempt $attempt rc=$RC =====" | tee -a "$MASTERLOG"
+    if selfcheck "$S"; then
+      echo "$S" >> "$STATE"
+      echo "##### [$S] VERIFIED & DONE (attempt $attempt) #####" | tee -a "$MASTERLOG"
+      break
+    fi
+    if [ "$attempt" -ge $((MAX_RETRY + 1)) ]; then
+      echo "!! [$S] 已达最大重试($MAX_RETRY) 仍不达标 (verify_gaps 仍有缺口) —— 记录到 FAILURES 并继续下一季 (终检会列出真实缺口)" | tee -a "$MASTERLOG"
+      echo "$S" >> "$FAILURES"
+      break
+    fi
+    echo "  [$S] 缺口补齐: 幂等重跑 (attempt $((attempt + 1))) ..." | tee -a "$MASTERLOG"
+  done
+
+  # 停止控制：本季即为「跑完即停」目标季 → 跳出，不再继续后续赛季
+  if [ -f "$STOP_AFTER_FLAG" ] && [ "$(cat "$STOP_AFTER_FLAG" 2>/dev/null)" = "$S" ]; then
+    echo "##### [$S] 为 STOP_AFTER_SEASON 目标季（已完成或已放弃），停止后续赛季 #####" | tee -a "$MASTERLOG"
+    break
+  fi
+done
+
+# 终检：用 verify_gaps --all 作权威全量校验（逐人完整性 + 比赛覆盖），替代原 SQL
+echo "===== BYPASSED (剩余缺口均为 BR 500 绕开项, 待 BR 恢复后清 $BYPASS_FILE 与 $BYPASSED 重跑): $(grep -cE '^[0-9]{4}$' "$BYPASSED" 2>/dev/null) 季 =====" | tee -a "$MASTERLOG"
+echo "===== FINAL AUDIT (verify_gaps --all, 权威终检) =====" | tee -a "$MASTERLOG"
+"$PY" verify_gaps.py --all </dev/null 2>&1 | tee -a "$MASTERLOG"
+
+echo "===== AUTOFILL FINISH $(date) =====" | tee -a "$MASTERLOG"

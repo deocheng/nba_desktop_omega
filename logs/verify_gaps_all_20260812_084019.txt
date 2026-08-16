@@ -1,0 +1,720 @@
+
+===== season 2004 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1182 / dim_games(Reg) 1192  !! 覆盖不足（缺 10 场）
+  [逐人完整性] !! 39 个球员缺失场次:
+     Brian Scalabrine (scalabr01): 应有 69 场, 现有 64 场, 缺 5 场
+     Darrell Armstrong (armstda01): 应有 79 场, 现有 74 场, 缺 5 场
+     David West (westda01): 应有 71 场, 现有 66 场, 缺 5 场
+     George Lynch (lynchge01): 应有 78 场, 现有 73 场, 缺 5 场
+     Jamaal Magloire (magloja01): 应有 82 场, 现有 77 场, 缺 5 场
+     Jason Collins (collija04): 应有 78 场, 现有 73 场, 缺 5 场
+     Jason Kidd (kiddja01): 应有 67 场, 现有 62 场, 缺 5 场
+     Kerry Kittles (kittlke01): 应有 82 场, 现有 77 场, 缺 5 场
+     P.J. Brown (brownpj01): 应有 80 场, 现有 75 场, 缺 5 场
+     Richard Jefferson (jefferi01): 应有 82 场, 现有 77 场, 缺 5 场
+     Steve Smith (smithst01): 应有 71 场, 现有 66 场, 缺 5 场
+     Brandon Armstrong (armstbr01): 应有 56 场, 现有 52 场, 缺 4 场
+     Calvin Booth (boothca01): 应有 71 场, 现有 67 场, 缺 4 场
+     Lucious Harris (harrilu01): 应有 69 场, 现有 65 场, 缺 4 场
+     Rashard Lewis (lewisra02): 应有 80 场, 现有 76 场, 缺 4 场
+     Ronald Murray (murraro01): 应有 82 场, 现有 78 场, 缺 4 场
+     Vitaly Potapenko (potapvi01): 应有 65 场, 现有 61 场, 缺 4 场
+     Zoran Planinić (planizo01): 应有 49 场, 现有 45 场, 缺 4 场
+     Ansu Sesay (sesayan01): 应有 57 场, 现有 54 场, 缺 3 场
+     Brent Barry (barrybr01): 应有 59 场, 现有 56 场, 缺 3 场
+     David Wesley (wesleda01): 应有 61 场, 现有 58 场, 缺 3 场
+     Luke Ridnour (ridnolu01): 应有 69 场, 现有 66 场, 缺 3 场
+     Reggie Evans (evansre01): 应有 75 场, 现有 72 场, 缺 3 场
+     Richie Frahm (frahmri01): 应有 54 场, 现有 51 场, 缺 3 场
+     Rodney Rogers (rogerro01): 应有 69 场, 现有 66 场, 缺 3 场
+     Vladimir Radmanović (radmavl01): 应有 77 场, 现有 74 场, 缺 3 场
+     Aaron Williams (williaa01): 应有 72 场, 现有 70 场, 缺 2 场
+     Antonio Daniels (daniean01): 应有 71 场, 现有 69 场, 缺 2 场
+     Hubert Davis (davishu01): 应有 17 场, 现有 15 场, 缺 2 场
+     Jamal Mashburn (mashbja01): 应有 19 场, 现有 17 场, 缺 2 场
+     Ray Allen (allenra02): 应有 56 场, 现有 54 场, 缺 2 场
+     Robert Pack (packro01): 应有 26 场, 现有 24 场, 缺 2 场
+     Stacey Augmon (augmost01): 应有 69 场, 现有 67 场, 缺 2 场
+     Alonzo Mourning (mournal01): 应有 12 场, 现有 11 场, 缺 1 场
+     Baron Davis (davisba01): 应有 67 场, 现有 66 场, 缺 1 场
+     Maurice Carter (cartema01): 应有 10 场, 现有 9 场, 缺 1 场
+     Robert Traylor (traylro01): 应有 71 场, 现有 70 场, 缺 1 场
+     Shammond Williams (willish01): 应有 53 场, 现有 52 场, 缺 1 场
+     Tierre Brown (brownti01): 应有 3 场, 现有 2 场, 缺 1 场
+  [逐人完整性] 合计缺失场次: 127（跨 39 人）
+
+===== season 2005 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1215 / dim_games(Reg) 1230  !! 覆盖不足（缺 15 场）
+  [逐人完整性] !! 61 个球员缺失场次:
+     Brevin Knight (knighbr01): 应有 66 场, 现有 58 场, 缺 8 场
+     Gerald Wallace (wallage01): 应有 70 场, 现有 62 场, 缺 8 场
+     Jason Collins (collija04): 应有 80 场, 现有 72 场, 缺 8 场
+     Jason Hart (hartja01): 应有 74 场, 现有 66 场, 缺 8 场
+     Jason Kapono (kaponja01): 应有 81 场, 现有 73 场, 缺 8 场
+     Primož Brezec (brezepr01): 应有 72 场, 现有 64 场, 缺 8 场
+     Dan Dickau (dickada01): 应有 71 场, 现有 64 场, 缺 7 场
+     Emeka Okafor (okafoem01): 应有 73 场, 现有 66 场, 缺 7 场
+     Keith Bogans (boganke01): 应有 74 场, 现有 67 场, 缺 7 场
+     Luke Ridnour (ridnolu01): 应有 82 场, 现有 75 场, 缺 7 场
+     Melvin Ely (elyme01): 应有 79 场, 现有 72 场, 缺 7 场
+     Nick Collison (collini01): 应有 82 场, 现有 75 场, 缺 7 场
+     P.J. Brown (brownpj01): 应有 82 场, 现有 75 场, 缺 7 场
+     Travis Best (besttr01): 应有 76 场, 现有 69 场, 缺 7 场
+     Antonio Daniels (daniean01): 应有 75 场, 现有 69 场, 缺 6 场
+     Jerome James (jamesje01): 应有 80 场, 现有 74 场, 缺 6 场
+     Ray Allen (allenra02): 应有 78 场, 现有 72 场, 缺 6 场
+     Rodney Buford (buforro01): 应有 64 场, 现有 58 场, 缺 6 场
+     Theron Smith (smithth01): 应有 33 场, 现有 27 场, 缺 6 场
+     Vladimir Radmanović (radmavl01): 应有 63 场, 现有 57 场, 缺 6 场
+     Boštjan Nachbar (nachbbo01): 应有 71 场, 现有 66 场, 缺 5 场
+     Casey Jacobsen (jacobca01): 应有 84 场, 现有 79 场, 缺 5 场
+     Chris Andersen (anderch01): 应有 67 场, 现有 62 场, 缺 5 场
+     J.R. Smith (smithjr01): 应有 76 场, 现有 71 场, 缺 5 场
+     Jackson Vroman (vromaja01): 应有 46 场, 现有 41 场, 缺 5 场
+     Jacque Vaughn (vaughja01): 应有 71 场, 现有 66 场, 缺 5 场
+     Jason Kidd (kiddja01): 应有 66 场, 现有 61 场, 缺 5 场
+     Nenad Krstić (krstine01): 应有 75 场, 现有 70 场, 缺 5 场
+     Reggie Evans (evansre01): 应有 79 场, 现有 74 场, 缺 5 场
+     Kareem Rush (rushka01): 应有 48 场, 现有 44 场, 缺 4 场
+     Lee Nailon (nailole01): 应有 68 场, 现有 64 场, 缺 4 场
+     Rashard Lewis (lewisra02): 应有 71 场, 现有 67 场, 缺 4 场
+     Ronald Murray (murraro01): 应有 49 场, 现有 45 场, 缺 4 场
+     Steve Smith (smithst01): 应有 50 场, 现有 46 场, 缺 4 场
+     Zoran Planinić (planizo01): 应有 43 场, 现有 39 场, 缺 4 场
+     George Lynch (lynchge01): 应有 44 场, 现有 41 场, 缺 3 场
+     Jabari Smith (smithja01): 应有 45 场, 现有 42 场, 缺 3 场
+     Maciej Lampe (lampema01): 应有 37 场, 现有 34 场, 缺 3 场
+     Mateen Cleaves (cleavma01): 应有 14 场, 现有 11 场, 缺 3 场
+     Robert Swift (swiftro01): 应有 16 场, 现有 13 场, 缺 3 场
+     Vince Carter (cartevi01): 应有 77 场, 现有 74 场, 缺 3 场
+     Aaron Williams (williaa01): 应有 42 场, 现有 40 场, 缺 2 场
+     Awvee Storey (storeaw01): 应有 9 场, 现有 7 场, 缺 2 场
+     Bernard Robinson (robinbe01): 应有 31 场, 现有 29 场, 缺 2 场
+     Damien Wilkins (wilkida02): 应有 29 场, 现有 27 场, 缺 2 场
+     Eric Williams (willier01): 应有 55 场, 现有 53 场, 缺 2 场
+     Junior Harrington (harriju01): 应有 29 场, 现有 27 场, 缺 2 场
+     Kaniel Dickens (dickeka01): 应有 11 场, 现有 9 场, 缺 2 场
+     Matt Freije (freijma01): 应有 23 场, 现有 21 场, 缺 2 场
+     Rodney Rogers (rogerro01): 应有 58 场, 现有 56 场, 缺 2 场
+     Billy Thomas (thomabi01): 应有 25 场, 现有 24 场, 缺 1 场
+     Brian Scalabrine (scalabr01): 应有 54 场, 现有 53 场, 缺 1 场
+     Corsley Edwards (edwarco01): 应有 10 场, 现有 9 场, 缺 1 场
+     Cory Alexander (alexaco01): 应有 16 场, 现有 15 场, 缺 1 场
+     David Wesley (wesleda01): 应有 80 场, 现有 79 场, 缺 1 场
+     David West (westda01): 应有 30 场, 现有 29 场, 缺 1 场
+     Jahidi White (whiteja01): 应有 17 场, 现有 16 场, 缺 1 场
+     Jamal Sampson (sampsja01): 应有 23 场, 现有 22 场, 缺 1 场
+     Matt Carroll (carroma01): 应有 25 场, 现有 24 场, 缺 1 场
+     Tamar Slay (slayta01): 应有 8 场, 现有 7 场, 缺 1 场
+     Vitaly Potapenko (potapvi01): 应有 33 场, 现有 32 场, 缺 1 场
+  [逐人完整性] 合计缺失场次: 256（跨 61 人）
+
+===== season 2006 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1214 / dim_games(Reg) 1230  !! 覆盖不足（缺 16 场）
+  [逐人完整性] !! 56 个球员缺失场次:
+     Bernard Robinson (robinbe01): 应有 66 场, 现有 58 场, 缺 8 场
+     Brevin Knight (knighbr01): 应有 69 场, 现有 61 场, 缺 8 场
+     Chris Paul (paulch01): 应有 78 场, 现有 70 场, 缺 8 场
+     Clifford Robinson (robincl02): 应有 80 场, 现有 72 场, 缺 8 场
+     Damien Wilkins (wilkida02): 应有 82 场, 现有 74 场, 缺 8 场
+     Desmond Mason (masonde01): 应有 70 场, 现有 62 场, 缺 8 场
+     Jacque Vaughn (vaughja01): 应有 80 场, 现有 72 场, 缺 8 场
+     Jason Kidd (kiddja01): 应有 80 场, 现有 72 场, 缺 8 场
+     Jumaine Jones (jonesju01): 应有 76 场, 现有 68 场, 缺 8 场
+     Luke Ridnour (ridnolu01): 应有 79 场, 现有 71 场, 缺 8 场
+     Matt Carroll (carroma01): 应有 78 场, 现有 70 场, 缺 8 场
+     Nenad Krstić (krstine01): 应有 80 场, 现有 72 场, 缺 8 场
+     P.J. Brown (brownpj01): 应有 75 场, 现有 67 场, 缺 8 场
+     Raymond Felton (feltora01): 应有 80 场, 现有 72 场, 缺 8 场
+     Richard Jefferson (jefferi01): 应有 78 场, 现有 70 场, 缺 8 场
+     Vince Carter (cartevi01): 应有 79 场, 现有 71 场, 缺 8 场
+     David West (westda01): 应有 74 场, 现有 67 场, 缺 7 场
+     Johan Petro (petrojo01): 应有 68 场, 现有 61 场, 缺 7 场
+     Kirk Snyder (snydeki01): 应有 68 场, 现有 61 场, 缺 7 场
+     Primož Brezec (brezepr01): 应有 79 场, 现有 72 场, 缺 7 场
+     Rashard Lewis (lewisra02): 应有 78 场, 现有 71 场, 缺 7 场
+     Rasual Butler (butlera01): 应有 79 场, 现有 72 场, 缺 7 场
+     Scott Padgett (padgesc01): 应有 62 场, 现有 55 场, 缺 7 场
+     Speedy Claxton (claxtsp01): 应有 71 场, 现有 64 场, 缺 7 场
+     Jason Collins (collija04): 应有 71 场, 现有 65 场, 缺 6 场
+     Nick Collison (collini01): 应有 66 场, 现有 60 场, 缺 6 场
+     Aaron Williams (williaa01): 应有 48 场, 现有 43 场, 缺 5 场
+     Antoine Wright (wrighan01): 应有 39 场, 现有 34 场, 缺 5 场
+     Marc Jackson (jacksma02): 应有 64 场, 现有 59 场, 缺 5 场
+     Melvin Ely (elyme01): 应有 57 场, 现有 52 场, 缺 5 场
+     Ray Allen (allenra02): 应有 78 场, 现有 73 场, 缺 5 场
+     Ronald Murray (murraro01): 应有 76 场, 现有 71 场, 缺 5 场
+     Zoran Planinić (planizo01): 应有 56 场, 现有 51 场, 缺 5 场
+     J.R. Smith (smithjr01): 应有 55 场, 现有 51 场, 缺 4 场
+     Keith Bogans (boganke01): 应有 72 场, 现有 68 场, 缺 4 场
+     Kevin Burleson (burleke01): 应有 39 场, 现有 35 场, 缺 4 场
+     Lamond Murray (murrala01): 应有 57 场, 现有 53 场, 缺 4 场
+     Linton Johnson (johnsli01): 应有 36 场, 现有 32 场, 缺 4 场
+     Mateen Cleaves (cleavma01): 应有 27 场, 现有 23 场, 缺 4 场
+     Mikki Moore (mooremi01): 应有 47 场, 现有 43 场, 缺 4 场
+     Reggie Evans (evansre01): 应有 67 场, 现有 63 场, 缺 4 场
+     Robert Swift (swiftro01): 应有 47 场, 现有 43 场, 缺 4 场
+     Vladimir Radmanović (radmavl01): 应有 77 场, 现有 73 场, 缺 4 场
+     Boštjan Nachbar (nachbbo01): 应有 36 场, 现有 33 场, 缺 3 场
+     Brandon Bass (bassbr01): 应有 29 场, 现有 26 场, 缺 3 场
+     Gerald Wallace (wallage01): 应有 55 场, 现有 52 场, 缺 3 场
+     Jackson Vroman (vromaja01): 应有 41 场, 现有 38 场, 缺 3 场
+     Kareem Rush (rushka01): 应有 47 场, 现有 44 场, 缺 3 场
+     Alan Anderson (anderal01): 应有 36 场, 现有 34 场, 缺 2 场
+     Emeka Okafor (okafoem01): 应有 26 场, 现有 24 场, 缺 2 场
+     Jeff McInnis (mcinnje01): 应有 28 场, 现有 26 场, 缺 2 场
+     Lonny Baxter (baxtelo01): 应有 41 场, 现有 39 场, 缺 2 场
+     Arvydas Macijauskas (macijar01): 应有 19 场, 现有 18 场, 缺 1 场
+     Chris Wilcox (wilcoch01): 应有 77 场, 现有 76 场, 缺 1 场
+     Jake Voskuhl (voskuja01): 应有 51 场, 现有 50 场, 缺 1 场
+     Vitaly Potapenko (potapvi01): 应有 33 场, 现有 32 场, 缺 1 场
+  [逐人完整性] 合计缺失场次: 298（跨 56 人）
+
+===== season 2007 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1215 / dim_games(Reg) 1230  !! 覆盖不足（缺 15 场）
+  [逐人完整性] !! 59 个球员缺失场次:
+     Chris Paul (paulch01): 应有 64 场, 现有 56 场, 缺 8 场
+     Chris Wilcox (wilcoch01): 应有 82 场, 现有 74 场, 缺 8 场
+     Damien Wilkins (wilkida02): 应有 82 场, 现有 74 场, 缺 8 场
+     Desmond Mason (masonde01): 应有 75 场, 现有 67 场, 缺 8 场
+     Earl Watson (watsoea01): 应有 77 场, 现有 69 场, 缺 8 场
+     Jannero Pargo (pargoja01): 应有 82 场, 现有 74 场, 缺 8 场
+     Johan Petro (petrojo01): 应有 81 场, 现有 73 场, 缺 8 场
+     Nick Collison (collini01): 应有 82 场, 现有 74 场, 缺 8 场
+     Rasual Butler (butlera01): 应有 81 场, 现有 73 场, 缺 8 场
+     Tyson Chandler (chandty01): 应有 73 场, 现有 65 场, 缺 8 场
+     Adam Morrison (morriad01): 应有 78 场, 现有 71 场, 缺 7 场
+     Boštjan Nachbar (nachbbo01): 应有 76 场, 现有 69 场, 缺 7 场
+     Jason Collins (collija04): 应有 80 场, 现有 73 场, 缺 7 场
+     Jason Kidd (kiddja01): 应有 80 场, 现有 73 场, 缺 7 场
+     Marcus Williams (willima03): 应有 79 场, 现有 72 场, 缺 7 场
+     Matt Carroll (carroma01): 应有 72 场, 现有 65 场, 缺 7 场
+     Mikki Moore (mooremi01): 应有 79 场, 现有 72 场, 缺 7 场
+     Rashard Lewis (lewisra02): 应有 60 场, 现有 53 场, 缺 7 场
+     Vince Carter (cartevi01): 应有 82 场, 现有 75 场, 缺 7 场
+     Antoine Wright (wrighan01): 应有 63 场, 现有 57 场, 缺 6 场
+     Bobby Jackson (jacksbo01): 应有 56 场, 现有 50 场, 缺 6 场
+     Devin Brown (brownde02): 应有 58 场, 现有 52 场, 缺 6 场
+     Jake Voskuhl (voskuja01): 应有 73 场, 现有 67 场, 缺 6 场
+     Linton Johnson (johnsli01): 应有 54 场, 现有 48 场, 缺 6 场
+     Mickaël Gelabale (gelabmi01): 应有 70 场, 现有 64 场, 缺 6 场
+     Brevin Knight (knighbr01): 应有 45 场, 现有 40 场, 缺 5 场
+     David West (westda01): 应有 52 场, 现有 47 场, 缺 5 场
+     Emeka Okafor (okafoem01): 应有 67 场, 现有 62 场, 缺 5 场
+     Gerald Wallace (wallage01): 应有 72 场, 现有 67 场, 缺 5 场
+     Mike Wilks (wilksmi01): 应有 47 场, 现有 42 场, 缺 5 场
+     Primož Brezec (brezepr01): 应有 58 场, 现有 53 场, 缺 5 场
+     Ray Allen (allenra02): 应有 55 场, 现有 50 场, 缺 5 场
+     Raymond Felton (feltora01): 应有 78 场, 现有 73 场, 缺 5 场
+     Eddie House (houseed01): 应有 56 场, 现有 52 场, 缺 4 场
+     Hassan Adams (adamsha01): 应有 61 场, 现有 57 场, 缺 4 场
+     Josh Boone (boonejo01): 应有 61 场, 现有 57 场, 缺 4 场
+     Luke Ridnour (ridnolu01): 应有 71 场, 现有 67 场, 缺 4 场
+     Marc Jackson (jacksma02): 应有 56 场, 现有 52 场, 缺 4 场
+     Melvin Ely (elyme01): 应有 30 场, 现有 26 场, 缺 4 场
+     Richard Jefferson (jefferi01): 应有 55 场, 现有 51 场, 缺 4 场
+     Walter Herrmann (herrmwa01): 应有 48 场, 现有 44 场, 缺 4 场
+     Alan Anderson (anderal01): 应有 17 场, 现有 14 场, 缺 3 场
+     Brandon Bass (bassbr01): 应有 21 场, 现有 18 场, 缺 3 场
+     Clifford Robinson (robincl02): 应有 50 场, 现有 47 场, 缺 3 场
+     Derek Anderson (anderde01): 应有 50 场, 现有 47 场, 缺 3 场
+     Hilton Armstrong (armsthi01): 应有 56 场, 现有 53 场, 缺 3 场
+     Nenad Krstić (krstine01): 应有 26 场, 现有 23 场, 缺 3 场
+     Othella Harrington (harriot01): 应有 26 场, 现有 23 场, 缺 3 场
+     Sean May (mayse01): 应有 35 场, 现有 32 场, 缺 3 场
+     Cedric Simmons (simmoce01): 应有 43 场, 现有 41 场, 缺 2 场
+     Jeff McInnis (mcinnje01): 应有 38 场, 现有 36 场, 缺 2 场
+     Mouhamed Sene (senesa01): 应有 28 场, 现有 26 场, 缺 2 场
+     Ryan Hollins (holliry01): 应有 27 场, 现有 25 场, 缺 2 场
+     Andre Brown (brownan01): 应有 38 场, 现有 37 场, 缺 1 场
+     Andreas Glyniadakis (glynian01): 应有 13 场, 现有 12 场, 缺 1 场
+     Bernard Robinson (robinbe01): 应有 31 场, 现有 30 场, 缺 1 场
+     Desmon Farmer (farmede01): 应有 8 场, 现有 7 场, 缺 1 场
+     Marcus Vinicius (vincima01): 应有 13 场, 现有 12 场, 缺 1 场
+     Peja Stojaković (stojape01): 应有 13 场, 现有 12 场, 缺 1 场
+  [逐人完整性] 合计缺失场次: 289（跨 59 人）
+
+===== season 2008 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1215 / dim_games(Reg) 1230  !! 覆盖不足（缺 15 场）
+  [逐人完整性] !! 59 个球员缺失场次:
+     Emeka Okafor (okafoem01): 应有 82 场, 现有 74 场, 缺 8 场
+     Jason Richardson (richaja01): 应有 82 场, 现有 74 场, 缺 8 场
+     Raymond Felton (feltora01): 应有 79 场, 现有 71 场, 缺 8 场
+     Richard Jefferson (jefferi01): 应有 82 场, 现有 74 场, 缺 8 场
+     Boštjan Nachbar (nachbbo01): 应有 75 场, 现有 68 场, 缺 7 场
+     Chris Paul (paulch01): 应有 80 场, 现有 73 场, 缺 7 场
+     Earl Watson (watsoea01): 应有 78 场, 现有 71 场, 缺 7 场
+     Jannero Pargo (pargoja01): 应有 80 场, 现有 73 场, 缺 7 场
+     Jeff Green (greenje02): 应有 80 场, 现有 73 场, 缺 7 场
+     Kevin Durant (duranke01): 应有 80 场, 现有 73 场, 缺 7 场
+     Matt Carroll (carroma01): 应有 80 场, 现有 73 场, 缺 7 场
+     Nazr Mohammed (mohamna01): 应有 82 场, 现有 75 场, 缺 7 场
+     Nick Collison (collini01): 应有 78 场, 现有 71 场, 缺 7 场
+     Ryan Hollins (holliry01): 应有 60 场, 现有 53 场, 缺 7 场
+     Sean Williams (willise01): 应有 73 场, 现有 66 场, 缺 7 场
+     Tyson Chandler (chandty01): 应有 79 场, 现有 72 场, 缺 7 场
+     Bobby Jackson (jacksbo01): 应有 72 场, 现有 66 场, 缺 6 场
+     Darrell Armstrong (armstda01): 应有 50 场, 现有 44 场, 缺 6 场
+     David West (westda01): 应有 76 场, 现有 70 场, 缺 6 场
+     Hilton Armstrong (armsthi01): 应有 65 场, 现有 59 场, 缺 6 场
+     Jared Dudley (dudleja01): 应有 73 场, 现有 67 场, 缺 6 场
+     Jason Kidd (kiddja01): 应有 80 场, 现有 74 场, 缺 6 场
+     Josh Boone (boonejo01): 应有 70 场, 现有 64 场, 缺 6 场
+     Morris Peterson (petermo01): 应有 76 场, 现有 70 场, 缺 6 场
+     Rasual Butler (butlera01): 应有 51 场, 现有 45 场, 缺 6 场
+     Vince Carter (cartevi01): 应有 76 场, 现有 70 场, 缺 6 场
+     Wally Szczerbiak (szczewa02): 应有 75 场, 现有 69 场, 缺 6 场
+     Jason Collins (collija04): 应有 74 场, 现有 69 场, 缺 5 场
+     Jeff McInnis (mcinnje01): 应有 54 场, 现有 49 场, 缺 5 场
+     Malik Allen (allenma01): 应有 73 场, 现有 68 场, 缺 5 场
+     Peja Stojaković (stojape01): 应有 77 场, 现有 72 场, 缺 5 场
+     Antoine Wright (wrighan01): 应有 56 场, 现有 52 场, 缺 4 场
+     Chris Wilcox (wilcoch01): 应有 62 场, 现有 58 场, 缺 4 场
+     Johan Petro (petrojo01): 应有 72 场, 现有 68 场, 缺 4 场
+     Julian Wright (wrighju01): 应有 57 场, 现有 53 场, 缺 4 场
+     Kurt Thomas (thomaku01): 应有 70 场, 现有 66 场, 缺 4 场
+     Luke Ridnour (ridnolu01): 应有 61 场, 现有 57 场, 缺 4 场
+     Marcus Williams (willima03): 应有 53 场, 现有 49 场, 缺 4 场
+     Mickaël Gelabale (gelabmi01): 应有 39 场, 现有 35 场, 缺 4 场
+     Ryan Bowen (bowenry01): 应有 53 场, 现有 49 场, 缺 4 场
+     Damien Wilkins (wilkida02): 应有 76 场, 现有 73 场, 缺 3 场
+     Delonte West (westde01): 应有 61 场, 现有 58 场, 缺 3 场
+     Earl Boykins (boykiea01): 应有 36 场, 现有 33 场, 缺 3 场
+     Gerald Wallace (wallage01): 应有 62 场, 现有 59 场, 缺 3 场
+     Nenad Krstić (krstine01): 应有 45 场, 现有 42 场, 缺 3 场
+     DeSagana Diop (diopde01): 应有 79 场, 现有 77 场, 缺 2 场
+     Devin Harris (harride01): 应有 64 场, 现有 62 场, 缺 2 场
+     Marcus Vinicius (vincima01): 应有 13 场, 现有 11 场, 缺 2 场
+     Maurice Ager (agerma01): 应有 26 场, 现有 24 场, 缺 2 场
+     Melvin Ely (elyme01): 应有 52 场, 现有 50 场, 缺 2 场
+     Stromile Swift (swiftst01): 应有 56 场, 现有 54 场, 缺 2 场
+     Trenton Hassell (hassetr01): 应有 63 场, 现有 61 场, 缺 2 场
+     Donyell Marshall (marshdo01): 应有 26 场, 现有 25 场, 缺 1 场
+     Eddie Gill (gilled01): 应有 14 场, 现有 13 场, 缺 1 场
+     Jermareo Davidson (davidje01): 应有 38 场, 现有 37 场, 缺 1 场
+     Mike James (jamesmi01): 应有 54 场, 现有 53 场, 缺 1 场
+     Mouhamed Sene (senesa01): 应有 13 场, 现有 12 场, 缺 1 场
+     Primož Brezec (brezepr01): 应有 50 场, 现有 49 场, 缺 1 场
+     Walter Herrmann (herrmwa01): 应有 45 场, 现有 44 场, 缺 1 场
+  [逐人完整性] 合计缺失场次: 274（跨 59 人）
+
+===== season 2009 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1223 / dim_games(Reg) 1230  !! 覆盖不足（缺 7 场）
+  [逐人完整性] !! 49 个球员缺失场次:
+     Brook Lopez (lopezbr01): 应有 82 场, 现有 77 场, 缺 5 场
+     D.J. Augustin (augusdj01): 应有 72 场, 现有 67 场, 缺 5 场
+     Emeka Okafor (okafoem01): 应有 82 场, 现有 77 场, 缺 5 场
+     Jarvis Hayes (hayesja01): 应有 74 场, 现有 69 场, 缺 5 场
+     Raymond Felton (feltora01): 应有 82 场, 现有 77 场, 缺 5 场
+     Vince Carter (cartevi01): 应有 80 场, 现有 75 场, 缺 5 场
+     Bobby Simmons (simmobo01): 应有 71 场, 现有 67 场, 缺 4 场
+     Chris Paul (paulch01): 应有 78 场, 现有 74 场, 缺 4 场
+     Devin Harris (harride01): 应有 69 场, 现有 65 场, 缺 4 场
+     Gerald Wallace (wallage01): 应有 71 场, 现有 67 场, 缺 4 场
+     Josh Boone (boonejo01): 应有 62 场, 现有 58 场, 缺 4 场
+     Matt Carroll (carroma01): 应有 55 场, 现有 51 场, 缺 4 场
+     Nazr Mohammed (mohamna01): 应有 39 场, 现有 35 场, 缺 4 场
+     Peja Stojaković (stojape01): 应有 61 场, 现有 57 场, 缺 4 场
+     Rasual Butler (butlera01): 应有 82 场, 现有 78 场, 缺 4 场
+     Ryan Anderson (anderry01): 应有 66 场, 现有 62 场, 缺 4 场
+     Yi Jianlian (jianlyi01): 应有 61 场, 现有 57 场, 缺 4 场
+     Boris Diaw (diawbo01): 应有 81 场, 现有 78 场, 缺 3 场
+     Devin Brown (brownde02): 应有 63 场, 现有 60 场, 缺 3 场
+     James Posey (poseyja01): 应有 75 场, 现有 72 场, 缺 3 场
+     Keyon Dooling (doolike01): 应有 77 场, 现有 74 场, 缺 3 场
+     Morris Peterson (petermo01): 应有 43 场, 现有 40 场, 缺 3 场
+     Sean Marks (marksse01): 应有 60 场, 现有 57 场, 缺 3 场
+     Trenton Hassell (hassetr01): 应有 53 场, 现有 50 场, 缺 3 场
+     Adam Morrison (morriad01): 应有 52 场, 现有 50 场, 缺 2 场
+     Alexis Ajinça (ajincal01): 应有 31 场, 现有 29 场, 缺 2 场
+     Antonio Daniels (daniean01): 应有 74 场, 现有 72 场, 缺 2 场
+     Chris Douglas-Roberts (douglch01): 应有 44 场, 现有 42 场, 缺 2 场
+     David West (westda01): 应有 76 场, 现有 74 场, 缺 2 场
+     Eduardo Nájera (najered01): 应有 27 场, 现有 25 场, 缺 2 场
+     Hilton Armstrong (armsthi01): 应有 70 场, 现有 68 场, 缺 2 场
+     Julian Wright (wrighju01): 应有 54 场, 现有 52 场, 缺 2 场
+     Juwan Howard (howarju01): 应有 42 场, 现有 40 场, 缺 2 场
+     Melvin Ely (elyme01): 应有 31 场, 现有 29 场, 缺 2 场
+     Raja Bell (bellra01): 应有 67 场, 现有 65 场, 缺 2 场
+     Sean May (mayse01): 应有 24 场, 现有 22 场, 缺 2 场
+     Sean Singletary (singlse01): 应有 37 场, 现有 35 场, 缺 2 场
+     Tyson Chandler (chandty01): 应有 45 场, 现有 43 场, 缺 2 场
+     Andre Brown (brownan01): 应有 4 场, 现有 3 场, 缺 1 场
+     Cartier Martin (martica01): 应有 33 场, 现有 32 场, 缺 1 场
+     DeSagana Diop (diopde01): 应有 75 场, 现有 74 场, 缺 1 场
+     Dontell Jefferson (jeffedo01): 应有 6 场, 现有 5 场, 缺 1 场
+     Dwayne Jones (jonesdw02): 应有 6 场, 现有 5 场, 缺 1 场
+     Jared Dudley (dudleja01): 应有 68 场, 现有 67 场, 缺 1 场
+     Mike James (jamesmi01): 应有 61 场, 现有 60 场, 缺 1 场
+     Ryan Hollins (holliry01): 应有 45 场, 现有 44 场, 缺 1 场
+     Sean Williams (willise01): 应有 33 场, 现有 32 场, 缺 1 场
+     Shannon Brown (brownsh01): 应有 48 场, 现有 47 场, 缺 1 场
+     Vladimir Radmanović (radmavl01): 应有 78 场, 现有 77 场, 缺 1 场
+  [逐人完整性] 合计缺失场次: 134（跨 49 人）
+
+===== season 2010 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1222 / dim_games(Reg) 1230  !! 覆盖不足（缺 8 场）
+  [逐人完整性] !! 40 个球员缺失场次:
+     Boris Diaw (diawbo01): 应有 82 场, 现有 76 场, 缺 6 场
+     Brook Lopez (lopezbr01): 应有 82 场, 现有 76 场, 缺 6 场
+     Josh Boone (boonejo01): 应有 63 场, 现有 57 场, 缺 6 场
+     Nazr Mohammed (mohamna01): 应有 58 场, 现有 52 场, 缺 6 场
+     Raymond Felton (feltora01): 应有 80 场, 现有 74 场, 缺 6 场
+     Stephen Graham (grahast01): 应有 70 场, 现有 64 场, 缺 6 场
+     Chris Douglas-Roberts (douglch01): 应有 67 场, 现有 62 场, 缺 5 场
+     Courtney Lee (leeco01): 应有 71 场, 现有 66 场, 缺 5 场
+     D.J. Augustin (augusdj01): 应有 80 场, 现有 75 场, 缺 5 场
+     Gerald Wallace (wallage01): 应有 76 场, 现有 71 场, 缺 5 场
+     Stephen Jackson (jacksst02): 应有 81 场, 现有 76 场, 缺 5 场
+     Terrence Williams (willite01): 应有 78 场, 现有 73 场, 缺 5 场
+     Darius Songaila (songada01): 应有 75 场, 现有 71 场, 缺 4 场
+     Darren Collison (collida01): 应有 76 场, 现有 72 场, 缺 4 场
+     David West (westda01): 应有 81 场, 现有 77 场, 缺 4 场
+     Emeka Okafor (okafoem01): 应有 82 场, 现有 78 场, 缺 4 场
+     James Posey (poseyja01): 应有 77 场, 现有 73 场, 缺 4 场
+     Julian Wright (wrighju01): 应有 68 场, 现有 64 场, 缺 4 场
+     Keyon Dooling (doolike01): 应有 53 场, 现有 49 场, 缺 4 场
+     Tyson Chandler (chandty01): 应有 51 场, 现有 47 场, 缺 4 场
+     Jarvis Hayes (hayesja01): 应有 45 场, 现有 42 场, 缺 3 场
+     Kris Humphries (humphkr01): 应有 69 场, 现有 66 场, 缺 3 场
+     Marcus Thornton (thornma01): 应有 73 场, 现有 70 场, 缺 3 场
+     Morris Peterson (petermo01): 应有 46 场, 现有 43 场, 缺 3 场
+     Ronald Murray (murraro01): 应有 75 场, 现有 72 场, 缺 3 场
+     Aaron Gray (grayaa01): 应有 32 场, 现有 30 场, 缺 2 场
+     Chris Quinn (quinnch01): 应有 25 场, 现有 23 场, 缺 2 场
+     Derrick Brown (brownde04): 应有 57 场, 现有 55 场, 缺 2 场
+     Devin Harris (harride01): 应有 64 场, 现有 62 场, 缺 2 场
+     Gerald Henderson (hendege02): 应有 43 场, 现有 41 场, 缺 2 场
+     Larry Hughes (hughela01): 应有 45 场, 现有 43 场, 缺 2 场
+     Peja Stojaković (stojape01): 应有 62 场, 现有 60 场, 缺 2 场
+     Tony Battie (battito01): 应有 15 场, 现有 13 场, 缺 2 场
+     Bobby Simmons (simmobo01): 应有 23 场, 现有 22 场, 缺 1 场
+     Chris Paul (paulch01): 应有 45 场, 现有 44 场, 缺 1 场
+     Jason Hart (hartja01): 应有 5 场, 现有 4 场, 缺 1 场
+     Rafer Alston (alstora01): 应有 52 场, 现有 51 场, 缺 1 场
+     Sean Williams (willise01): 应有 20 场, 现有 19 场, 缺 1 场
+     Theo Ratliff (ratlith01): 应有 49 场, 现有 48 场, 缺 1 场
+     Trenton Hassell (hassetr01): 应有 52 场, 现有 51 场, 缺 1 场
+  [逐人完整性] 合计缺失场次: 136（跨 40 人）
+
+===== season 2011 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1222 / dim_games(Reg) 1230  !! 覆盖不足（缺 8 场）
+  [逐人完整性] !! 45 个球员缺失场次:
+     Boris Diaw (diawbo01): 应有 82 场, 现有 76 场, 缺 6 场
+     Brook Lopez (lopezbr01): 应有 82 场, 现有 76 场, 缺 6 场
+     D.J. Augustin (augusdj01): 应有 82 场, 现有 76 场, 缺 6 场
+     Johan Petro (petrojo01): 应有 77 场, 现有 71 场, 缺 6 场
+     Jordan Farmar (farmajo01): 应有 73 场, 现有 67 场, 缺 6 场
+     Travis Outlaw (outlatr01): 应有 82 场, 现有 76 场, 缺 6 场
+     Gerald Wallace (wallage01): 应有 71 场, 现有 66 场, 缺 5 场
+     Kris Humphries (humphkr01): 应有 74 场, 现有 69 场, 缺 5 场
+     Kwame Brown (brownkw01): 应有 66 场, 现有 61 场, 缺 5 场
+     Nazr Mohammed (mohamna01): 应有 75 场, 现有 70 场, 缺 5 场
+     Shaun Livingston (livinsh01): 应有 73 场, 现有 68 场, 缺 5 场
+     Chris Paul (paulch01): 应有 80 场, 现有 76 场, 缺 4 场
+     David West (westda01): 应有 70 场, 现有 66 场, 缺 4 场
+     Derrick Favors (favorde01): 应有 78 场, 现有 74 场, 缺 4 场
+     Devin Harris (harride01): 应有 71 场, 现有 67 场, 缺 4 场
+     Dominic McGuire (mcguido01): 应有 52 场, 现有 48 场, 缺 4 场
+     Gerald Henderson (hendege02): 应有 68 场, 现有 64 场, 缺 4 场
+     Jarrett Jack (jackja01): 应有 83 场, 现有 79 场, 缺 4 场
+     Jason Smith (smithja02): 应有 77 场, 现有 73 场, 缺 4 场
+     Marcus Thornton (thornma01): 应有 73 场, 现有 69 场, 缺 4 场
+     Quinton Ross (rossqu01): 应有 36 场, 现有 32 场, 缺 4 场
+     Sasha Vujačić (vujacsa01): 应有 67 场, 现有 63 场, 缺 4 场
+     Anthony Morrow (morroan01): 应有 58 场, 现有 55 场, 缺 3 场
+     Ben Uzoh (uzohbe01): 应有 42 场, 现有 39 场, 缺 3 场
+     D.J. Mbenga (mbengdj01): 应有 41 场, 现有 38 场, 缺 3 场
+     Emeka Okafor (okafoem01): 应有 72 场, 现有 69 场, 缺 3 场
+     Marco Belinelli (belinma01): 应有 80 场, 现有 77 场, 缺 3 场
+     Quincy Pondexter (pondequ01): 应有 66 场, 现有 63 场, 缺 3 场
+     Stephen Graham (grahast01): 应有 59 场, 现有 56 场, 缺 3 场
+     Stephen Jackson (jacksst02): 应有 67 场, 现有 64 场, 缺 3 场
+     Trevor Ariza (arizatr01): 应有 75 场, 现有 72 场, 缺 3 场
+     Willie Green (greenwi01): 应有 77 场, 现有 74 场, 缺 3 场
+     Damion James (jamesda01): 应有 25 场, 现有 23 场, 缺 2 场
+     Derrick Brown (brownde04): 应有 49 场, 现有 47 场, 缺 2 场
+     Matt Carroll (carroma01): 应有 54 场, 现有 52 场, 缺 2 场
+     Tyrus Thomas (thomaty01): 应有 41 场, 现有 39 场, 缺 2 场
+     Aaron Gray (grayaa01): 应有 41 场, 现有 40 场, 缺 1 场
+     Dan Gadzuric (gadzuda01): 应有 42 场, 现有 41 场, 缺 1 场
+     Dante Cunningham (cunnida01): 应有 78 场, 现有 77 场, 缺 1 场
+     David Andersen (anderda03): 应有 40 场, 现有 39 场, 缺 1 场
+     DeSagana Diop (diopde01): 应有 16 场, 现有 15 场, 缺 1 场
+     Garrett Temple (templga01): 应有 24 场, 现有 23 场, 缺 1 场
+     Sasha Pavlović (pavloal01): 应有 31 场, 现有 30 场, 缺 1 场
+     Sherron Collins (collish01): 应有 20 场, 现有 19 场, 缺 1 场
+     Terrence Williams (willite01): 应有 21 场, 现有 20 场, 缺 1 场
+  [逐人完整性] 合计缺失场次: 152（跨 45 人）
+
+===== season 2012 =====
+  比赛覆盖(RS): player_gamelog 覆盖 983 / dim_games(Reg) 990  !! 覆盖不足（缺 7 场）
+  [逐人完整性] !! 40 个球员缺失场次:
+     Byron Mullens (mulleby01): 应有 65 场, 现有 59 场, 缺 6 场
+     Derrick Brown (brownde04): 应有 65 场, 现有 59 场, 缺 6 场
+     Gerald Henderson (hendege02): 应有 55 场, 现有 49 场, 缺 6 场
+     Kemba Walker (walkeke02): 应有 66 场, 现有 60 场, 缺 6 场
+     Tyrus Thomas (thomaty01): 应有 54 场, 现有 48 场, 缺 6 场
+     Bismack Biyombo (biyombi01): 应有 63 场, 现有 58 场, 缺 5 场
+     D.J. Augustin (augusdj01): 应有 48 场, 现有 43 场, 缺 5 场
+     Deron Williams (willide01): 应有 55 场, 现有 50 场, 缺 5 场
+     Kris Humphries (humphkr01): 应有 62 场, 现有 57 场, 缺 5 场
+     MarShon Brooks (brookma01): 应有 56 场, 现有 51 场, 缺 5 场
+     Anthony Morrow (morroan01): 应有 62 场, 现有 58 场, 缺 4 场
+     Gerald Green (greenge01): 应有 31 场, 现有 27 场, 缺 4 场
+     Matt Carroll (carroma01): 应有 53 场, 现有 49 场, 缺 4 场
+     Al-Farouq Aminu (aminual01): 应有 66 场, 现有 63 场, 缺 3 场
+     Boris Diaw (diawbo01): 应有 57 场, 现有 54 场, 缺 3 场
+     Cory Higgins (higgico01): 应有 38 场, 现有 35 场, 缺 3 场
+     D.J. White (whitedj01): 应有 58 场, 现有 55 场, 缺 3 场
+     Eduardo Nájera (najered01): 应有 22 场, 现有 19 场, 缺 3 场
+     Greivis Vásquez (vasqugr01): 应有 66 场, 现有 63 场, 缺 3 场
+     Johan Petro (petrojo01): 应有 59 场, 现有 56 场, 缺 3 场
+     Jordan Farmar (farmajo01): 应有 39 场, 现有 36 场, 缺 3 场
+     Lance Thomas (thomala01): 应有 42 场, 现有 39 场, 缺 3 场
+     Marco Belinelli (belinma01): 应有 66 场, 现有 63 场, 缺 3 场
+     Reggie Williams (willire02): 应有 33 场, 现有 30 场, 缺 3 场
+     Xavier Henry (henryxa01): 应有 45 场, 现有 42 场, 缺 3 场
+     DeShawn Stevenson (stevede01): 应有 51 场, 现有 49 场, 缺 2 场
+     Gerald Wallace (wallage01): 应有 58 场, 现有 56 场, 缺 2 场
+     Jarrett Jack (jackja01): 应有 45 场, 现有 43 场, 缺 2 场
+     Jerry Smith (smithje01): 应有 5 场, 现有 3 场, 缺 2 场
+     Jordan Williams (willijo03): 应有 43 场, 现有 41 场, 缺 2 场
+     Shelden Williams (willish02): 应有 58 场, 现有 56 场, 缺 2 场
+     Sundiata Gaines (gainesu01): 应有 57 场, 现有 55 场, 缺 2 场
+     Brook Lopez (lopezbr01): 应有 5 场, 现有 4 场, 缺 1 场
+     Carl Landry (landrca01): 应有 41 场, 现有 40 场, 缺 1 场
+     DeSagana Diop (diopde01): 应有 27 场, 现有 26 场, 缺 1 场
+     Jamario Moon (moonja01): 应有 8 场, 现有 7 场, 缺 1 场
+     Jeff Foote (footeje01): 应有 4 场, 现有 3 场, 缺 1 场
+     Jerome Dyson (dysonje01): 应有 9 场, 现有 8 场, 缺 1 场
+     Larry Owens (owensla01): 应有 7 场, 现有 6 场, 缺 1 场
+     Shawne Williams (willish03): 应有 25 场, 现有 24 场, 缺 1 场
+  [逐人完整性] 合计缺失场次: 125（跨 40 人）
+
+===== season 2013 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1215 / dim_games(Reg) 1229  !! 覆盖不足（缺 14 场）
+  [逐人完整性] !! 160 个球员缺失场次:
+     Austin Rivers (riverau01): 应有 61 场, 现有 58 场, 缺 3 场
+     Brian Roberts (roberbr01): 应有 78 场, 现有 75 场, 缺 3 场
+     Greivis Vásquez (vasqugr01): 应有 78 场, 现有 75 场, 缺 3 场
+     Marcus Morris (morrima03): 应有 77 场, 现有 74 场, 缺 3 场
+     Robin Lopez (lopezro01): 应有 82 场, 现有 79 场, 缺 3 场
+     Roger Mason (masonro01): 应有 69 场, 现有 66 场, 缺 3 场
+     Andre Iguodala (iguodan01): 应有 80 场, 现有 78 场, 缺 2 场
+     Andre Miller (millean02): 应有 82 场, 现有 80 场, 缺 2 场
+     Bismack Biyombo (biyombi01): 应有 80 场, 现有 78 场, 缺 2 场
+     Boris Diaw (diawbo01): 应有 75 场, 现有 73 场, 缺 2 场
+     Brandon Jennings (jennibr01): 应有 80 场, 现有 78 场, 缺 2 场
+     Corey Brewer (breweco01): 应有 82 场, 现有 80 场, 缺 2 场
+     Darius Miller (milleda01): 应有 52 场, 现有 50 场, 缺 2 场
+     Dominic McGuire (mcguido01): 应有 26 场, 现有 24 场, 缺 2 场
+     Ekpe Udoh (udohek01): 应有 76 场, 现有 74 场, 缺 2 场
+     Ersan İlyasova (ilyaser01): 应有 73 场, 现有 71 场, 缺 2 场
+     Goran Dragić (dragigo01): 应有 77 场, 现有 75 场, 缺 2 场
+     Ish Smith (smithis01): 应有 52 场, 现有 50 场, 缺 2 场
+     JJ Redick (redicjj01): 应有 78 场, 现有 76 场, 缺 2 场
+     JaVale McGee (mcgeeja01): 应有 79 场, 现有 77 场, 缺 2 场
+     James Harden (hardeja01): 应有 78 场, 现有 76 场, 缺 2 场
+     Jared Dudley (dudleja01): 应有 79 场, 现有 77 场, 缺 2 场
+     Jason Smith (smithja02): 应有 51 场, 现有 49 场, 缺 2 场
+     Jeff Taylor (tayloje03): 应有 77 场, 现有 75 场, 缺 2 场
+     Jeremy Lin (linje01): 应有 82 场, 现有 80 场, 缺 2 场
+     Jermaine O'Neal (onealje01): 应有 55 场, 现有 53 场, 缺 2 场
+     Kemba Walker (walkeke02): 应有 82 场, 现有 80 场, 缺 2 场
+     Kendall Marshall (marshke01): 应有 48 场, 现有 46 场, 缺 2 场
+     Kosta Koufos (koufoko01): 应有 81 场, 现有 79 场, 缺 2 场
+     Lance Thomas (thomala01): 应有 59 场, 现有 57 场, 缺 2 场
+     Luis Scola (scolalu01): 应有 82 场, 现有 80 场, 缺 2 场
+     Markieff Morris (morrima02): 应有 82 场, 现有 80 场, 缺 2 场
+     Monta Ellis (ellismo01): 应有 82 场, 现有 80 场, 缺 2 场
+     Ramon Sessions (sessira01): 应有 61 场, 现有 59 场, 缺 2 场
+     Ryan Anderson (anderry01): 应有 81 场, 现有 79 场, 缺 2 场
+     Shelvin Mack (macksh01): 应有 31 场, 现有 29 场, 缺 2 场
+     Tiago Splitter (splitti01): 应有 81 场, 现有 79 场, 缺 2 场
+     Wesley Johnson (johnswe01): 应有 50 场, 现有 48 场, 缺 2 场
+     Xavier Henry (henryxa01): 应有 50 场, 现有 48 场, 缺 2 场
+     Ömer Aşık (asikom01): 应有 82 场, 现有 80 场, 缺 2 场
+     Al-Farouq Aminu (aminual01): 应有 76 场, 现有 75 场, 缺 1 场
+     Alan Anderson (anderal01): 应有 65 场, 现有 64 场, 缺 1 场
+     Alonzo Gee (geeal01): 应有 82 场, 现有 81 场, 缺 1 场
+     Andray Blatche (blatcan01): 应有 82 场, 现有 81 场, 缺 1 场
+     Andrew Nicholson (nichoan01): 应有 75 场, 现有 74 场, 缺 1 场
+     Antawn Jamison (jamisan01): 应有 76 场, 现有 75 场, 缺 1 场
+     Anthony Davis (davisan02): 应有 64 场, 现有 63 场, 缺 1 场
+     Anthony Randolph (randoan01): 应有 39 场, 现有 38 场, 缺 1 场
+     Anthony Tolliver (tollian01): 应有 62 场, 现有 61 场, 缺 1 场
+     Blake Griffin (griffbl01): 应有 80 场, 现有 79 场, 缺 1 场
+     Bradley Beal (bealbr01): 应有 56 场, 现有 55 场, 缺 1 场
+     Brandon Bass (bassbr01): 应有 81 场, 现有 80 场, 缺 1 场
+     Brook Lopez (lopezbr01): 应有 74 场, 现有 73 场, 缺 1 场
+     Byron Mullens (mulleby01): 应有 53 场, 现有 52 场, 缺 1 场
+     C.J. Watson (watsocj01): 应有 80 场, 现有 79 场, 缺 1 场
+     Carlos Boozer (boozeca01): 应有 79 场, 现有 78 场, 缺 1 场
+     Cartier Martin (martica01): 应有 41 场, 现有 40 场, 缺 1 场
+     Chandler Parsons (parsoch01): 应有 76 场, 现有 75 场, 缺 1 场
+     Chris Andersen (anderch01): 应有 42 场, 现有 41 场, 缺 1 场
+     Chris Bosh (boshch01): 应有 74 场, 现有 73 场, 缺 1 场
+     Chris Duhon (duhonch01): 应有 46 场, 现有 45 场, 缺 1 场
+     Chris Paul (paulch01): 应有 70 场, 现有 69 场, 缺 1 场
+     Chris Singleton (singlch01): 应有 57 场, 现有 56 场, 缺 1 场
+     Dahntay Jones (jonesda02): 应有 78 场, 现有 77 场, 缺 1 场
+     Danilo Gallinari (gallida01): 应有 71 场, 现有 70 场, 缺 1 场
+     Danny Green (greenda02): 应有 80 场, 现有 79 场, 缺 1 场
+     Darius Morris (morrida01): 应有 48 场, 现有 47 场, 缺 1 场
+     DeAndre Jordan (jordade01): 应有 82 场, 现有 81 场, 缺 1 场
+     DeMar DeRozan (derozde01): 应有 82 场, 现有 81 场, 缺 1 场
+     DeQuan Jones (jonesde01): 应有 63 场, 现有 62 场, 缺 1 场
+     DeSagana Diop (diopde01): 应有 22 场, 现有 21 场, 缺 1 场
+     Deron Williams (willide01): 应有 78 场, 现有 77 场, 缺 1 场
+     Derrick Williams (willide02): 应有 78 场, 现有 77 场, 缺 1 场
+     Diante Garrett (garredi02): 应有 19 场, 现有 18 场, 缺 1 场
+     Donatas Motiejūnas (motiedo01): 应有 44 场, 现有 43 场, 缺 1 场
+     Doron Lamb (lambdo01): 应有 47 场, 现有 46 场, 缺 1 场
+     Earl Clark (clarkea01): 应有 59 场, 现有 58 场, 缺 1 场
+     Eric Bledsoe (bledser01): 应有 76 场, 现有 75 场, 缺 1 场
+     Eric Gordon (gordoer01): 应有 42 场, 现有 41 场, 缺 1 场
+     Evan Fournier (fournev01): 应有 38 场, 现有 37 场, 缺 1 场
+     Garrett Temple (templga01): 应有 51 场, 现有 50 场, 缺 1 场
+     Gary Neal (nealga01): 应有 68 场, 现有 67 场, 缺 1 场
+     Gerald Henderson (hendege02): 应有 68 场, 现有 67 场, 缺 1 场
+     Gerald Wallace (wallage01): 应有 69 场, 现有 68 场, 缺 1 场
+     Greg Smith (smithgr02): 应有 70 场, 现有 69 场, 缺 1 场
+     Hakim Warrick (warriha01): 应有 28 场, 现有 27 场, 缺 1 场
+     Hamed Haddadi (haddaha01): 应有 30 场, 现有 29 场, 缺 1 场
+     James Anderson (anderja01): 应有 39 场, 现有 38 场, 缺 1 场
+     Jan Veselý (veselja01): 应有 51 场, 现有 50 场, 缺 1 场
+     Jared Sullinger (sullija01): 应有 45 场, 现有 44 场, 缺 1 场
+     Jason Thompson (thompja02): 应有 82 场, 现有 81 场, 缺 1 场
+     Jeff Green (greenje02): 应有 81 场, 现有 80 场, 缺 1 场
+     Jeff Teague (teaguje01): 应有 80 场, 现有 79 场, 缺 1 场
+     Jeremy Pargo (pargoje01): 应有 39 场, 现有 38 场, 缺 1 场
+     Jimmer Fredette (fredeji01): 应有 69 场, 现有 68 场, 缺 1 场
+     Jimmy Butler (butleji01): 应有 82 场, 现有 81 场, 缺 1 场
+     Jodie Meeks (meeksjo01): 应有 78 场, 现有 77 场, 缺 1 场
+     Joe Johnson (johnsjo02): 应有 72 场, 现有 71 场, 缺 1 场
+     John Henson (hensojo01): 应有 63 场, 现有 62 场, 缺 1 场
+     John Jenkins (jenkijo01): 应有 61 场, 现有 60 场, 缺 1 场
+     John Lucas III (lucasjo02): 应有 63 场, 现有 62 场, 缺 1 场
+     John Salmons (salmojo01): 应有 76 场, 现有 75 场, 缺 1 场
+     Jordan Crawford (crawfjo02): 应有 70 场, 现有 69 场, 缺 1 场
+     Josh McRoberts (mcrobjo01): 应有 67 场, 现有 66 场, 缺 1 场
+     Julyan Stone (stoneju01): 应有 4 场, 现有 3 场, 缺 1 场
+     Keith Bogans (boganke01): 应有 74 场, 现有 73 场, 缺 1 场
+     Kenneth Faried (farieke01): 应有 80 场, 现有 79 场, 缺 1 场
+     Kevin Séraphin (serapke01): 应有 79 场, 现有 78 场, 缺 1 场
+     Kirk Hinrich (hinriki01): 应有 60 场, 现有 59 场, 缺 1 场
+     Kobe Bryant (bryanko01): 应有 78 场, 现有 77 场, 缺 1 场
+     Kris Humphries (humphkr01): 应有 65 场, 现有 64 场, 缺 1 场
+     Kyle Lowry (lowryky01): 应有 68 场, 现有 67 场, 缺 1 场
+     Kyle O'Quinn (oquinky01): 应有 57 场, 现有 56 场, 缺 1 场
+     Kyrie Irving (irvinky01): 应有 59 场, 现有 58 场, 缺 1 场
+     Lamar Odom (odomla01): 应有 82 场, 现有 81 场, 缺 1 场
+     Landry Fields (fieldla01): 应有 51 场, 现有 50 场, 缺 1 场
+     Larry Sanders (sandela01): 应有 71 场, 现有 70 场, 缺 1 场
+     LeBron James (jamesle01): 应有 76 场, 现有 75 场, 缺 1 场
+     Luc Mbah a Moute (mbahalu01): 应有 58 场, 现有 57 场, 缺 1 场
+     Luke Ridnour (ridnolu01): 应有 82 场, 现有 81 场, 缺 1 场
+     Malcolm Thomas (thomama01): 应有 12 场, 现有 11 场, 缺 1 场
+     Manu Ginóbili (ginobma01): 应有 60 场, 现有 59 场, 缺 1 场
+     MarShon Brooks (brookma01): 应有 73 场, 现有 72 场, 缺 1 场
+     Mario Chalmers (chalmma01): 应有 77 场, 现有 76 场, 缺 1 场
+     Marquis Daniels (daniema01): 应有 59 场, 现有 58 场, 缺 1 场
+     Martell Webster (webstma02): 应有 76 场, 现有 75 场, 缺 1 场
+     Matt Bonner (bonnema01): 应有 68 场, 现有 67 场, 缺 1 场
+     Maurice Harkless (harklma01): 应有 76 场, 现有 75 场, 缺 1 场
+     Michael Kidd-Gilchrist (kiddgmi01): 应有 78 场, 现有 77 场, 缺 1 场
+     Mike Dunleavy (dunlemi02): 应有 75 场, 现有 74 场, 缺 1 场
+     Mike Miller (millemi01): 应有 59 场, 现有 58 场, 缺 1 场
+     Mike Scott (scottmi01): 应有 40 场, 现有 39 场, 缺 1 场
+     Nando De Colo (decolna01): 应有 72 场, 现有 71 场, 缺 1 场
+     Nate Robinson (robinna01): 应有 82 场, 现有 81 场, 缺 1 场
+     Nazr Mohammed (mohamna01): 应有 63 场, 现有 62 场, 缺 1 场
+     Nenê (hilarne01): 应有 61 场, 现有 60 场, 缺 1 场
+     Nikola Vučević (vucevni01): 应有 77 场, 现有 76 场, 缺 1 场
+     Norris Cole (coleno01): 应有 80 场, 现有 79 场, 缺 1 场
+     P.J. Tucker (tuckepj01): 应有 79 场, 现有 78 场, 缺 1 场
+     Patrick Beverley (beverpa01): 应有 41 场, 现有 40 场, 缺 1 场
+     Quincy Acy (acyqu01): 应有 29 场, 现有 28 场, 缺 1 场
+     Reggie Evans (evansre01): 应有 80 场, 现有 79 场, 缺 1 场
+     Reggie Williams (willire02): 应有 40 场, 现有 39 场, 缺 1 场
+     Robert Sacre (sacrero01): 应有 32 场, 现有 31 场, 缺 1 场
+     Ryan Hollins (holliry01): 应有 60 场, 现有 59 场, 缺 1 场
+     Shane Battier (battish01): 应有 72 场, 现有 71 场, 缺 1 场
+     Stephen Jackson (jacksst02): 应有 55 场, 现有 54 场, 缺 1 场
+     Steve Nash (nashst01): 应有 50 场, 现有 49 场, 缺 1 场
+     Terrence Jones (joneste01): 应有 19 场, 现有 18 场, 缺 1 场
+     Terrence Ross (rosste01): 应有 73 场, 现有 72 场, 缺 1 场
+     Tim Duncan (duncati01): 应有 69 场, 现有 68 场, 缺 1 场
+     Toney Douglas (douglto01): 应有 71 场, 现有 70 场, 缺 1 场
+     Tony Parker (parketo01): 应有 66 场, 现有 65 场, 缺 1 场
+     Travis Outlaw (outlatr01): 应有 38 场, 现有 37 场, 缺 1 场
+     Tristan Thompson (thomptr01): 应有 82 场, 现有 81 场, 缺 1 场
+     Ty Lawson (lawsoty01): 应有 73 场, 现有 72 场, 缺 1 场
+     Tyreke Evans (evansty01): 应有 65 场, 现有 64 场, 缺 1 场
+     Tyrus Thomas (thomaty01): 应有 26 场, 现有 25 场, 缺 1 场
+     Udonis Haslem (hasleud01): 应有 75 场, 现有 74 场, 缺 1 场
+     Willie Green (greenwi01): 应有 72 场, 现有 71 场, 缺 1 场
+  [逐人完整性] 合计缺失场次: 206（跨 160 人）
+
+===== season 2014 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1230 / dim_games(Reg) 1230  OK
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+===== season 2015 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1230 / dim_games(Reg) 1230  OK
+  [逐人完整性] !! 1 个球员缺失场次:
+     E'Twaun Moore (mooreet01): 应有 56 场, 现有 52 场, 缺 4 场
+  [逐人完整性] 合计缺失场次: 4（跨 1 人）
+
+===== season 2016 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1230 / dim_games(Reg) 1230  OK
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+===== season 2017 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1230 / dim_games(Reg) 1230  OK
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+===== season 2018 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1230 / dim_games(Reg) 1230  OK
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+===== season 2019 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1230 / dim_games(Reg) 1230  OK
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+===== season 2020 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1059 / dim_games(Reg) 1059  OK
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+===== season 2021 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1080 / dim_games(Reg) 1080  OK
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+===== season 2022 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1230 / dim_games(Reg) 1230  OK
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+===== season 2023 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1230 / dim_games(Reg) 1230  OK
+  [告警] br_player_id 为 NULL 的孤儿行: 47（不影响逐人缺口，待去重）
+  [告警] gamelog 有但 player_per_game 无 slug 匹配的球员: 5（身份/来源差异，需人工核）
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+===== season 2024 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1230 / dim_games(Reg) 1230  OK
+  [告警] gamelog 有但 player_per_game 无 slug 匹配的球员: 2（身份/来源差异，需人工核）
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+===== season 2025 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1230 / dim_games(Reg) 1230  OK
+  [告警] br_player_id 为 NULL 的孤儿行: 126（不影响逐人缺口，待去重）
+  [告警] gamelog 有但 player_per_game 无 slug 匹配的球员: 18（身份/来源差异，需人工核）
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+===== season 2026 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1230 / dim_games(Reg) 1230  OK
+  [告警] gamelog 有但 player_per_game 无 slug 匹配的球员: 4（身份/来源差异，需人工核）
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+>>> 存在缺口（rc=1）

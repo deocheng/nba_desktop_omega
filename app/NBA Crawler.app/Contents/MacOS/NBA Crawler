@@ -1,0 +1,31 @@
+#!/bin/bash
+# =============================================================================
+# NBA 爬虫控制台 —— 双击启动器（macOS .app）
+# -----------------------------------------------------------------------------
+# 双击本 App：若面板已在运行则直接打开浏览器；否则以【独立会话】拉起控制面板
+# （python os.setsid 脱离终端），随后自动打开浏览器到 http://127.0.0.1:8787 。
+# 面板里可点「全量续补 / 停止 / 补指定季」，完全脱离 WorkBuddy。
+# =============================================================================
+ROOT="/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
+PY="/Users/deocheng/.workbuddy/binaries/python/versions/3.13.12/bin/python3"
+DASH="$ROOT/external_crawler/crawler/crawler_dashboard.py"
+LOG="$ROOT/logs/dashboard.out"
+PORT=8787
+
+cd "$ROOT" || exit 1
+
+# 已在运行则直接开浏览器
+if pgrep -f "crawler_dashboard.py" >/dev/null 2>&1; then
+  open "http://127.0.0.1:$PORT"
+  exit 0
+fi
+
+# 否则 setsid 拉起独立面板进程，再开浏览器
+"$PY" -c "import os,subprocess; os.setsid(); subprocess.Popen(['$PY','$DASH'], stdout=open('$LOG','a'), stderr=subprocess.STDOUT)"
+
+# 等面板就绪（最多 10s）再开浏览器
+for i in $(seq 1 10); do
+  if curl -s --noproxy '*' --max-time 1 "http://127.0.0.1:$PORT/" >/dev/null 2>&1; then break; fi
+  sleep 1
+done
+open "http://127.0.0.1:$PORT"

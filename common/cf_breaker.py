@@ -75,13 +75,13 @@ class CFBreaker:
         _e = _os.environ
         # 默认从 CF_* 环境变量读取（调度器可全局注入，控制撞墙后的退出速度）；
         # 显式传参优先（向后兼容 browser._BREAKER 与各爬虫 CLI 传值）。
-        self.breach_limit = breach_limit if breach_limit is not None else int(_e.get("CF_BREACH_LIMIT", "5"))
+        self.breach_limit = breach_limit if breach_limit is not None else int(_e.get("CF_BREACH_LIMIT", "2"))
         self.backoff = backoff if backoff is not None else int(_e.get("CF_BACKOFF", "30"))
         self.cooldown = cooldown if cooldown is not None else int(_e.get("CF_COOLDOWN", "600"))
         self.max_cooldowns = max_cooldowns if max_cooldowns is not None else int(_e.get("CF_MAX_COOLDOWNS", "0"))
         self.cooldown_max = cooldown_max if cooldown_max is not None else int(_e.get("CF_COOLDOWN_MAX", "3600"))
         self.cooldown_growth = cooldown_growth if cooldown_growth is not None else float(_e.get("CF_COOLDOWN_GROWTH", "2.0"))
-        self.cooldown_trigger_s = cooldown_trigger_s if cooldown_trigger_s is not None else int(_e.get("CF_COOLDOWN_TRIGGER_S", "120"))
+        self.cooldown_trigger_s = cooldown_trigger_s if cooldown_trigger_s is not None else int(_e.get("CF_COOLDOWN_TRIGGER_S", "30"))
         self.consecutive = 0     # 连续撞墙计数（成功即重置）
         self.cooldown_count = 0   # 已发生冷却轮次（自恢复计数，单调升）
         self.streak_start = None  # 连续撞墙起点（用于"连续 N 秒没过墙"计时）
