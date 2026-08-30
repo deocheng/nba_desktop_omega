@@ -26,7 +26,7 @@ import json
 import os
 import sys
 
-PROJECT_ROOT = "/Users/deocheng/Downloads/nba_desktop_omega_mac_migrate_2026-07-13"
+PROJECT_ROOT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
