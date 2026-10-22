@@ -4,17 +4,17 @@
 # CDP 直连用户已手动过 CF 的 Chrome (端口 64656)
 # 全程 --resume：已落库 team×season 自动跳过，断点可重跑。
 set -a
-[ -f /Users/deocheng/Downloads/nba_desktop_omega_mac_migrate_2026-07-13/.env ] && . /Users/deocheng/Downloads/nba_desktop_omega_mac_migrate_2026-07-13/.env
+[ -f /Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/.env ] && . /Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/.env
 set +a
-cd /Users/deocheng/Downloads/nba_desktop_omega_mac_migrate_2026-07-13
+cd /Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13
 # 关键：CDP 走 localhost，绝不能走项目代理，否则连不上用户 Chrome
 unset http_proxy https_proxy all_proxy HTTP_PROXY HTTPS_PROXY ALL_PROXY
 export BROWSER_BACKEND=cdp
 export CHROME_CDP_URL=http://127.0.0.1:64656
 export BR_COOKIE_FILE=/tmp/br_cf_cookies.json
 PY=.venv/bin/python
-CACHE_DIR=/Users/deocheng/Downloads/nba_desktop_omega_mac_migrate_2026-07-13/br_shooting_cache
-LOG=/Users/deocheng/Downloads/nba_desktop_omega_mac_migrate_2026-07-13/br_team_shooting_crawl.log
+CACHE_DIR=/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/br_shooting_cache
+LOG=/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/br_team_shooting_crawl.log
 mkdir -p "$CACHE_DIR"
 # 单实例锁：已有 crawler 在跑就拒绝再起第二个，避免并行撞 BR 被封
 if pgrep -f "crawl_br_team_shooting.py" >/dev/null 2>&1; then

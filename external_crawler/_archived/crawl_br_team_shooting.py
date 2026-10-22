@@ -1,5 +1,24 @@
 """crawl_br_team_shooting.py — ⑤ Team Shooting (P0) 全历史回填。
 
+⚠️ 已归档（2026-10-22）—— 解析目标表不存在，实跑必然 0 行，禁止直接运行。
+
+本脚本找的是 BR 队页的队级出手区域分布表 `team_shooting` / `opponent_shooting`。
+实测（2026-10-22）该表 id 在 BR 队页 2015–2026 全部赛季中，raw HTML 与全部 HTML
+注释节点内均**不存在**；`/teams/{slug}/{year}_shooting.html` 与
+`/teams/{slug}/{year}/shooting/` 均 404。BR 队页**从未有过**这个表 id。
+
+注意：队级距离数据并非被下线，而是换了形状 —— 它在**球员级 `shooting` 表**里，
+以**距离桶列**（%FGA / FG% by Distance: 2P, 0-3, 3-10, 10-16, 16-3P, 3P）
+加 **tfoot "Team Totals" 行**存在。`orchestrator_tasks.py:266` 早在 2026-08-05
+即已记录此事实。
+但该形状只给**百分比**，不给分桶的原始 fg/fga/mp，而 `team_shooting` 表结构要求
+每 zone 含 fg/fga/mp → 语义不等价，不能简单改 URL 或改表 id 复活。
+复活路径（降级 schema / 换 NBA 官方 API / 维持归档）见同目录 README.md。
+
+`team_shooting` 表从未建立 → 本脚本历史上未落库任何数据，归档无数据损失。
+现役爬虫清单见 crawler_console/registry.py。
+
+─── 以下为原脚本说明（保留供追溯，其中数据源描述已过时）─────────────────────
 数据源: 主队页 https://www.basketball-reference.com/teams/{ABBR}/{YEAR}.html
         （#all_shooting 区块；独立的 /shooting/ 子页已于 2026-07-27 实测 404，故废弃）
   * 主页面 ``team_shooting``    → vs_type='self'（本队出手分布）

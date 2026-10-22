@@ -18,7 +18,10 @@
 - url:       BR 数据源页面模板
 """
 
-PROJECT_ROOT = "/Users/deocheng/Downloads/nba_desktop_omega_mac_migrate_2026-07-13"
+# 项目根：相对本文件推导（crawler_console/registry.py → 上级即项目根），
+# 迁移到外挂硬盘后无需再改硬编码绝对路径。
+import os
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 VENV_PY = f"{PROJECT_ROOT}/.venv/bin/python"
 LOG_DIR = "/Volumes/12T/NBA"
 
@@ -125,7 +128,7 @@ CRAWLERS = [
          script="external_crawler/crawler/crawl_br_team_referees.py", args=["--resume"],
          log=f"{LOG_DIR}/team_referees_crawl.log", pattern="crawl_br_team_referees.py",
          br=True, needs_cdp=True, desc="比赛裁判数据",
-         tables=["game_referees"],
+         tables=["team_referees"],
          cache="无 HTML 归档（失败登记 crawl_failures，token 前缀 br_team_referees）",
          url="basketball-reference.com/teams/{ABBR}/{year}/referees/"),
     dict(id="transactions", name="交易/签约记录", group="球队数据", kind="py",

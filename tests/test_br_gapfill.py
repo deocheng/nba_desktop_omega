@@ -19,7 +19,10 @@ from unittest.mock import MagicMock
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from common.br_team_page import BRTeamPageCrawler, extract_player_links
-from external_crawler.crawler.crawl_br_team_shooting import (
+# team_shooting 爬虫已于 2026-10-22 归档（队页无 team_shooting 表，实跑 0 行）。
+# 解析器本体保留在归档区，这里继续覆盖其纯函数（无 DB/网络），以便未来复活时
+# 有回归基线；见 external_crawler/_archived/README.md。
+from external_crawler._archived.crawl_br_team_shooting import (
     parse_team_shooting_html, TeamShootingCrawler, SHOOTING_ZONES, DISTANCE_LABELS,
 )
 from external_crawler.crawler.crawl_br_team_lineups import (
