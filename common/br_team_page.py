@@ -807,8 +807,19 @@ class BRTeamPageCrawler:
             # 同页额外抽取（如 shooting）：零额外请求，独立 try 不中断主流程。
             try:
                 self.extra_extract(conn, driver, slug, cur, html)
+                # 关键：extra_extract 跑在 _crawl_one 的 commit **之后**，psycopg2
+                # 默认非 autocommit → 这些行会留在未提交事务里。若本轮是运行
+                # 的最后一个队/季，进程退出时 psycopg2 会回滚它们 → 静默丢数据
+                # （实测：单队单季跑完，日志报「落 639 行」，表里 0 行）。
+                # 多队多季的旧运行只是被**下一**次 _crawl_one 的 commit 顺带
+                # 提交，故问题一直隐而不显。
+                conn.commit()
             except Exception as _ee:  # noqa: BLE001
                 logger.warning("  [extra] 抽取失败（已忽略）: %s", _ee)
+                try:
+                    conn.rollback()
+                except Exception:  # noqa: BLE001 - 回滚失败不影响主流程
+                    pass
             # 推进到上一季：用 Previous Season 按钮解析出正确邻季 URL，
             # 再 driver.get 强制完整加载（见方法 docstring 的修正说明）。
             pending_html = None
