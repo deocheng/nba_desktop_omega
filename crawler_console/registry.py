@@ -25,8 +25,45 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 VENV_PY = f"{PROJECT_ROOT}/.venv/bin/python"
 LOG_DIR = "/Volumes/12T/NBA"
 
-DB = dict(host="127.0.0.1", port=5433, dbname="nba", user="postgres",
-          password="R!h0N-ctlg=xB01V_-1VJcFeCCuBjS6UCvV1")
+
+def _db_password() -> str:
+    """DB 口令**只从环境变量读**，不在代码里落明文（.env 已被 gitignore）。
+
+    优先 ``DB_PASSWORD``，兼容 ``PGPASSWORD``（与 common/br_team_page.py 同一约定）；
+    两者都没有时回落到项目根 ``.env``（若存在），让 crawler_console 脱离 shell 环境
+    也能独立启动。取不到则返回空串并由连接层报错，而不是静默用错口令。
+    """
+    pw = os.environ.get("DB_PASSWORD") or os.environ.get("PGPASSWORD") or ""
+    if pw:
+        return pw
+    env_path = os.path.join(PROJECT_ROOT, ".env")
+    try:
+        with open(env_path, encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if line.startswith("DB_PASSWORD="):
+                    return line.split("=", 1)[1].strip().strip('"').strip("'")
+    except OSError:  # noqa: BLE001 - 无 .env 时交由连接层报错
+        pass
+    return ""
+
+
+DB = dict(
+    host=os.environ.get("DB_HOST", "127.0.0.1"),
+    port=int(os.environ.get("DB_PORT", "5433")),
+    dbname=os.environ.get("DB_NAME", "nba"),
+    user=os.environ.get("DB_USER", "postgres"),
+    password=_db_password(),
+)
+
+if not DB["password"]:
+    # 不静默：口令缺失是部署问题，导入期就可见
+    import warnings
+    warnings.warn(
+        "crawler_console.registry: 未找到 DB 口令（DB_PASSWORD / PGPASSWORD / "
+        f"{PROJECT_ROOT}/.env），启动爬虫时将无法连接数据库",
+        RuntimeWarning, stacklevel=2,
+    )
 
 CDP_ENV = {
     "BROWSER_BACKEND": "cdp",
