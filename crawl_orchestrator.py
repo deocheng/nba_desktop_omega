@@ -49,8 +49,36 @@ WEDGED_S = int(os.environ.get("ORCH_WEDGED_S", "900"))               # 无进度
 IDLE_WEIGHT = float(os.environ.get("ORCH_IDLE_WEIGHT", "10"))        # 每闲置 1 小时加分
 IDLE_BONUS_CAP = float(os.environ.get("ORCH_IDLE_BONUS_CAP", "200")) # 闲置加分封顶(≈20h)
 NEVER_RUN_BONUS = float(os.environ.get("ORCH_NEVER_RUN_BONUS", "1000"))  # 从未运行过的绝对优先
+# ── DB 口令：只从环境变量 / 项目根 .env 取，脚本内不落明文 ──────────
+def _load_dotenv() -> None:
+    """环境变量优先；缺失时逐级上溯找项目根 .env 补 DB_PASSWORD。"""
+    if os.environ.get("DB_PASSWORD") or os.environ.get("PGPASSWORD"):
+        return
+    d = os.path.dirname(os.path.abspath(__file__))
+    for _ in range(4):
+        cand = os.path.join(d, ".env")
+        if os.path.isfile(cand):
+            try:
+                with open(cand, encoding="utf-8") as fh:
+                    for line in fh:
+                        if line.strip().startswith("DB_PASSWORD="):
+                            os.environ.setdefault(
+                                "DB_PASSWORD",
+                                line.split("=", 1)[1].strip().strip('"').strip("'"),
+                            )
+                            return
+            except OSError:  # noqa: BLE001 - 无 .env 时交由连接层报错
+                pass
+        parent = os.path.dirname(d)
+        if parent == d:
+            break
+        d = parent
+
+
+_load_dotenv()
+
 PG = dict(host="127.0.0.1", port=5433, user="postgres",
-          password="R!h0N-ctlg=xB01V_-1VJcFeCCuBjS6UCvV1", dbname="nba")
+          password=os.environ.get("DB_PASSWORD") or os.environ.get("PGPASSWORD", ""), dbname="nba")
 
 # 注入子进程的 env：撞墙快速退出 + 代理消毒 + CDP。
 CHILD_ENV_EXTRA = {
@@ -166,7 +194,7 @@ def build_child_env() -> dict:
     env["NO_PROXY"] = "127.0.0.1,localhost"
     env["no_proxy"] = "127.0.0.1,localhost"
     # PG 凭据注入（子进程连 5433 需要 PGPASSWORD；agent 环境不继承，须显式下发）
-    _pgpw = os.environ.get("PGPASSWORD") or "R!h0N-ctlg=xB01V_-1VJcFeCCuBjS6UCvV1"
+    _pgpw = os.environ.get("PGPASSWORD") or os.environ.get("DB_PASSWORD", "")
     env["PGPASSWORD"] = _pgpw
     env["DB_PASSWORD"] = _pgpw
     env.update(CHILD_ENV_EXTRA)

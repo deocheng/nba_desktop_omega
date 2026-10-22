@@ -8,7 +8,10 @@
 set -u
 cd "$(dirname "$0")"
 
-export PGPASSWORD='R!h0N-ctlg=xB01V_-1VJcFeCCuBjS6UCvV1'
+# ── DB 口令：只从项目根 .env 取，脚本内不落明文 ──
+_ENV_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/.env"
+if [ -f "$_ENV_FILE" ]; then set -a; . "$_ENV_FILE"; set +a; fi
+export PGPASSWORD="${PGPASSWORD:-${DB_PASSWORD:-}}"
 
 PATTERN='crawl_br_player_shot_chart.py'
 CHECK_INTERVAL=120   # 每 2 分钟探测一次

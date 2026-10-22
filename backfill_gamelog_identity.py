@@ -33,12 +33,40 @@ import sys
 import psycopg2
 
 # 与项目其他脚本一致的 DB 连接参数（密码从环境变量读取，避免硬编码）。
+# ── DB 口令：只从环境变量 / 项目根 .env 取，脚本内不落明文 ──────────
+def _load_dotenv() -> None:
+    """环境变量优先；缺失时逐级上溯找项目根 .env 补 DB_PASSWORD。"""
+    if os.environ.get("DB_PASSWORD") or os.environ.get("PGPASSWORD"):
+        return
+    d = os.path.dirname(os.path.abspath(__file__))
+    for _ in range(4):
+        cand = os.path.join(d, ".env")
+        if os.path.isfile(cand):
+            try:
+                with open(cand, encoding="utf-8") as fh:
+                    for line in fh:
+                        if line.strip().startswith("DB_PASSWORD="):
+                            os.environ.setdefault(
+                                "DB_PASSWORD",
+                                line.split("=", 1)[1].strip().strip('"').strip("'"),
+                            )
+                            return
+            except OSError:  # noqa: BLE001 - 无 .env 时交由连接层报错
+                pass
+        parent = os.path.dirname(d)
+        if parent == d:
+            break
+        d = parent
+
+
+_load_dotenv()
+
 DB_CONFIG = dict(
     host="127.0.0.1",
     port=5433,
     dbname="nba",
     user="postgres",
-    password=os.environ.get("DB_PASSWORD", "R!h0N-ctlg=xB01V_-1VJcFeCCuBjS6UCvV1"),
+    password=os.environ.get("DB_PASSWORD") or os.environ.get("PGPASSWORD", ""),
 )
 
 # 仅回填这些老季的 NULL 行（含端点 1983 与 1996）。

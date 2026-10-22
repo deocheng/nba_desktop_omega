@@ -29,7 +29,10 @@ PHASE1_FLAG="/Volumes/12T/NBA/.phase1_launched.flag"
 WATCHDOG_LOG="/Volumes/12T/NBA/watchdog.log"
 CRAWLER_LOG="/Volumes/12T/NBA/shot_chart_crawl.log"
 
-export PGPASSWORD='R!h0N-ctlg=xB01V_-1VJcFeCCuBjS6UCvV1'
+# ── DB 口令：只从项目根 .env 取，脚本内不落明文 ──
+_ENV_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/.env"
+if [ -f "$_ENV_FILE" ]; then set -a; . "$_ENV_FILE"; set +a; fi
+export PGPASSWORD="${PGPASSWORD:-${DB_PASSWORD:-}}"
 export BROWSER_BACKEND=cdp
 export CHROME_CDP_URL=http://127.0.0.1:9223
 PSQL="/opt/homebrew/bin/psql -h localhost -p 5433 -U postgres -d nba -t -A"

@@ -32,11 +32,39 @@ CHILD_SCRIPT = os.path.join(ROOT, "audit_br_schedule.py")
 PY = sys.executable  # 父由 venv python 启动 → 子也用 venv（含全部依赖）
 SEASON_KILL_SEC = 240  # 单季子进程超时 → 硬 kill 进程组
 SELF_LIMIT_SEC = 15 * 60  # 父进程自限，避免被平台 ~17min 硬杀打断原子写
+# ── DB 口令：只从环境变量 / 项目根 .env 取，脚本内不落明文 ──────────
+def _load_dotenv() -> None:
+    """环境变量优先；缺失时逐级上溯找项目根 .env 补 DB_PASSWORD。"""
+    if os.environ.get("DB_PASSWORD") or os.environ.get("PGPASSWORD"):
+        return
+    d = os.path.dirname(os.path.abspath(__file__))
+    for _ in range(4):
+        cand = os.path.join(d, ".env")
+        if os.path.isfile(cand):
+            try:
+                with open(cand, encoding="utf-8") as fh:
+                    for line in fh:
+                        if line.strip().startswith("DB_PASSWORD="):
+                            os.environ.setdefault(
+                                "DB_PASSWORD",
+                                line.split("=", 1)[1].strip().strip('"').strip("'"),
+                            )
+                            return
+            except OSError:  # noqa: BLE001 - 无 .env 时交由连接层报错
+                pass
+        parent = os.path.dirname(d)
+        if parent == d:
+            break
+        d = parent
+
+
+_load_dotenv()
+
 DB_CONN = {
     "host": "localhost",
     "port": 5433,
     "user": "postgres",
-    "password": "R!h0N-ctlg=xB01V_-1VJcFeCCuBjS6UCvV1",
+    "password": os.environ.get("DB_PASSWORD") or os.environ.get("PGPASSWORD", ""),
     "dbname": "nba",
     "connect_timeout": 30,
 }

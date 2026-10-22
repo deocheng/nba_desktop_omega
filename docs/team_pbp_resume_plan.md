@@ -17,7 +17,7 @@
 # 前置检查：无 /tmp/br_cf_challenge.flag；Chrome CDP 9223 在线；5433 业务库已起
 caffeinate -ims \
 BROWSER_BACKEND=cdp CHROME_CDP_URL=http://127.0.0.1:9223 \
-DB_PASSWORD='R!h0N-ctlg=xB01V_-1VJcFeCCuBjS6UCvV1' \
+DB_PASSWORD=<读项目根 .env，勿写明文> \
 nohup .venv/bin/python external_crawler/crawler/crawl_br_team_pbp.py \
   --all-seasons --start-season 2000 --caffeinate \
   > /tmp/full_pbp_resume.log 2>&1 &

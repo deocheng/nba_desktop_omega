@@ -36,8 +36,36 @@ import psycopg2
 
 ROOT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
 CACHE = os.path.join(ROOT, "external_crawler/crawler/gamelog_cache")
+# ── DB 口令：只从环境变量 / 项目根 .env 取，脚本内不落明文 ──────────
+def _load_dotenv() -> None:
+    """环境变量优先；缺失时逐级上溯找项目根 .env 补 DB_PASSWORD。"""
+    if os.environ.get("DB_PASSWORD") or os.environ.get("PGPASSWORD"):
+        return
+    d = os.path.dirname(os.path.abspath(__file__))
+    for _ in range(4):
+        cand = os.path.join(d, ".env")
+        if os.path.isfile(cand):
+            try:
+                with open(cand, encoding="utf-8") as fh:
+                    for line in fh:
+                        if line.strip().startswith("DB_PASSWORD="):
+                            os.environ.setdefault(
+                                "DB_PASSWORD",
+                                line.split("=", 1)[1].strip().strip('"').strip("'"),
+                            )
+                            return
+            except OSError:  # noqa: BLE001 - 无 .env 时交由连接层报错
+                pass
+        parent = os.path.dirname(d)
+        if parent == d:
+            break
+        d = parent
+
+
+_load_dotenv()
+
 DB = dict(host="127.0.0.1", port=5433, user="postgres",
-          password="R!h0N-ctlg=xB01V_-1VJcFeCCuBjS6UCvV1", dbname="nba")
+          password=os.environ.get("DB_PASSWORD") or os.environ.get("PGPASSWORD", ""), dbname="nba")
 
 # Symmetric franchise abbreviation groups. Either form canonicalizes to the
 # same token, so matching is order- and form-independent. No two DIFFERENT

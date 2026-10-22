@@ -21,7 +21,35 @@ import sys
 import psycopg2
 import psycopg2.extras
 
-os.environ.setdefault("PGPASSWORD", "R!h0N-ctlg=xB01V_-1VJcFeCCuBjS6UCvV1")
+# ── DB 口令：只从环境变量 / 项目根 .env 取，脚本内不落明文 ──────────
+def _load_dotenv() -> None:
+    """环境变量优先；缺失时逐级上溯找项目根 .env 补 DB_PASSWORD。"""
+    if os.environ.get("DB_PASSWORD") or os.environ.get("PGPASSWORD"):
+        return
+    d = os.path.dirname(os.path.abspath(__file__))
+    for _ in range(4):
+        cand = os.path.join(d, ".env")
+        if os.path.isfile(cand):
+            try:
+                with open(cand, encoding="utf-8") as fh:
+                    for line in fh:
+                        if line.strip().startswith("DB_PASSWORD="):
+                            os.environ.setdefault(
+                                "DB_PASSWORD",
+                                line.split("=", 1)[1].strip().strip('"').strip("'"),
+                            )
+                            return
+            except OSError:  # noqa: BLE001 - 无 .env 时交由连接层报错
+                pass
+        parent = os.path.dirname(d)
+        if parent == d:
+            break
+        d = parent
+
+
+_load_dotenv()
+
+os.environ.setdefault("PGPASSWORD", os.environ.get("DB_PASSWORD", ""))
 
 # 这 6 个季（1960/1963-1966/1968-1970/1972-1975/1978-1980 等均已满，仅这 6 季缺失）
 SEASONS = [1961, 1962, 1967, 1971, 1976, 1977]

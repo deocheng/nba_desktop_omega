@@ -19,8 +19,10 @@ cd "$(dirname "$0")"
 ROOT="$(pwd)"
 
 # ---------- 环境（与队标回填一致）----------
-export PGPASSWORD='R!h0N-ctlg=xB01V_-1VJcFeCCuBjS6UCvV1'
-export DB_PASSWORD='R!h0N-ctlg=xB01V_-1VJcFeCCuBjS6UCvV1'
+# ── DB 口令：只从项目根 .env 取，脚本内不落明文 ──
+_ENV_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/.env"
+if [ -f "$_ENV_FILE" ]; then set -a; . "$_ENV_FILE"; set +a; fi
+export PGPASSWORD="${PGPASSWORD:-${DB_PASSWORD:-}}"
 export BROWSER_BACKEND=cdp
 export CHROME_CDP_URL=http://127.0.0.1:9223
 # 🔴 清掉从启动会话（agent 沙箱等）继承的代理变量：死代理（如 127.0.0.1:61914）

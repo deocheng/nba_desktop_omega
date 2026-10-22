@@ -35,7 +35,10 @@ PY=.venv/bin/python
 CACHE=/Volumes/12T/NBA
 export BROWSER_BACKEND=cdp
 export CHROME_CDP_URL="${CHROME_CDP_URL:-http://127.0.0.1:9222}"
-export PGPASSWORD='R!h0N-ctlg=xB01V_-1VJcFeCCuBjS6UCvV1'
+# ── DB 口令：只从项目根 .env 取，脚本内不落明文 ──
+_ENV_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/.env"
+if [ -f "$_ENV_FILE" ]; then set -a; . "$_ENV_FILE"; set +a; fi
+export PGPASSWORD="${PGPASSWORD:-${DB_PASSWORD:-}}"
 LOG="$CACHE/team_data_crawl_$(date +%Y%m%d_%H%M).log"
 exec > >(tee -a "$LOG") 2>&1
 
