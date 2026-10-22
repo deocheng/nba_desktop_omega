@@ -112,6 +112,12 @@ def configure_breaker(breach_limit=None, backoff=None, cooldown=None,
 # 驱动 B 标签」的错配——这正是 player_shooting A 阶段「全新 profile 无
 # cf_clearance → 全缺口 0 行 → 缺口永久卡住」的根因。
 _BR_HOMEPAGE = "https://www.basketball-reference.com/"
+
+# Upper bound for the CF handshake when the driver has no visible window
+# (headless backends such as UC-Chrome).  A human can never click through a
+# challenge in a headless browser, so the handshake must recover unattended
+# or give up — it must never block forever.
+_CF_HEADLESS_TIMEOUT_SECONDS = 90
 _CF_FLAG = "/tmp/br_cf_challenge.flag"
 
 
@@ -158,6 +164,14 @@ def ensure_cf_cleared(driver, base_url: str = _BR_HOMEPAGE,
     except Exception as _e:  # noqa: BLE001 - navigation may be delayed
         logger.warning("CF 握手导航 %s 失败（仍继续检测）: %s", base_url, _e)
     deadline = None if timeout is None else time.time() + timeout
+    # Headless self-healing backends (e.g. UC-Chrome) expose ``auto_pass_cf``:
+    # there is no visible window for a human to click, so the manual prompt
+    # below would block forever.  Those drivers recover unattended.
+    auto_pass = getattr(driver, "auto_pass_cf", None)
+    if not callable(auto_pass):
+        auto_pass = None
+    if auto_pass is not None and deadline is None:
+        deadline = time.time() + _CF_HEADLESS_TIMEOUT_SECONDS
     while True:
         try:
             if not driver._is_challenged():
@@ -165,6 +179,26 @@ def ensure_cf_cleared(driver, base_url: str = _BR_HOMEPAGE,
                 return True
         except Exception:  # noqa: BLE001 - page mid-navigation
             pass
+        if auto_pass is not None:
+            # 无头自愈：重新导航让 JS 挑战自行放行，绝不阻塞等待人工点击。
+            _write_cf_flag()
+            logger.warning(
+                "Cloudflare 挑战页命中 %s — 无头自愈重试中（不阻塞等待人工）。",
+                base_url)
+            try:
+                recovered = auto_pass(url=base_url)
+            except TypeError:  # pragma: no cover - 其它后端的签名可能不同
+                recovered = auto_pass()
+            if recovered:
+                _clear_cf_flag()
+                return True
+            if deadline is not None and time.time() > deadline:
+                _clear_cf_flag()
+                logger.error(
+                    "CF 握手（无头自愈）超时：放弃等待，爬虫以当前页面继续。")
+                return False
+            time.sleep(poll)
+            continue
         _write_cf_flag()
         logger.warning(
             "Cloudflare 挑战页命中 %s — 请在弹出的 Chrome 窗口手动通过验证"

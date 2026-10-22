@@ -41,6 +41,9 @@ from __future__ import annotations
 
 import atexit
 import logging
+import os
+import re
+import subprocess
 import tempfile
 import threading
 import time
@@ -62,12 +65,170 @@ _USER_DATA_DIR: str | None = None      # unique per-process Chrome profile dir
 # finish while still converting a true hang into a catchable TimeoutError.
 _BUILD_TIMEOUT_SECONDS = 120
 
+# BR homepage, used by the CF handshake / self-healing navigation.
+# Defined locally (not imported from common.browser) to avoid a circular
+# import: common/browser.py imports this module at load time when
+# BROWSER_BACKEND=uc.
+_BR_HOMEPAGE = "https://www.basketball-reference.com/"
+
 # Kept identical to the legacy per-page user-agent so cached pages are stable.
+# NOTE: the Chrome major version must match the *installed* browser — a UA
+# claiming a different major than the binary is a classic automation
+# fingerprint and makes Cloudflare far more likely to challenge the session.
+# (It used to be hard-coded to 150 while the installed Chrome moved to 155;
+# the effective UA is now derived from ``_chrome_major_version()``.)
 _USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
     "AppleWebKit/537.36 (KHTML, like Gecko) "
     "Chrome/150.0.0.0 Safari/537.36"
 )
+
+
+def _user_agent(major: int) -> str:
+    """Return a UA string whose Chrome major matches the installed browser."""
+    return (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        f"Chrome/{major}.0.0.0 Safari/537.36"
+    )
+
+
+class _UCDriver:
+    """Adapter: raw Selenium WebDriver → the shared crawler driver contract.
+
+    The shared crawl layer (``common.browser.ensure_cf_cleared`` and
+    ``common.br_team_page``) requires **every** driver to expose two extra
+    members beyond ``get``/``page_source``:
+
+      * ``_navigate(url)``     — fire-and-forget navigation used by the CF handshake
+      * ``_is_challenged()``   — live Cloudflare challenge detection
+
+    ``_PWDriver`` and ``_RawCDPDriver`` both implement them; the raw
+    ``undetected_chromedriver`` WebDriver did **not**.  The consequence was a
+    silent deadlock: the handshake's ``driver._navigate(...)`` raised
+    ``AttributeError`` (logged as a warning), and the following
+    ``driver._is_challenged()`` raised the *same* AttributeError inside the
+    poll loop where it is swallowed — so the loop concluded "challenged" on
+    every iteration and waited forever for a human to click "Verify you are
+    human" in a visible Chrome window.  The UC browser is **headless**, so no
+    such window exists and the crawl could never proceed.
+
+    This adapter supplies the missing half and delegates everything else to
+    the wrapped WebDriver, so the UC backend becomes a first-class citizen of
+    the shared crawl layer.
+    """
+
+    #: Cloudflare interstitial markers (mirrors ``_RawCDPDriver._is_challenged``).
+    _CF_TEXT_MARKERS = (
+        "Checking your browser",
+        "Just a moment",
+        "Verify you are human",
+        "请稍候",
+        "正在进行安全验证",
+        "安全验证",
+        "安全服务防护",
+    )
+
+    def __init__(self, driver) -> None:
+        self._d = driver
+        #: The UC browser runs headless → no human can interact with a window.
+        self.headless = True
+
+    # ── shared contract ──────────────────────────────────────────────
+    def get(self, url: str) -> None:
+        self._d.get(url)
+
+    @property
+    def page_source(self) -> str:
+        return self._d.page_source
+
+    @property
+    def title(self) -> str:
+        try:
+            return self._d.title
+        except Exception:  # noqa: BLE001 - page mid-navigation
+            return ""
+
+    @property
+    def current_url(self) -> str:
+        try:
+            return self._d.current_url
+        except Exception:  # noqa: BLE001 - page mid-navigation
+            return ""
+
+    def _navigate(self, url: str, timeout: int = 60) -> None:
+        """Fire-and-forget navigation (no CF poll); the caller owns the poll.
+
+        Used by ``ensure_cf_cleared`` so the handshake controls the polling
+        interval exactly instead of relying on ``get``'s internal retry loop.
+        """
+        try:
+            self._d.set_page_load_timeout(timeout)
+        except Exception:  # noqa: BLE001 - best-effort
+            pass
+        self._d.get(url)
+
+    def _is_challenged(self) -> bool:
+        """Detect a live Cloudflare challenge on the current page."""
+        try:
+            u = self.current_url or ""
+            if "__cf_chl_rt_tk" in u or "cf_chl" in u:
+                return True
+        except Exception:  # noqa: BLE001
+            pass
+        txt = ""
+        try:
+            txt = self._d.execute_script(
+                "return (document.body && document.body.innerText) "
+                "? document.body.innerText.slice(0, 500) : '';"
+            ) or ""
+        except Exception:  # noqa: BLE001 - page mid-navigation: fall back to HTML
+            try:
+                html = self._d.page_source or ""
+            except Exception:  # noqa: BLE001
+                return False
+            return any(k in html for k in self._CF_TEXT_MARKERS)
+        return any(k in txt for k in self._CF_TEXT_MARKERS)
+
+    def auto_pass_cf(self, attempts: int = 1, wait: float = 4.0,
+                     url: str | None = None) -> bool:
+        """Headless self-healing: re-navigate and let the JS challenge clear.
+
+        A headless browser can never receive a human click, so the shared
+        handshake's "please click Verify you are human" prompt would block
+        forever.  ``undetected_chromedriver`` exists precisely to clear
+        Cloudflare's JS challenge unattended — re-navigating grants it a fresh
+        attempt.  ``url`` is the original target to re-fetch (the interstitial
+        may have replaced ``current_url`` with a challenge token URL).
+        Returns True as soon as the page is no longer challenged.
+        """
+        target = url or self.current_url or _BR_HOMEPAGE
+        for _ in range(max(1, attempts)):
+            try:
+                self._navigate(target)
+            except Exception:  # noqa: BLE001 - navigation may fail; retry below
+                pass
+            time.sleep(wait)
+            try:
+                if not self._is_challenged():
+                    return True
+            except Exception:  # noqa: BLE001
+                return True
+        return False
+
+    def quit(self) -> None:
+        try:
+            self._d.quit()
+        except Exception:  # noqa: BLE001 - best-effort teardown
+            pass
+
+    # ── delegate the rest of the WebDriver surface ───────────────────
+    def __getattr__(self, name: str):
+        try:
+            wrapped = self.__dict__["_d"]
+        except KeyError:
+            raise AttributeError(name) from None
+        return getattr(wrapped, name)
 
 
 def _user_data_dir() -> str:
@@ -76,15 +237,29 @@ def _user_data_dir() -> str:
     Cached at module level so every ``uc.Chrome()`` in the same process reuses
     the exact same profile — guaranteeing two *concurrent* crawl processes
     never collide on the patched global driver binary.
+
+    By default a fresh temp dir is used (per-process isolation).  Set
+    ``UC_USER_DATA_DIR`` to a fixed path to opt into a **persistent** profile:
+    Cloudflare's ``cf_clearance`` cookie then survives across processes, so
+    the browser stops presenting as a brand-new client on every run and BR
+    challenges it far less often.  (Persistent profiles must not be shared by
+    concurrent crawl processes — that is what the temp dir is for.)
     """
     global _USER_DATA_DIR
     if _USER_DATA_DIR is None:
-        _USER_DATA_DIR = tempfile.mkdtemp(prefix="uc_br_")
-        logger.debug("allocated unique user-data-dir: %s", _USER_DATA_DIR)
+        persistent = (os.environ.get("UC_USER_DATA_DIR") or "").strip()
+        if persistent:
+            if not os.path.isdir(persistent):
+                os.makedirs(persistent, exist_ok=True)
+            _USER_DATA_DIR = persistent
+            logger.info("使用持久化 UC profile: %s", persistent)
+        else:
+            _USER_DATA_DIR = tempfile.mkdtemp(prefix="uc_br_")
+            logger.debug("allocated unique user-data-dir: %s", _USER_DATA_DIR)
     return _USER_DATA_DIR
 
 
-def _build_opts():
+def _build_opts(major: int | None = None):
     """Assemble the ChromeOptions shared by every driver build in this process."""
     opts = uc.ChromeOptions()
     opts.headless = True  # unchanged from legacy behaviour
@@ -95,8 +270,53 @@ def _build_opts():
     opts.add_argument("--disable-software-rasterizer")
     # new + critical: unique per-process profile dir (prevents concurrent clash)
     opts.add_argument(f"--user-data-dir={_user_data_dir()}")
-    opts.add_argument(f"--user-agent={_USER_AGENT}")
+    # UA major version must match the installed Chrome (see _user_agent).
+    if major is None:
+        major = _chrome_major_version() or 155
+    opts.add_argument(f"--user-agent={_user_agent(major)}")
     return opts
+
+
+def _chrome_major_version() -> int:
+    """Detect the installed Chrome/Chromium *major* version at runtime.
+
+    ``undetected_chromedriver`` grabs the *latest* driver when ``version_main``
+    is not pinned, which mismatches an older (or newer) installed Chrome and
+    crashes at launch with ``SessionNotCreatedException``. Pinning a hard-coded
+    version broke every time Chrome auto-updated, so we detect the real version
+    instead and pin to that.
+
+    Returns the major version as int, or 0 if detection fails (the caller
+    falls back to a sane default).
+    """
+    exe = None
+    try:
+        exe = uc.find_chrome_executable()
+    except Exception:  # noqa: BLE001 - detection is best-effort
+        exe = None
+    if not exe:
+        # Fallback candidates (macOS / Linux / Windows-in-PATH).
+        for cand in (
+            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+            "/Applications/Chromium.app/Contents/MacOS/Chromium",
+            "google-chrome", "chromium", "chromium-browser",
+        ):
+            if shutil.which(cand) or os.path.exists(cand):
+                exe = cand
+                break
+    if not exe:
+        return 0
+    try:
+        out = subprocess.run(
+            [exe, "--version"],
+            capture_output=True, text=True, timeout=20,
+        ).stdout
+        m = re.search(r"(\d+)\.\d+\.\d+", out)
+        if m:
+            return int(m.group(1))
+    except Exception:  # noqa: BLE001 - detection is best-effort
+        return 0
+    return 0
 
 
 def _build_driver():
@@ -114,7 +334,23 @@ def _build_driver():
 
     def _spawn() -> None:
         try:
-            result["driver"] = uc.Chrome(options=_build_opts(), version_main=150)
+            # Pin the driver to the *installed* Chrome major version so UC does
+            # not grab the latest driver and mismatch the browser. Detected at
+            # runtime (see _chrome_major_version) so Chrome auto-updates no
+            # longer silently break the crawler with SessionNotCreatedException.
+            major = _chrome_major_version() or 155
+            # On Apple Silicon, undetected_chromedriver downloads an x86_64
+            # driver that cannot run without Rosetta 2. Allow an explicit arm64
+            # driver via UC_CHROMEDRIVER_PATH (set by the run env) so the UC
+            # backend launches natively. If unset/missing, fall back to UC's
+            # default auto-downloaded driver.
+            kwargs = {"options": _build_opts(major), "version_main": major}
+            driver_path = os.environ.get("UC_CHROMEDRIVER_PATH")
+            if driver_path and os.path.exists(driver_path):
+                kwargs["driver_executable_path"] = driver_path
+            # Wrap in the shared-contract adapter: the crawl layer calls
+            # _navigate / _is_challenged, which the raw WebDriver lacks.
+            result["driver"] = _UCDriver(uc.Chrome(**kwargs))
         except Exception as exc:  # noqa: BLE001 - propagate to the caller
             result["error"] = exc
 

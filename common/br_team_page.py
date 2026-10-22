@@ -95,6 +95,12 @@ CF_MARKERS = ("Just a moment", "Checking your browser", "Verify you are human",
 # 且 canonical：<link rel="canonical" href="https://www.basketball-reference.com/404.html">
 NOT_FOUND_MARKERS = ("Page Not Found (404 error)", "/404.html")
 
+# CF 挑战的**自动恢复**（仅无头后端支持，如 UC-Chrome）：重新导航并等待
+# Cloudflare 的 JS 挑战自行放行。 可见 Chrome（CDP 后端）由真人点过挑战，
+# 语义不适用，故只有驱动自身提供 auto_pass_cf 时才会走到这条路径。
+CF_AUTO_RECOVERY_ATTEMPTS = 3
+CF_AUTO_RECOVERY_WAIT_S = 4.0
+
 
 # ── 通用解析辅助（纯函数，便于单测，无 DB/网络依赖）────────────────────────
 def safe_int(val: Optional[str]) -> Optional[int]:
@@ -220,6 +226,39 @@ class BRTeamPageCrawler:
         """构造 BR 球队页 URL。year = 赛季结束年 = season。"""
         return BR_TEAM_URL.format(slug=slug, year=season, page=page)
 
+    def _try_cf_auto_recovery(self, driver, url: str) -> str:
+        """CF 挑战的自动恢复（仅驱动支持 ``auto_pass_cf`` 时生效）。
+
+        可见 Chrome（CDP 后端）由真人点过挑战，语义不适用；无头后端
+        （UC-Chrome）无人可点，故由驱动自行重新导航、等待 JS 挑战放行。
+
+        返回恢复后的 HTML；无法恢复返回 ""（调用方按「CF 拦截」处理）。
+        """
+        auto_pass = getattr(driver, "auto_pass_cf", None)
+        if not callable(auto_pass):
+            return ""
+        for attempt in range(1, CF_AUTO_RECOVERY_ATTEMPTS + 1):
+            logger.info("  [CF] 自动恢复 %d/%d: %s",
+                        attempt, CF_AUTO_RECOVERY_ATTEMPTS, url)
+            try:
+                auto_pass(url=url)
+            except TypeError:  # pragma: no cover - 其它后端签名可能不同
+                try:
+                    auto_pass()
+                except Exception:  # noqa: BLE001
+                    pass
+            except Exception:  # noqa: BLE001 - 恢复失败不致命，继续判定
+                pass
+            time.sleep(CF_AUTO_RECOVERY_WAIT_S)
+            try:
+                html = driver.page_source or ""
+            except Exception:  # noqa: BLE001
+                return ""
+            if html and not any(marker in html for marker in CF_MARKERS):
+                logger.info("  [CF] 自动恢复成功: %s", url)
+                return html
+        return ""
+
     def fetch_team_page(self, driver, url: str) -> str:
         """导航并取回渲染 HTML；CF 挑战 / 空页 → ''（调用方据此跳过+登记）。
 
@@ -241,9 +280,16 @@ class BRTeamPageCrawler:
         if not html:
             return ""
         if any(marker in html for marker in CF_MARKERS):
-            logger.warning("CF 挑战页，跳过: %s", url)
-            self._last_fetch_cf = True
-            return ""
+            # 无头后端（UC-Chrome）无人可点「Verify you are human」→ 先尝试
+            # 自动恢复（重新导航，让 JS 挑战自行放行）；恢复成功则继续取页，
+            # 恢复不了才按「CF 拦截」处理（登记失败，不静默当空页）。
+            recovered = self._try_cf_auto_recovery(driver, url)
+            if recovered:
+                html = recovered
+            else:
+                logger.warning("CF 挑战页，跳过: %s", url)
+                self._last_fetch_cf = True
+                return ""
         if any(marker in html for marker in NOT_FOUND_MARKERS):
             logger.warning("BR 404 页面，隔离: %s", url)
             self._last_fetch_404 = True
