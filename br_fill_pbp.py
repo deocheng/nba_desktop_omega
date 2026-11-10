@@ -25,7 +25,15 @@
   python br_fill_pbp.py --seasons 2023 2024 2025 2026   # 优先 2023→now
   python br_fill_pbp.py --since 2023-07-01                 # 仅近季(含新比赛增量)
 """
-import argparse, re, time, sys, os, shutil, csv, json
+import argparse
+import csv
+import json
+import os
+import re
+import shutil
+import sys
+import time
+
 import psycopg2
 from psycopg2.extras import execute_batch
 
@@ -38,11 +46,13 @@ except Exception:
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from br_pbp_parse import parse_pbp
 from bs4 import BeautifulSoup
+
+import raw_archiver
+from br_pbp_parse import parse_pbp
+
 # 桥接：原始 BR HTML 落盘到 raw_archive/br/{season}/{gid}.html（原子写+去重）
 from common.bridge_constants import season_start_year
-import raw_archiver
 
 DB = dict(
     host=os.environ.get("DB_HOST", "localhost"),

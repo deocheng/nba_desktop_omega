@@ -35,9 +35,9 @@ sys.path.insert(0, str(ROOT))
 from common.br_player_onoff import BRPlayerOnOffCrawlerBase  # noqa: E402
 from external_crawler.crawler.crawl_br_player_onoff import (  # noqa: E402
     PlayerOnOffCrawler,
-    parse_player_onoff_html,
     _normalize_split,
     _parse_mp,
+    parse_player_onoff_html,
 )
 
 FIXTURE_REG = ROOT / "raw_archive" / "br_players" / "antetgi01" / "on_off_2024.html"

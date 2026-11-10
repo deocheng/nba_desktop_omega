@@ -15,8 +15,10 @@ Usage:
 from __future__ import annotations
 
 import sys
+
 import psycopg2
 from psycopg2.extras import RealDictCursor
+
 from backend.core import config
 
 BR_REGEX = r'^\d{9}[A-Z]{3}$'
@@ -212,7 +214,7 @@ def convert_game_ids(cur: RealDictCursor) -> int:
     print("STEP 3: Convert game_id to BR format")
     print("=" * 70)
 
-    cur.execute(f"SELECT COUNT(*) as cnt FROM games WHERE game_id ~ '^[0-9]+$'")
+    cur.execute("SELECT COUNT(*) as cnt FROM games WHERE game_id ~ '^[0-9]+$'")
     before = cur.fetchone()['cnt']
     print(f"\n  Before: {before} numeric game_id rows")
 
@@ -241,7 +243,7 @@ def convert_game_ids(cur: RealDictCursor) -> int:
     from_date = cur.rowcount
     print(f"  Converted using game_date + home_team_abbr: {from_date}")
 
-    cur.execute(f"SELECT COUNT(*) as cnt FROM games WHERE game_id ~ '^[0-9]+$'")
+    cur.execute("SELECT COUNT(*) as cnt FROM games WHERE game_id ~ '^[0-9]+$'")
     after = cur.fetchone()['cnt']
     print(f"\n  After: {after} numeric game_id rows remaining")
 
@@ -335,7 +337,7 @@ def verify(cur: RealDictCursor) -> None:
         FROM games
     """)
     r = cur.fetchone()
-    print(f"\n  games table:")
+    print("\n  games table:")
     print(f"    Total: {r['total']}")
     print(f"    BR format game_id: {r['br_game_id']}")
     print(f"    Numeric game_id: {r['numeric_game_id']}")
@@ -360,7 +362,7 @@ def verify(cur: RealDictCursor) -> None:
         FROM dim_games
     """)
     r = cur.fetchone()
-    print(f"\n  dim_games table:")
+    print("\n  dim_games table:")
     print(f"    Total: {r['total']}")
     print(f"    BR format game_id: {r['br_game_id']}")
     print(f"    Numeric game_id: {r['numeric_game_id']}")

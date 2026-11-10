@@ -1,6 +1,8 @@
 import sys
+
 import psycopg2
 from psycopg2.extras import RealDictCursor
+
 from backend.core import config
 
 BR_REGEX = '^[0-9]{9}[A-Z]{3}$'
@@ -217,7 +219,7 @@ def main():
             FROM games
         """)
         result = cur.fetchone()
-        print(f"   games table:")
+        print("   games table:")
         print(f"     Total: {result['total']}")
         print(f"     BR format: {result['br_format_count']}")
         print(f"     Numeric (unchanged): {result['numeric_count']}")
@@ -230,7 +232,7 @@ def main():
             FROM dim_games
         """)
         result = cur.fetchone()
-        print(f"   dim_games table:")
+        print("   dim_games table:")
         print(f"     Total: {result['total']}")
         print(f"     BR format: {result['br_format_count']}")
         print(f"     Numeric (unchanged): {result['numeric_count']}")

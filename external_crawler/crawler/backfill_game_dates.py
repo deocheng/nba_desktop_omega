@@ -6,9 +6,11 @@ Backfill game_date for 2020-2023 seasons.
 Fetches NBA schedule from data.nba.com, matches by game_id, updates games table.
 """
 import sys
+
 sys.stdout.reconfigure(encoding='utf-8')
 import logging
 import time
+
 import psycopg2
 from curl_cffi import requests
 
@@ -76,7 +78,7 @@ def main():
         cur.execute("SELECT COUNT(*) FROM games WHERE season = %s AND game_date IS NULL", (season_id,))
         missing = cur.fetchone()[0]
         if missing == 0:
-            logger.info(f"  No missing dates, skipping")
+            logger.info("  No missing dates, skipping")
             continue
         logger.info(f"  {missing} games need dates")
 

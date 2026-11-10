@@ -4,7 +4,9 @@ Run from project root with venv python.
 """
 import json
 import sys
+
 from backend.core.db import batch_query
+
 
 def section(title):
     print("\n" + "=" * 70)

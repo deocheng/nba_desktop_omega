@@ -1,4 +1,5 @@
 import os
+
 """games 表安全清理（仅 Regular Season）：
 
 1) 恢复 home_team_abbr=NULL 的行：game_id 后缀即 BR 主场缩写，100% 安全恢复，不删数据。
@@ -7,8 +8,9 @@ import os
 
 dry_run=True 时只统计不修改。
 """
-import psycopg2
 import sys
+
+import psycopg2
 
 DB = dict(host='localhost', port=5433, dbname='nba', user='postgres', password=os.environ.get('DB_PASSWORD'))
 VALID = ('ATL','BOS','BRK','CHO','CLE','DAL','DEN','DET','GSW','HOU','IND','LAC','LAL',

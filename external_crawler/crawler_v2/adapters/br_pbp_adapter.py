@@ -15,11 +15,11 @@ adapters/br_pbp_adapter.py — v2 的 Basketball-Reference 逐回合(PBP)适配�
   python -m adapters.br_pbp_adapter --limit 3 --dry-run
   python -m adapters.br_pbp_adapter --seasons 2023 2024 2025 2026
 """
-import os
-import sys
 import argparse
 import importlib.util
 import logging
+import os
+import sys
 
 # 把迁移包根目录加入 path，以便复用旧版已验证模块（单向复用，旧版不被修改）
 ROOT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
@@ -32,12 +32,19 @@ from core.store import StoreFactory
 log = logging.getLogger("br_crawler_v2.br_pbp")
 
 # ---- 单向复用旧版已验证函数（不重造） ----
+import raw_archiver  # type: ignore
 from br_fill_pbp import (  # type: ignore
-    build_driver, fetch_pbp_soup, to_br_gid, _br_team_code,
-    extract_semantics, collect_issues, SEMANTIC_SQL, ISSUES_SQL, INSERT_SQL,
+    INSERT_SQL,
+    ISSUES_SQL,
+    SEMANTIC_SQL,
+    _br_team_code,
+    build_driver,
+    collect_issues,
+    extract_semantics,
+    fetch_pbp_soup,
+    to_br_gid,
 )
 from br_pbp_parse import parse_pbp  # type: ignore
-import raw_archiver  # type: ignore
 
 BASE = "https://www.basketball-reference.com/boxscores/pbp/{gid}.html"
 RAW_DIR = os.path.join(ROOT, "external_crawler", "crawler", "pbp_raw")

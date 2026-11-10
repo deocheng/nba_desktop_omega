@@ -22,7 +22,6 @@ from backend.services.intelligence_engine.loader import (
     load_team_intel,
 )
 
-
 # ── Pure helpers (unit-testable without DB) ──
 
 def availability_score(player_games: float, team_games: float) -> float:

@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """探测 BR 三种 Play-In 页面结构 + 验证 PHX->PHO。每抓开新标签、用完关闭。"""
-import sys, json, time, urllib.request, urllib.parse
+import json
+import sys
+import time
+import urllib.parse
+import urllib.request
+
 sys.stdout.reconfigure(encoding="utf-8")
 sys.path.insert(0, "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13")
 import websocket

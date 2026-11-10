@@ -22,8 +22,14 @@
 限速: 默认 1.2s/请求(cdn 有 Akamai,需 curl_cffi 伪装 Chrome TLS 指纹)。
 """
 from __future__ import annotations
+
+import argparse
+import csv
 import os
-import argparse, csv, re, sys, time, random
+import random
+import re
+import sys
+import time
 from datetime import datetime
 from pathlib import Path
 

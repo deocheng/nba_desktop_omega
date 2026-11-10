@@ -6,8 +6,10 @@ season_type='Regular Season' (and has an nba_api_id) is mislabeled and should
 be 'Playoffs'.
 """
 from __future__ import annotations
+
 import psycopg2
 from psycopg2.extras import RealDictCursor
+
 from backend.core import config
 
 conn = psycopg2.connect(**config.DB_CONFIG, cursor_factory=RealDictCursor)

@@ -23,11 +23,12 @@ from __future__ import annotations
 
 import logging
 import os
-import psycopg2
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-from common.br_player_page import BRPlayerPageCrawler, DB_CONFIG
+import psycopg2
+
+from common.br_player_page import DB_CONFIG, BRPlayerPageCrawler
 
 # CF 握手门禁：爬取前在「爬虫驱动的标签页」里先清 CF。
 from common.browser import ensure_cf_cleared  # noqa: E402

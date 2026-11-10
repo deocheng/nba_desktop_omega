@@ -131,7 +131,8 @@ class TestComputeMatchOverApron:
         assert mr.legal is False
         assert mr.deficit == 5_000_000
         # 硬帽由 check_hard_cap 单独判定（这里仅验证匹配缺口）
-        from backend.services.trade_engine import nba_rules, rules as rulesmod
+        from backend.services.trade_engine import nba_rules
+        from backend.services.trade_engine import rules as rulesmod
         rs = rulesmod.get_rule_set("NBA")
         issues = nba_rules.NBARuleSet().check_hard_cap(leg, rules_2025)
         assert any(i.rule_code == "HARD_CAP" for i in issues)

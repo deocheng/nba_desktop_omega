@@ -18,10 +18,15 @@ Usage:
   python3 backfill_playoff_schedule.py --execute
   python3 backfill_playoff_schedule.py --fix-ghosts --execute   # also delete 2024 phantom rows
 """
-import json, os, re, sys, argparse
+import argparse
+import json
+import os
+import re
+import sys
 from collections import Counter
-from dotenv import load_dotenv
+
 import psycopg2
+from dotenv import load_dotenv
 
 PROJECT_ROOT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
 ENV_PATH = os.path.join(PROJECT_ROOT, ".env")

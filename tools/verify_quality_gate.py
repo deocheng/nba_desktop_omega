@@ -292,6 +292,37 @@ except Exception as exc:  # noqa: BLE001
     blk = str(exc)
 check("viz.theme.compat_vars 可用", compat_ok, f"{len(blk)} 字符")
 
+# 10. lint 门禁（ruff）—— 与 CI 的 lint job、本地 pre-commit 同一套配置
+# 10a. ruff 配置存在（分层豁免的单一事实来源在 pyproject.toml）
+ruff_cfg = rp("pyproject.toml")
+cfg_ok = "[tool.ruff" in read(ruff_cfg) and "per-file-ignores" in read(ruff_cfg)
+check("ruff 配置存在且分层豁免已声明", cfg_ok,
+      f"pyproject.toml 含 [tool.ruff] 与 per-file-ignores={cfg_ok}")
+
+# 10b. ruff 实跑：全仓零违规才算过（豁免规则由配置承担，不在此处重复豁免）
+ruff_bin = os.path.join(ROOT, ".venv", "bin", "ruff")
+if os.path.exists(ruff_bin):
+    rc, out = run([ruff_bin, "check", "--output-format=concise", ROOT])
+    if rc == 0:
+        check("ruff check 全仓通过", True, "0 违规")
+    else:
+        lines = [l for l in out.splitlines() if l.strip() and "warning:" not in l]
+        check("ruff check 全仓通过", False,
+              f"{len(lines)} 处违规: " + "; ".join(lines[:4]))
+else:
+    rc2, out2 = run([sys.executable, "-m", "ruff", "--version"])
+    if rc2 != 0:
+        check("ruff check 全仓通过", None, "ruff 未安装（pip install ruff）")
+    else:
+        rc3, out3 = run([sys.executable, "-m", "ruff", "check",
+                         "--output-format=concise", ROOT])
+        if rc3 == 0:
+            check("ruff check 全仓通过", True, "0 违规")
+        else:
+            lines = [l for l in out3.splitlines() if l.strip() and "warning:" not in l]
+            check("ruff check 全仓通过", False,
+                  f"{len(lines)} 处违规: " + "; ".join(lines[:4]))
+
 # 汇总
 print("| 状态 | 检查项 | 证据 |")
 print("|---|---|---|")

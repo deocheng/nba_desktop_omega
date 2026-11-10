@@ -14,12 +14,11 @@
   python crawl_2027_shot_charts.py --season 2027 20
 需环境变量：BROWSER_BACKEND=cdp  CHROME_CDP_URL=http://127.0.0.1:9223
 """
-import sys
 import argparse
+import sys
 
 import psycopg2
-
-from crawl_br_player_shot_chart import PlayerShotChartCrawler, DB_CONFIG
+from crawl_br_player_shot_chart import DB_CONFIG, PlayerShotChartCrawler
 
 
 def detect_season(cur) -> int:

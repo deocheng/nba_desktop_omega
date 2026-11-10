@@ -23,8 +23,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
 
-from common.bridge_constants import get_pg_conn, ARCHIVE_ROOT  # noqa: E402
 import raw_archiver  # noqa: E402
+from common.bridge_constants import ARCHIVE_ROOT, get_pg_conn  # noqa: E402
 
 BR_ROOT = os.path.join(ARCHIVE_ROOT, "br")
 ESPN_ROOT = os.path.join(ARCHIVE_ROOT, "espn")

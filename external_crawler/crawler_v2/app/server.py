@@ -16,18 +16,18 @@ server.py — BR 爬虫套装独立 App 的后端（零第三方依赖，stdlib 
 
 每个爬取任务由 job_manager 以独立子进程执行，server 不阻塞、日志落盘可续。
 """
-import os
-import sys
-import json
-import time
 import atexit
+import importlib
+import json
+import os
 import signal
 import subprocess
+import sys
 import threading
-import importlib
-from pathlib import Path
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlparse, parse_qs
+from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 HERE = Path(__file__).resolve().parent
 CRAWLER_V2 = HERE.parent
@@ -36,7 +36,7 @@ for p in (str(CRAWLER_V2), str(ROOT)):
     if p not in sys.path:
         sys.path.insert(0, p)
 
-from job_manager import manager, build_cmd  # noqa: E402
+from job_manager import build_cmd, manager  # noqa: E402
 
 PORT = int(os.environ.get("CRAWLER_APP_PORT", 5757))
 INDEX = HERE / "index.html"

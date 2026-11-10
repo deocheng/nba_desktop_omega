@@ -27,13 +27,13 @@ crawl_br_team_pages.py
   det2026_br/<page>_<table>.csv   每张表一个 CSV（表 id 或 caption 命名）
   det2026_br/all.json               全部表汇总（便于程序化 diff）
 """
+import csv
+import json
 import os
 import time
-import json
-import csv
 
-from bs4 import BeautifulSoup, Comment
 import undetected_chromedriver as uc
+from bs4 import BeautifulSoup, Comment
 
 PROJECT = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(PROJECT, "det2026_br")

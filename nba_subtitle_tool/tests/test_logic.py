@@ -1,9 +1,9 @@
 """纯逻辑单测（不依赖模型）：时间戳、SRT 生成、文稿分组、术语表、识别归一化。
 运行：python tests/test_logic.py
 """
+import json
 import os
 import sys
-import json
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)

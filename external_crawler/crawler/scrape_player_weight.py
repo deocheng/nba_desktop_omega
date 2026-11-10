@@ -20,24 +20,24 @@ Player Weight Scraper — Safe BR Edition
   python crawler/scrape_player_weight.py --min-delay 15 --max-delay 25  # 自定义间隔
   python crawler/scrape_player_weight.py --batch 400 --rest-every 100 --rest-seconds 600
 """
+import argparse
+import json
+import logging
 import os
+import random
 import re
 import sys
 import time
-import json
-import random
-import logging
-import argparse
 from datetime import datetime
-from typing import Optional, Dict
 from pathlib import Path
+from typing import Dict, Optional
 
 import psycopg2
 from bs4 import BeautifulSoup
 
 # 添加项目根目录到 path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from br_safe_scraper import SafeBRScraper, BR_BASE, HAS_BS4
+from br_safe_scraper import BR_BASE, HAS_BS4, SafeBRScraper
 
 # ── A3 T-A3-2: §6 收口 ───────────────────────────────────────────────────────
 # Route weight persistence through the backend data_layer writer
@@ -343,7 +343,7 @@ def main():
             # 连续失败太多次，停止避免被永久封
             if blocked_streak >= MAX_BLOCKED_STREAK:
                 logger.error(f"  {MAX_BLOCKED_STREAK} consecutive failures — stopping to avoid ban.")
-                logger.error(f"  Resume later with: python crawler/scrape_player_weight.py")
+                logger.error("  Resume later with: python crawler/scrape_player_weight.py")
                 break
         else:
             blocked_streak = 0  # 重置连续失败计数
@@ -357,7 +357,7 @@ def main():
             else:
                 no_weight += 1
                 save_player(conn, player_id, player_name, info)
-                logger.warning(f"  No weight data found (saved other info)")
+                logger.warning("  No weight data found (saved other info)")
 
         # 进度报告
         if (i + 1) % 5 == 0 or i == len(players) - 1:
@@ -377,7 +377,7 @@ def main():
                         f"resuming at {datetime.now().strftime('%H:%M:%S')} + {rest_min:.0f}min")
             logger.info("-" * 60)
             time.sleep(args.rest_seconds)
-            logger.info(f"Resuming after rest break...")
+            logger.info("Resuming after rest break...")
 
     elapsed = time.time() - start_time
     stats = scraper.get_stats()
@@ -389,8 +389,8 @@ def main():
     remaining_total = get_remaining_count(conn)
     logger.info(f"Remaining players: {remaining_total}")
     if remaining_total > 0:
-        logger.info(f"Next batch: python crawler/scrape_player_weight.py "
-                    f"--batch 400 --rest-every 100 --rest-seconds 600")
+        logger.info("Next batch: python crawler/scrape_player_weight.py "
+                    "--batch 400 --rest-every 100 --rest-seconds 600")
     logger.info("=" * 60)
 
     scraper.close()

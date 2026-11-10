@@ -21,9 +21,8 @@ from pathlib import Path
 import pytest
 
 import backend.services.metric_engine as me
-from backend.services.metric_engine.metrics import derived, basic
 from backend.api import schemas
-
+from backend.services.metric_engine.metrics import basic, derived
 
 # ── DB availability probe ──
 

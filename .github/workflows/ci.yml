@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, master, crawler-verified-2026-07-29, 'feature/**']
+    branches: [main, master, crawler-verified-2026-07-29, 'feature/**', 'chore/**']
   pull_request:
-    branches: [main, master, crawler-verified-2026-07-29, 'feature/**']
+    branches: [main, master, crawler-verified-2026-07-29, 'feature/**', 'chore/**']
 
 jobs:
   secret-scan:
@@ -17,6 +17,48 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  lint:
+    # ruff 门禁：与本地 pre-commit 同一套配置（pyproject.toml [tool.ruff]）
+    # Tier-1 目录（viz/tools/backend/tests/common/scripts/workspace）零豁免，
+    # Tier-2 按白名单豁免存量债 —— 新增规则对 Tier-2 同样生效。
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install ruff
+        run: pip install --upgrade pip && pip install ruff==0.17.4
+
+      - name: Ruff check
+        run: ruff check --output-format=github .
+
+  quality-gate:
+    # 仓库自检门禁（35 项）：星图 wrapper 唯一性 / viz 内核可导入 / 报告体积 /
+    # DB helper 收敛 / 收敛入口连通 / 色板单一来源… 只在主干跑：
+    # 它依赖本机数据源与归档，部分项在 PR 环境不具备条件。
+    runs-on: ubuntu-latest
+    needs: lint
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run repository quality gate
+        run: python3 tools/verify_quality_gate.py
 
   test:
     runs-on: ubuntu-latest
@@ -56,6 +98,10 @@ jobs:
           DB_NAME: nba
           DB_USER: postgres
           DB_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
+          # libpq 标准变量名：测试里直接 psycopg2.connect(..., password=...)
+          # 读的是 PGPASSWORD；conftest 会从 DB_PASSWORD 派生，此处显式给出，
+          # 两者等值且都只来自 secret，不硬编码。
+          PGPASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
         run: |
           python -m pytest tests/ -q --tb=short
 

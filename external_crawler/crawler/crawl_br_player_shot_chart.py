@@ -39,7 +39,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 import psycopg2
 from bs4 import BeautifulSoup, Comment
 
-from common.br_player_page import BRPlayerPageCrawler, DB_CONFIG
+from common.br_player_page import DB_CONFIG, BRPlayerPageCrawler
 from common.browser import quit_driver, reconnect_driver  # 模块级（基类无这些方法，勿用 self.xxx）
 from common.season_priority import season_tier  # 赛季抓取优先级（2010+ > 2000s > 1980s > pre-1980）
 from common.season_type_norm import canon_season_type  # season_type 写入约定统一对齐 dim_games

@@ -20,10 +20,10 @@ run_full_backfill.py — 球队/球员 extras 全量回填编排器。
 """
 from __future__ import annotations
 
+import logging
 import os
 import sys
 import time
-import logging
 from typing import Callable, List, Optional
 
 # ── 路径：脚本位于 external_crawler/crawler，common 在项目根 ──
@@ -34,12 +34,12 @@ for p in (PROJECT_ROOT, SCRIPT_DIR):
         sys.path.insert(0, p)
 
 import psycopg2  # noqa: E402
-from common.br_team_page import DB_CONFIG  # noqa: E402
-
-from crawl_br_team_page_extras import TeamPageExtrasCrawler   # noqa: E402
-from crawl_br_team_lineups import LineupsCrawler             # noqa: E402
-from crawl_br_team_referees import RefereesCrawler           # noqa: E402
 from crawl_br_player_page_extras import PlayerPageExtrasCrawler  # noqa: E402
+from crawl_br_team_lineups import LineupsCrawler  # noqa: E402
+from crawl_br_team_page_extras import TeamPageExtrasCrawler  # noqa: E402
+from crawl_br_team_referees import RefereesCrawler  # noqa: E402
+
+from common.br_team_page import DB_CONFIG  # noqa: E402
 
 # ── 配置 ──
 MAX_SEASON = 2026          # 上限（含）

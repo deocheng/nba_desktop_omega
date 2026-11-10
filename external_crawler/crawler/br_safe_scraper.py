@@ -22,15 +22,15 @@ BR Safe Scraper — Basketball-Reference 安全爬取模块
   with SafeBRScraper() as scraper:
       html = scraper.fetch(url)
 """
-import os
-import time
-import random
+import hashlib
 import json
 import logging
-import hashlib
+import os
+import random
+import time
 from datetime import datetime
-from typing import Optional, Dict
 from pathlib import Path
+from typing import Dict, Optional
 
 # ── 第三方依赖 ────────────────────────────────────────────────────────────────
 
@@ -215,7 +215,7 @@ class SafeBRScraper:
                 self._save_cookies()
                 return resp.text
             elif resp.status_code == 403:
-                logger.debug(f"  cffi 403 (Cloudflare)")
+                logger.debug("  cffi 403 (Cloudflare)")
                 return None
             else:
                 logger.debug(f"  cffi HTTP {resp.status_code}")
@@ -308,13 +308,13 @@ class SafeBRScraper:
 
             title = page.title()
             if self._is_cloudflare_block(page.content(), title):
-                logger.info(f"  Cloudflare challenge, waiting 30s...")
+                logger.info("  Cloudflare challenge, waiting 30s...")
                 time.sleep(30)
                 page.reload(wait_until="domcontentloaded", timeout=30000)
                 time.sleep(5)
                 title = page.title()
                 if self._is_cloudflare_block(page.content(), title):
-                    logger.warning(f"  Cloudflare still blocking after 30s wait")
+                    logger.warning("  Cloudflare still blocking after 30s wait")
                     return None
 
             # 保存 cookies
@@ -469,7 +469,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
     
     print("Testing SafeBRScraper...")
-    print(f"  min_delay=12s, max_delay=18s")
+    print("  min_delay=12s, max_delay=18s")
     print(f"  curl_cffi available: {HAS_CFFI}")
     
     with SafeBRScraper(min_delay=12, max_delay=18) as scraper:

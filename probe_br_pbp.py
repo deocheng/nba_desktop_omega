@@ -1,5 +1,6 @@
 """Probe the BR PBP table structure from saved sample to design the parser."""
 from __future__ import annotations
+
 from bs4 import BeautifulSoup
 
 HTML = "br_pbp_sample.html"
@@ -28,6 +29,7 @@ for i, tr in enumerate(rows[:8]):
 
 # Find example rows containing keywords to understand description formats
 import re
+
 texts = []
 for tr in rows:
     cells = [td.get_text(strip=True) for td in tr.find_all(["th", "td"])]

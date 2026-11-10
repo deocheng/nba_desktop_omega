@@ -1,0 +1,33 @@
+# pre-commit —— 本地提交前钩子（2026-11-10）
+#
+# 与 CI 的 lint / test job 同一套配置（ruff 配置在 pyproject.toml），
+# 本地先拦一道，CI 再兜一道。
+#
+# 安装：pip install pre-commit && pre-commit install
+# 首次运行会自建隔离环境（需联网一次）。
+#
+# 注意：ruff 的 F401 自动修复会删掉 __init__.py 的 re-export，
+# 故 pyproject 已对 __init__.py 豁免 F401/F403。
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.4
+    hooks:
+      - id: ruff
+        # --fix：可安全自动修的（import 排序、未用 import、空白、分号…）
+        # 刻意**不**启用 ruff-format：本仓现有排版与 ruff format 差异极大，
+        # 全量格式化会产生无谓的大 diff，且可能改动 HTML 模板串的对齐。
+        args: [--fix, --exit-non-zero-on-fix]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^(raw_archive|backups|reports/_pre_strip_backup)/
+      - id: end-of-file-fixer
+        exclude: ^(raw_archive|backups|reports/_pre_strip_backup)/
+      - id: check-yaml
+      - id: check-json
+        exclude: ^(raw_archive|backups|fiba_scraper)/
+      - id: check-added-large-files
+        args: [--maxkb=2048]
+      - id: detect-private-key

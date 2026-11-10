@@ -16,10 +16,12 @@ from __future__ import annotations
 import logging
 import os
 import time
+
 from selenium.common.exceptions import WebDriverException
 
-from .config import BR_TEAM_SLUGS, PROJECT_ROOT
 from common.browser import get_driver, reset_driver, warmup_once
+
+from .config import BR_TEAM_SLUGS, PROJECT_ROOT
 
 logger = logging.getLogger(__name__)
 

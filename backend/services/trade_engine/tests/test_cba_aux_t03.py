@@ -28,13 +28,13 @@ import re
 import pytest
 from fastapi.testclient import TestClient
 
+from backend.services.trade_engine import cba_aux_db
 from backend.services.trade_engine.cba_aux import (
     LeagueSimulator,
     Player,
     SalaryCapRules,
     Team,
 )
-from backend.services.trade_engine import cba_aux_db
 from backend.services.trade_engine.tests.conftest import skip_if_no_db
 
 ROOT = pathlib.Path(__file__).resolve().parents[4]  # 项目根 nba_desktop_omega

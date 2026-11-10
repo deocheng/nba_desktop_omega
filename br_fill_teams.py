@@ -12,7 +12,14 @@
   python br_fill_teams.py --limit 3 --dry-run
   python br_fill_teams.py                 # 全量(断点续跑)
 """
-import argparse, re, time, random, sys, os, shutil
+import argparse
+import os
+import random
+import re
+import shutil
+import sys
+import time
+
 import psycopg2
 
 DB = dict(host="localhost", port=5433, user="postgres", dbname="nba")

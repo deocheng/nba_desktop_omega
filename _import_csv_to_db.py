@@ -13,10 +13,11 @@ Mac 端数据装载器: 把 nba_csv/*.csv 导入已建好表结构的 Postgres �
 - 表名/列名经 psycopg2.sql.Identifier 参数化，§6 合规
 - 逐表 COPY FROM STDIN，大表(play_by_play 1837万行)也稳
 """
+import argparse
+import glob
 import os
 import sys
-import glob
-import argparse
+
 import psycopg2
 from psycopg2 import sql
 

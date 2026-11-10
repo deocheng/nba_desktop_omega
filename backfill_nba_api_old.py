@@ -15,11 +15,13 @@ gamelog 爬虫的 get_game_id_map 强制 nba_api_id IS NOT NULL -> 这 6 季缓�
   python backfill_nba_api_old.py --apply  # 真实回填
 """
 from __future__ import annotations
+
 import os
 import sys
 
 import psycopg2
 import psycopg2.extras
+
 
 # ── DB 口令：只从环境变量 / 项目根 .env 取，脚本内不落明文 ──────────
 def _load_dotenv() -> None:

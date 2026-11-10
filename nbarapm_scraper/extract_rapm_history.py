@@ -25,11 +25,12 @@ Usage:
 """
 from __future__ import annotations
 
+import glob
+import json
 import os
 import re
 import sys
-import json
-import glob
+
 import psycopg2
 import psycopg2.extras as extras
 from psycopg2 import sql

@@ -1,6 +1,7 @@
 """Bob diagnostic part 3 — view defs, draft base tables, weight writer."""
 from backend.core.db import batch_query
 
+
 def section(t):
     print("\n" + "=" * 70); print(t); print("=" * 70)
 def show(rows, n=12):

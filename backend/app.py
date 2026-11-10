@@ -28,9 +28,31 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from backend.api.routers import (
-    analytics_builder, batch, career, cba_aux, charts, clutch, clutch_replay,
-    context, coverage, crawler, data_import, draft, export, games, intelligence, leaderboard,
-    metrics, monitor, players, system, teams, trade, tactics, video_library, vs,
+    analytics_builder,
+    batch,
+    career,
+    cba_aux,
+    charts,
+    clutch,
+    clutch_replay,
+    context,
+    coverage,
+    crawler,
+    data_import,
+    draft,
+    export,
+    games,
+    intelligence,
+    leaderboard,
+    metrics,
+    monitor,
+    players,
+    system,
+    tactics,
+    teams,
+    trade,
+    video_library,
+    vs,
     workspace,
 )
 from backend.core import config
@@ -142,8 +164,8 @@ def create_app() -> FastAPI:
     app.include_router(analytics_builder.router)
 
     # Phase 4: mount frontend static files (Layer 4 — pure render)
-    from pathlib import Path
     import sys
+    from pathlib import Path
 
     class _NoCacheStaticFiles(StaticFiles):
         """StaticFiles that sends ``Cache-Control: no-cache`` so the browser

@@ -5,21 +5,25 @@ Usage:
 """
 from __future__ import annotations
 
-import sys
 import os
-import time
 import re
-from datetime import datetime, date
+import sys
+import time
+from datetime import date, datetime
 
 CRAWLER_DIR = r'C:/autopick/AutoPick/nba_data'
 sys.path.insert(0, CRAWLER_DIR)
 os.chdir(CRAWLER_DIR)
 
-from nba_daily_crawler import (
-    BrowserManager, CrawlLogger, Config,
-    get_season_for_date, to_int, extract_db_abbr_from_cell,
-)
 import psycopg2
+from nba_daily_crawler import (
+    BrowserManager,
+    Config,
+    CrawlLogger,
+    extract_db_abbr_from_cell,
+    get_season_for_date,
+    to_int,
+)
 
 
 def crawl_month(browser, logger, conn, year: int, month: int) -> tuple[int, int, list]:
@@ -180,7 +184,7 @@ def main():
             if i < len(months) - 1:
                 time.sleep(3)
 
-        logger.info(f'\n=== All done ===')
+        logger.info('\n=== All done ===')
         logger.info(f'Total imported: {total_imported}')
         logger.info(f'Total updated: {total_skipped}')
 

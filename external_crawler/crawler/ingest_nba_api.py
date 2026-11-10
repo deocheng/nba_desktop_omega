@@ -31,11 +31,11 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import psycopg2
-from psycopg2.extras import execute_batch
 from curl_cffi import requests as cffi_requests
+from psycopg2.extras import execute_batch
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 logging.basicConfig(

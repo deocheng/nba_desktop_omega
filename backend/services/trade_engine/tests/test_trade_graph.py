@@ -6,7 +6,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from backend.services.trade_engine import rules as rules_mod, schemas, trade_graph
+from backend.services.trade_engine import rules as rules_mod
+from backend.services.trade_engine import schemas, trade_graph
 from backend.services.trade_engine.tests.conftest import make_asset
 
 AS_OF = datetime(2026, 1, 15)

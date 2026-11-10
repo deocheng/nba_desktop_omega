@@ -61,9 +61,9 @@ from backend.services.metric_engine.executor import (
 )
 from backend.services.metric_engine.rank import Ranking, rank_players, to_dataframe
 from backend.services.metric_engine.registry import (
+    REGISTRY,
     MetricRegistry,
     MetricSpec,
-    REGISTRY,
     get_registry,
     register,
 )
@@ -223,8 +223,9 @@ def _group_compute(
     DataFrames column-wise on the player_id index. v8 §2 compliant: the API
     layer stays orchestration-only and never sees the grouping logic.
     """
-    import pandas as pd
     from collections import defaultdict
+
+    import pandas as pd
 
     if not metric_names:
         return pd.DataFrame()

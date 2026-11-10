@@ -26,8 +26,7 @@ if HERE not in sys.path:
     sys.path.insert(0, HERE)
 
 from common.bridge_constants import get_pg_conn  # noqa: E402
-from matcher import match_game                    # noqa: E402
-
+from matcher import match_game  # noqa: E402
 
 UPSERT_SQL = """
     INSERT INTO game_id_map (

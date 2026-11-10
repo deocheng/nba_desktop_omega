@@ -6,9 +6,9 @@
 输出 SRT / Markdown / JSON 与视频同目录（同名），播放器（VLC/Infuse 等）可自动加载字幕。
 已存在 .srt 的视频会跳过，支持断点续跑。
 """
+import glob
 import os
 import sys
-import glob
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)

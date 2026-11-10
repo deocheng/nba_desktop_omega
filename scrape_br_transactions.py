@@ -6,7 +6,11 @@ Saves:
   det2026_br/DET_2026_transactions_raw.html   (raw page source)
   det2026_br/DET_2026_transactions_verbatim.txt  (one sentence per line, date prefix stripped)
 """
-import os, re, sys, time
+import os
+import re
+import sys
+import time
+
 import undetected_chromedriver as uc
 from bs4 import BeautifulSoup
 

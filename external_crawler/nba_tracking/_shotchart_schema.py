@@ -1,4 +1,7 @@
-import os, re, psycopg2
+import os
+import re
+
+import psycopg2
 from psycopg2 import sql
 
 ENV_PATH = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/.env"

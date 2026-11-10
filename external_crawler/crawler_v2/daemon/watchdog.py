@@ -18,14 +18,14 @@ daemon/watchdog.py — v2 看门狗（忠实还原 crawler_watchdog_v2.sh 的运
 
 本文件只在 crawler_v2/daemon/ 新建，绝不改动旧 crawler/ 脚本。
 """
+import argparse
+import importlib.util
+import logging
 import os
-import sys
-import time
 import signal
 import subprocess
-import argparse
-import logging
-import importlib.util
+import sys
+import time
 from pathlib import Path
 
 # ---- 路径（从本文件推导，避免硬编码 ROOT）----
@@ -64,7 +64,7 @@ CRAWLER_PATTERNS = ["runner.py", "br_gamelog_adapter", "br_pbp_adapter",
 # 把 crawler_v2 加入 path 以便 import core / 载入 runner.SEASONS
 sys.path.insert(0, str(CRAWLER_V2))
 try:
-    from core.config import get_db_config, clear_outbound_proxy  # noqa: E402
+    from core.config import clear_outbound_proxy, get_db_config  # noqa: E402
 except Exception:  # pragma: no cover —— py_compile 阶段不影响语法
     get_db_config = None
     clear_outbound_proxy = lambda: None

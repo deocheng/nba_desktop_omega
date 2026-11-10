@@ -1,5 +1,6 @@
-import os
 import json
+import os
+
 """
 BR 球员 gamelog 批量爬取 + 入库
 数据源: https://www.basketball-reference.com/players/{letter}/{player_id}/gamelog/{season}
@@ -11,21 +12,22 @@ BR 球员 gamelog 批量爬取 + 入库
   python crawl_br_gamelog.py --season 2026 --limit 10 # 只爬10人
   python crawl_br_gamelog.py --season 2027 --players-file /tmp/players_2027.tsv  # 新赛季旁路清单
 """
-import requests
-from bs4 import BeautifulSoup
-import psycopg2
-import psycopg2.extras
-import time
-import random
 import argparse
-import sys
+import random
+import re
+import shutil
 import subprocess
+import sys
+import tempfile
+import time
 from datetime import datetime
 from pathlib import Path
-import tempfile
-import shutil
-import re
 from typing import Optional
+
+import psycopg2
+import psycopg2.extras
+import requests
+from bs4 import BeautifulSoup
 
 # Ensure the project root (three levels up from this file) is on sys.path so
 # `import common.browser` resolves when run as a standalone script.
@@ -273,7 +275,7 @@ def _fetch_html(url: str) -> str:
     not a crash, so they are re-raised untouched (the loop skips the player as
     before, without burning rebuild cycles).
     """
-    from common.browser import get_driver, reconnect_driver, CFChallengeError
+    from common.browser import CFChallengeError, get_driver, reconnect_driver
 
     # 仅命中「渲染进程确实死亡」的信号才重建页面重试。
     # 刻意不含 "Connection"/"websocket"/"Errno"：内存饥饿导致的
@@ -670,7 +672,7 @@ def scrape_gamelog(player_name: str, player_id: str, season: int,
             html_main = drv.page_source
             if html_main and "Just a moment" not in html_main:
                 if player_page_cache.save_html(player_id, html_main):
-                    print(f"    主球员页已缓存", end=' ')
+                    print("    主球员页已缓存", end=' ')
         except Exception as exc:
             print(f"    主球员页缓存失败(不影响gamelog): {exc}", end=' ')
 
@@ -684,7 +686,7 @@ def scrape_gamelog(player_name: str, player_id: str, season: int,
 
     html = _fetch_html(url)
     if not html:
-        print(f"    fetch failed")
+        print("    fetch failed")
         return []
 
     # 双轨落盘：抓取成功即存原始 HTML(供后续改解析器免重爬恢复丢字段)
@@ -1038,7 +1040,7 @@ def run_pipeline(season: int, limit: int = None, dry_run: bool = False,
             games = scrape_gamelog(player_name, player_id, season, cache_dir=cache_dir, force_fetch=force_fetch)
             
             if not games:
-                print(f"0 场 (skip)")
+                print("0 场 (skip)")
                 skipped_players += 1
             else:
                 inserted = 0
@@ -1187,7 +1189,8 @@ def rework_season(season: int, cache_dir: str, run_gate: bool = True) -> int:
     同时把「JSON 未收录、但 HTML 轨道有」的球员也纳入重放，防止 JSON 缓存
     万一丢失后无法恢复。依赖 dim_games 的 game_id 映射不变。
     """
-    import json, os
+    import json
+    import os
     # 先把上次被打断时留下的增量分片并入主缓存（保持原行为）。
     if os.path.exists(_gamelog_part_path(season, cache_dir)):
         merge_gamelog_cache(season, [], cache_dir)

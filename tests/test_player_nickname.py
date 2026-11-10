@@ -39,7 +39,7 @@ def _isolate_player_page_cache(monkeypatch, tmp_path):
 PLAYER_ID = "antetgi01"
 
 # Tier-1：#info 内 <span class="nickname">
-HTML_SPAN = f"""<html><body>
+HTML_SPAN = """<html><body>
 <div id="info" class="players">
   <div id="meta">
     <h1><span>Giannis Antetokounmpo</span></h1>
@@ -49,7 +49,7 @@ HTML_SPAN = f"""<html><body>
 </body></html>"""
 
 # Tier-2：FAQ 段落（多名，带多余空格 / 尾部句点）
-HTML_FAQ = f"""<html><body>
+HTML_FAQ = """<html><body>
 <div id="info" class="players"><h1><span>LeBron James</span></h1></div>
 <section>
   <h3>What are LeBron James' nicknames?</h3>
@@ -58,7 +58,7 @@ HTML_FAQ = f"""<html><body>
 </body></html>"""
 
 # 无绰号
-HTML_NO_NICK = f"""<html><body>
+HTML_NO_NICK = """<html><body>
 <div id="info" class="players"><h1><span>Role Player</span></h1></div>
 <section>
   <h3>What are Role Player's nicknames?</h3>
@@ -176,8 +176,9 @@ def test_fetch_cache_first_no_refetch_on_hit(monkeypatch, tmp_path):
     这是「gamelog 爬行顺手铺缓存 → nickname/bio_ext 离线抽」链路的核心保证:
     同一球员第二次 fetch 绝不再撞 BR。
     """
-    import common.player_page_cache as ppc
     import curl_cffi.requests as cffi_requests
+
+    import common.player_page_cache as ppc
 
     monkeypatch.setattr(ppc, "CACHE_ROOT", tmp_path / "br_players")
     network_hits = {"n": 0}

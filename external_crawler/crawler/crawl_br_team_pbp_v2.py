@@ -28,17 +28,16 @@
         .venv/bin/python external_crawler/crawler/crawl_br_team_pbp_v2.py \
         --season 2026 --dry-run
 """
+import logging
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional
-import logging
 
 logger = logging.getLogger(__name__)
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from bs4 import BeautifulSoup
-from common.season_type_norm import canon_season_type
 from bs4.element import Comment
 
 from common.br_team_page import (
@@ -48,6 +47,7 @@ from common.br_team_page import (
     safe_float,
     safe_int,
 )
+from common.season_type_norm import canon_season_type
 
 
 def _find_br_table(soup: BeautifulSoup, table_id: str):

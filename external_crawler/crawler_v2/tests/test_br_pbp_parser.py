@@ -12,9 +12,10 @@ fixture 来源（只读拷贝，不改动旧数据）：
 运行：
   cd external_crawler/crawler_v2 && python -m pytest tests/test_br_pbp_parser.py -q
 """
+import glob
 import os
 import sys
-import glob
+
 import pytest
 from bs4 import BeautifulSoup
 

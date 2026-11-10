@@ -2,15 +2,16 @@
 诊断 BR 球员页面 HTML 结构
 检查体重数据在页面中的位置
 """
+import re
+
 import requests
 from bs4 import BeautifulSoup
-import re
 
 # 测试一个已知球员
 player_id = 'abrines01'  # Alex Abrines
 url = f"https://www.basketball-reference.com/players/a/{player_id}.html"
 
-print(f"=== 诊断 BR 球员页面 ===\n")
+print("=== 诊断 BR 球员页面 ===\n")
 print(f"URL: {url}\n")
 
 headers = {
@@ -35,7 +36,7 @@ try:
         # 找到包含 weight 的片段
         import re
         matches = re.findall(r'.{0,50}weight.{0,50}', response.text, re.IGNORECASE)
-        print(f"   样本 (前3个):")
+        print("   样本 (前3个):")
         for i, match in enumerate(matches[:3]):
             print(f"   {i+1}. {match.strip()}")
     

@@ -22,7 +22,6 @@ import pytest
 from backend.api import schemas
 from backend.api.routers import batch, metrics, players, vs
 
-
 # ── DB availability probe (session-scoped, avoids repeated pings) ──
 
 try:

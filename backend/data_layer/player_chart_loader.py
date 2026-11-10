@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from backend.core.db import batch_query
 
+
 def compute_box_stats(values: list[float]) -> dict:
     """Compute box plot statistics (min, Q1, median, Q3, max).
 

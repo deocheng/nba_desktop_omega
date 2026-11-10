@@ -10,10 +10,9 @@ place (``career_queries``). Functions:
 """
 from __future__ import annotations
 
+import math
 from datetime import date, datetime
 from typing import Any, Sequence
-
-import math
 
 
 # ── Numeric helpers ──────────────────────────────────────────────────────

@@ -19,12 +19,12 @@ out to the existing, validated scripts:
   * BR:               launched/stopped via osascript (see server.py), not a job.
 """
 import io
-import os
 import json
-import time
+import os
 import signal
-import threading
 import subprocess
+import threading
+import time
 from datetime import datetime
 from pathlib import Path
 

@@ -17,8 +17,9 @@ pytestmark = pytest.mark.needs_db
 
 @pytest.fixture(scope="module")
 def client():
-    from backend.app import app
     from fastapi.testclient import TestClient
+
+    from backend.app import app
 
     return TestClient(app)
 

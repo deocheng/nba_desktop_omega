@@ -27,12 +27,12 @@ import psycopg2
 # 项目根（本文件向上两级）加入 sys.path，使 import common.* / backend.* 可解析
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+from backend.core import config  # noqa: E402 —— fail-safe DSN（不回退弱口令 'postgres'）
 from common.player_page_cache import (  # noqa: E402
     is_cached,
-    save_html,
     player_page_url,
+    save_html,
 )
-from backend.core import config  # noqa: E402 —— fail-safe DSN（不回退弱口令 'postgres'）
 
 logging.basicConfig(
     level=logging.INFO,
@@ -87,7 +87,7 @@ def main(limit: int | None = None, season: int | None = None,
         todo = todo[:limit]
 
     ok = fail = 0
-    from common.browser import get_driver, CFChallengeError  # noqa: E402 —— 懒加载
+    from common.browser import CFChallengeError, get_driver  # noqa: E402 —— 懒加载
     from common.cf_breaker import CFBreaker  # noqa: E402
     br = CFBreaker(cf_breach_limit, cf_backoff, cf_cooldown, cf_max_cooldowns)
     cf_breached = False   # 是否因冷却次数达上限而放弃

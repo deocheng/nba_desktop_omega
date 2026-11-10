@@ -10,9 +10,10 @@ Run:
 from __future__ import annotations
 
 import psycopg2
-import backend.core.config as cfg
 from fastapi.testclient import TestClient
+
 import backend.app as backend_app
+import backend.core.config as cfg
 
 client = TestClient(backend_app.app)
 FAILS = []

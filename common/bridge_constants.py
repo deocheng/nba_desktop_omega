@@ -7,7 +7,9 @@ from __future__ import annotations
 
 import os
 from typing import Optional, Union
+
 from dotenv import load_dotenv
+
 load_dotenv()  # 导入本模块即加载 .env（DB_PASSWORD / PGPASSWORD），确保所有调用方拿到口令
 
 # 锚点字段名（与 dim_games 列名一致，所有匹配/回填逻辑引用 ANCHOR_COLS）

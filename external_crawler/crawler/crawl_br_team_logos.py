@@ -31,8 +31,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 import psycopg2
 
 from common.br_team_page import (
-    BRTeamPageCrawler,
     DB_CONFIG,
+    BRTeamPageCrawler,
 )
 from common.browser import ensure_cf_cleared
 from common.logo_store import (

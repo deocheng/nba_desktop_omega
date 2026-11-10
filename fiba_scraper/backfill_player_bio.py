@@ -7,6 +7,7 @@ Idempotent + rollback-safe:
   * snapshot players -> players_bak_gap3_20260828 before UPDATE
 """
 from __future__ import annotations
+
 import fiba_db as D
 
 BACKUP = "players_bak_gap3_20260828"
@@ -34,7 +35,7 @@ def main() -> None:
             WHERE raw_stats->'player' IS NOT NULL AND player_id IS NOT NULL
         """)
         src_pos, src_dob, src_uni = cur.fetchone()
-        print(f"SOURCE coverage (distinct players w/ field in raw_stats):")
+        print("SOURCE coverage (distinct players w/ field in raw_stats):")
         print(f"  position_code : {src_pos}")
         print(f"  date_of_birth : {src_dob}")
         print(f"  uniform_number: {src_uni}")
@@ -46,7 +47,7 @@ def main() -> None:
         print(f"rollback snapshot: {BACKUP} created")
 
         # 4) backfill from most-recent game per player
-        cur.execute(f"""
+        cur.execute("""
             WITH bio AS (
                 SELECT DISTINCT ON (player_id) player_id,
                     raw_stats->'player'->>'positionCode'        AS position_code,

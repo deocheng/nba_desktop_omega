@@ -30,11 +30,22 @@ Usage:
                      [--games 127604,127081] [--manifest /path/manifest.json]
 """
 from __future__ import annotations
-import socket, ssl, base64, os, json, struct, gzip, time, sys, argparse, urllib.request
-from urllib.parse import urlparse, unquote
 
-import fiba_db
+import argparse
+import base64
+import gzip
+import json
+import os
+import socket
+import ssl
+import struct
+import sys
+import time
+import urllib.request
+from urllib.parse import unquote, urlparse
+
 import fiba_api as fa
+import fiba_db
 
 APIM_KEY = "898cd5e7389140028ecb42943c47eb74"
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "

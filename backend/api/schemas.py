@@ -11,7 +11,6 @@ from pydantic import BaseModel, Field
 
 from backend.services.workspace_engine.models import LOCAL_OWNER_ID
 
-
 # ── Metric schemas ──
 
 class MetricInfo(BaseModel):

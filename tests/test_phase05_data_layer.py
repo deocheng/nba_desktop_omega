@@ -19,7 +19,6 @@ from backend.data_layer.schema import (
     season_required,
 )
 
-
 # ── §4 Phase 0.5: Schema Registry ──
 
 class TestSchemaRegistry:
@@ -123,6 +122,7 @@ class TestNoPerPlayerLoop:
         batch_query (which would mean a per-player DB round-trip).
         """
         import ast
+
         from backend.data_layer import batch_loader as bl
         src = open(bl.__file__, encoding="utf-8").read()
         tree = ast.parse(src)
@@ -197,9 +197,8 @@ class TestRealBatchQuery:
         """v8 §2: dimension load via IN-clause (no season)."""
         if not db_available:
             pytest.skip("PostgreSQL not available")
-        from backend.data_layer import load_players
         # Pull 3 player_ids from season stats first
-        from backend.data_layer import load_player_season_stats
+        from backend.data_layer import load_player_season_stats, load_players
         stats = load_player_season_stats(2025)
         ids = [r["player_id"] for r in stats[:3]]
         players = load_players(ids)

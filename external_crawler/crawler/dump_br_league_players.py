@@ -47,6 +47,7 @@ def fetch_page(url: str, poll_seconds: int = 90) -> str:
     read. Re-navigates once mid-poll to grant the challenge a fresh attempt.
     """
     import time
+
     from common.browser import get_driver
     drv = get_driver()
     drv.get(url)
@@ -155,7 +156,7 @@ def main():
     if args.dry_run:
         for name, slug, team in players[:10]:
             print(f"  {name}\t{slug}\t{team}")
-        print(f"  ... (dry-run, 未写文件)")
+        print("  ... (dry-run, 未写文件)")
         return
 
     with open(out, "w", encoding="utf-8") as fh:

@@ -1,6 +1,7 @@
 """Unit-test the parsing functions against real BR PBP descriptions."""
 from __future__ import annotations
-from br_pbp_parse import extract_player, extract_action_verb, extract_subtype, classify
+
+from br_pbp_parse import classify, extract_action_verb, extract_player, extract_subtype
 
 SAMPLES = [
     "Offensive rebound by Team",

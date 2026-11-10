@@ -16,11 +16,22 @@
     python3 scrape_historical_salaries.py [--years 1997-2005] [--teams ATL LAL ...]
 """
 from __future__ import annotations
-import argparse, json, sys, time, random, os, re, urllib.request, urllib.parse, datetime
-from bs4 import BeautifulSoup
+
+import argparse
+import datetime
+import json
+import os
+import random
+import re
+import sys
+import time
+import urllib.parse
+import urllib.request
+
 import psycopg2
-from psycopg2.extras import execute_values
 import websocket
+from bs4 import BeautifulSoup
+from psycopg2.extras import execute_values
 
 CDP = "http://127.0.0.1:9223"
 DB = dict(host="localhost", port=5433, dbname="nba", user="postgres",

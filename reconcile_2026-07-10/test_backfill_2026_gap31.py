@@ -2,7 +2,10 @@
 # QA 验收测试：_backfill_2026_gap31.py（2026 RS 缺失 31 场补录）
 # 覆盖验收 6 项：复跑计数 / 31 game_id 字段规范 / 幂等 / §6 合规 / 回归前期不被影响 /（241 清单环境发现）
 # 说明：自包含 harness（assert + 退出码），`python test_backfill_2026_gap31.py` 直接运行。
-import os, sys, re, subprocess
+import os
+import re
+import subprocess
+import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 for k in ('http_proxy', 'https_proxy', 'HTTP_PROXY', 'HTTPS_PROXY'):
@@ -12,7 +15,7 @@ import psycopg2
 from psycopg2.extras import execute_values
 
 sys.path.insert(0, HERE)
-import _backfill_2026_gap31 as gap31  # noqa: 同目录模块，仅取 _GAP31 / parse_gap
+import _backfill_2026_gap31 as gap31  # noqa: F401 - 同目录模块，仅取 _GAP31 / parse_gap
 
 DB = dict(host='localhost', port=5433, dbname='nba', user='postgres', password=os.environ.get('DB_PASSWORD'))
 SCRIPT = os.path.join(HERE, '_backfill_2026_gap31.py')

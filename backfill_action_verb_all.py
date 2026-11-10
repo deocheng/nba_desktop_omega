@@ -12,7 +12,9 @@ Two passes:
           whose event_type was NULL).
 """
 from __future__ import annotations
+
 import psycopg2
+
 from backend.core import config
 
 conn = psycopg2.connect(**config.DB_CONFIG)

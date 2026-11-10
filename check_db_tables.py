@@ -1,4 +1,5 @@
 import os
+
 os.environ['NBA_PYTHON'] = 'c:/autopick/AutoPick/nba_data/nba_desktop/nba_desktop_omega'
 from backend.core.db import batch_query
 

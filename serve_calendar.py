@@ -11,9 +11,11 @@
   .venv/bin/python serve_calendar.py 9000    # 自定义端口
 然后浏览器打开 http://localhost:8765/
 """
-import sys, os, mimetypes
+import mimetypes
+import os
+import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlparse, unquote
+from urllib.parse import unquote, urlparse
 
 VIDEO_ROOT = "/Volumes/12T/NBA"
 HERE = os.path.dirname(os.path.abspath(__file__))

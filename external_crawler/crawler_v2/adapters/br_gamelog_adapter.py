@@ -30,11 +30,11 @@ adapters/br_gamelog_adapter.py — v2 的 Basketball-Reference 球员 gamelog �
   python -m adapters.br_gamelog_adapter --season 2026 --dry-run
   python -m adapters.br_gamelog_adapter --season 2026 --cache-dir gamelog_cache --only-br-ids ids.txt
 """
+import argparse
+import json
+import logging
 import os
 import sys
-import json
-import argparse
-import logging
 from typing import Any, Dict, List, Optional, Tuple
 
 # 把迁移包根目录与 crawler/ 加入 path，以便复用旧版已验证模块（单向复用，旧版不被修改）。

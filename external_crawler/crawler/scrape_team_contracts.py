@@ -13,12 +13,12 @@ NBA Team Contracts Scraper — Basketball-Reference
   python crawler/scrape_team_contracts.py --all-seasons   # 尝试爬取历史合同
   python crawler/scrape_team_contracts.py --min-delay 20 --max-delay 30
 """
+import argparse
+import json
+import logging
 import os
 import sys
 import time
-import json
-import logging
-import argparse
 from datetime import datetime
 from pathlib import Path
 
@@ -28,7 +28,7 @@ from psycopg2.extras import execute_values
 # 添加项目根目录到 path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from br_safe_scraper import SafeBRScraper, BR_BASE, HAS_BS4
+from br_safe_scraper import BR_BASE, HAS_BS4, SafeBRScraper
 
 if HAS_BS4:
     from bs4 import BeautifulSoup
@@ -452,7 +452,7 @@ def main():
     # 完成
     elapsed = time.time() - start_time
     logger.info(f"\n{'=' * 60}")
-    logger.info(f"爬取完成！")
+    logger.info("爬取完成！")
     logger.info(f"  成功: {success} 队")
     logger.info(f"  失败: {failed} 队")
     logger.info(f"  总时间: {elapsed:.0f}s ({elapsed/60:.1f} min)")

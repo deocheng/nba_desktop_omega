@@ -2,7 +2,12 @@
 """通过 CDP (127.0.0.1:9223, 已带 cf_clearance 的 chrome_cdp_profile) 抓取网页 HTML。
 用法: cdp_fetch.py <url>
 返回页面 outerHTML。用于 BR 等被 Cloudflare 墙的站点(已手动过 CF)。"""
-import sys, json, time, websocket
+import json
+import sys
+import time
+
+import websocket
+
 sys.stdout.reconfigure(encoding="utf-8")
 
 CDP = "http://127.0.0.1:9223"
@@ -14,7 +19,8 @@ def _list_targets():
 
 def fetch_url(url, wait=4.0, timeout=30):
     # 打开新标签页(真实 URL, 非 about:blank)
-    import urllib.request, urllib.parse
+    import urllib.parse
+    import urllib.request
     req = urllib.request.Request(f"{CDP}/json/new?{urllib.parse.quote(url, safe='')}",
                                  data=b"", method="PUT")
     try:

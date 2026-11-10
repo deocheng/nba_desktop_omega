@@ -1,5 +1,7 @@
 """Build the Mac migration DATA package: nba_csv/*.csv -> nba_csv_2026-07-13.zip"""
-import os, zipfile, glob
+import glob
+import os
+import zipfile
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 CSV_DIR = os.path.join(ROOT, "nba_csv")

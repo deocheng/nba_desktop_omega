@@ -18,7 +18,7 @@ ROOT = os.path.dirname(HERE)
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from matcher import match_game, MatchResult, resolve_espn_event  # noqa: E402
+from matcher import MatchResult, match_game, resolve_espn_event  # noqa: E402
 
 
 # ---------------------------------------------------------------------------

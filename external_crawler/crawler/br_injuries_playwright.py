@@ -2,14 +2,15 @@
 BR 伤病数据爬虫 — Playwright Stealth 版本
 绕过 Cloudflare 反爬，爬取 basketball-reference.com/friv/injuries.fcgi
 """
-import time
-import re
-import random
 import logging
+import random
+import re
+import time
 from datetime import datetime
+
+import psycopg2
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
-import psycopg2
 from psycopg2.extras import execute_values
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

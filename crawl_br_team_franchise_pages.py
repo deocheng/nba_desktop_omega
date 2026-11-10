@@ -73,8 +73,11 @@ PROJECT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, PROJECT)
 
 from common.br_team_page import (  # noqa: E402
-    DB_CONFIG, CF_MARKERS, NOT_FOUND_MARKERS,
-    RATE_LIMIT_BASE_S, RATE_LIMIT_JITTER_S,
+    CF_MARKERS,
+    DB_CONFIG,
+    NOT_FOUND_MARKERS,
+    RATE_LIMIT_BASE_S,
+    RATE_LIMIT_JITTER_S,
 )
 from common.cf_breaker import CFBreaker  # noqa: E402
 

@@ -15,7 +15,7 @@ import csv
 import json
 import logging
 import os
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 import psycopg2
 from psycopg2.extras import execute_batch

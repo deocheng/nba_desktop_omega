@@ -27,10 +27,10 @@ import psycopg2
 # 项目根（本文件向上两级）加入 sys.path，使 import common.* / backend.* 可解析
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from common.player_page_cache import CACHE_ROOT, get_cached_html
-from common.player_nickname import extract_nickname
-from common.player_bio_ext import PlayerBioExtExtractor, upsert_player_bio_ext
 from backend.core import config  # noqa: E402 —— fail-safe DSN（不回退弱口令 'postgres'）
+from common.player_bio_ext import PlayerBioExtExtractor, upsert_player_bio_ext
+from common.player_nickname import extract_nickname
+from common.player_page_cache import CACHE_ROOT, get_cached_html
 
 
 def upsert_nickname(conn, player_id: str, nickname: "str | None") -> None:

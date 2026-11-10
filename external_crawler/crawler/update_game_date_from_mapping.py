@@ -3,8 +3,9 @@
 从game_id_mapping推导game_date并更新games表
 """
 
-import psycopg2
 import os
+
+import psycopg2
 from dotenv import load_dotenv
 
 load_dotenv()

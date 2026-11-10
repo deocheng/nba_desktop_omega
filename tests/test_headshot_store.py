@@ -24,6 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in __import__("sys").path:
     __import__("sys").path.insert(0, str(ROOT))
 
+from common import browser as browser_mod
 from common import headshot_store as store
 from common.headshot_store import (
     _is_valid_image,
@@ -33,7 +34,6 @@ from common.headshot_store import (
     headshot_path_for,
     magic_ext,
 )
-from common import browser as browser_mod
 
 # ── 图片字节样本 ──────────────────────────────────────────────────────────
 JPG_BYTES = b"\xff\xd8\xff" + b"JFIF fake jpeg payload\x00\x01\x02"

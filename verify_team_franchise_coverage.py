@@ -9,6 +9,7 @@ verify_team_franchise_coverage.py — 球队 franchise 页爬取覆盖验证。
 """
 import os
 import sys
+
 import psycopg2
 
 PROJECT = os.path.dirname(os.path.abspath(__file__))

@@ -12,12 +12,11 @@ import pytest
 
 from backend.services.video_library_engine import schemas, service
 from backend.services.video_library_engine.analyzer import (
+    REGISTRY,
     GameAnalyzer,
     LLMAnalyzer,
-    REGISTRY,
     StaticAnalyzer,
 )
-
 
 # ── Analyzer contract ──
 

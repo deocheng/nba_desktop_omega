@@ -4,7 +4,12 @@
 复用 build_nicknames_bz.py 的 DB 取值与 bio_line/honors_short/nick_text 逻辑，
 仅把 NOTES 换成 enriched_notes.py 的 569 条 + 7 个补全候选 + 17 条未覆盖原 94/103 条。
 """
-import os, re, html, unicodedata, json, importlib.util
+import html
+import importlib.util
+import json
+import os
+import re
+import unicodedata
 
 BASE = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
 OUT  = os.path.join(BASE, "analysis_nicknames_bz.md")
@@ -20,6 +25,7 @@ with open(os.path.join(BASE, ".env")) as f:
 DSN = f"host=localhost port=5433 dbname=nba user={cfg.get('DB_USER','postgres')} password={cfg['DB_PASSWORD']}"
 
 import psycopg2
+
 conn = psycopg2.connect(DSN)
 cur = conn.cursor()
 cur.execute("""SELECT d.player_name, d.nickname,

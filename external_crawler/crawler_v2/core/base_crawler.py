@@ -16,14 +16,14 @@ core/base_crawler.py — 爬虫基类（借鉴 MediaCrawler base/base_crawler.py
 子类只需实现 fetch/parse/normalize，store 用基类默认（PGStore）。
 """
 import abc
-import time
 import logging
-from typing import Any, List, Dict, Optional
+import time
+from typing import Any, Dict, List, Optional
 
-from .retry import retry
-from .cache import CacheFactory, AbsCache
+from .cache import AbsCache, CacheFactory
 from .proxy import ProxyProvider, StaticProxyProvider
-from .store import StoreFactory, Store
+from .retry import retry
+from .store import Store, StoreFactory
 
 log = logging.getLogger("br_crawler_v2.base")
 

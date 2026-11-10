@@ -21,6 +21,7 @@
 # 项目根：相对本文件推导（crawler_console/registry.py → 上级即项目根），
 # 迁移到外挂硬盘后无需再改硬编码绝对路径。
 import os
+
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 VENV_PY = f"{PROJECT_ROOT}/.venv/bin/python"
 LOG_DIR = "/Volumes/12T/NBA"

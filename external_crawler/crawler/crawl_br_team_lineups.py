@@ -28,16 +28,17 @@ from typing import Dict, List, Optional
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from bs4 import BeautifulSoup, Comment
-from common.season_type_norm import canon_season_type  # season_type 写入约定统一对齐 dim_games
+
 from common.br_team_page import (
     BRTeamPageCrawler,
+    _row_data_stats,
     build_arg_parser,
     dispatch_cli,
     extract_player_links,
     safe_float,
     safe_int,
-    _row_data_stats,
 )
+from common.season_type_norm import canon_season_type  # season_type 写入约定统一对齐 dim_games
 
 # 最小上场分钟阈值（默认 0 = 全存 BR 实际组合，不改变语义；可在 parse 层过滤）。
 MIN_MINUTES = 0

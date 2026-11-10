@@ -23,25 +23,26 @@ NBA Daily Crawler - Standalone Edition
 # 清除代理环境变量（必须在import之前执行）
 # ============================================================
 import os as _os
+
 for _key in ['HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY',
              'http_proxy', 'https_proxy', 'all_proxy']:
     _os.environ.pop(_key, None)
 
+import argparse
+import atexit
+import json
+import logging
+import pickle
+import random
+import re
+import socket
+import subprocess
 import sys
 import time
-import json
-import random
-import logging
-import argparse
-import subprocess
-import socket
-import re
-import pickle
-import atexit
-from datetime import datetime, date, timedelta
-from bs4 import BeautifulSoup
+from datetime import date, datetime, timedelta
 
 import psycopg2
+from bs4 import BeautifulSoup
 
 try:
     import undetected_chromedriver as uc
@@ -1141,7 +1142,7 @@ class TableCrawler:
         self.logger.info(
             f'  数据库无数据，需使用专用导入器导入 {row_count} 行')
         self.logger.info(
-            f'  提示: 请使用 combine_server.py + 浏览器方式导入完整数据')
+            '  提示: 请使用 combine_server.py + 浏览器方式导入完整数据')
         return row_count, 0, []
 
     # ---- team totals ----
@@ -1360,12 +1361,12 @@ class CrawlOrchestrator:
                         target_date or date.today())
                 if 'per_player' in rule:
                     self.logger.info(
-                        f'  需要逐球员爬取，使用 --full-season 模式')
+                        '  需要逐球员爬取，使用 --full-season 模式')
                 else:
                     self.table_crawler.crawl_season_player_stats(
                         season, table_name)
             else:
-                self.logger.info(f'  使用 --date 参数指定日期')
+                self.logger.info('  使用 --date 参数指定日期')
         else:
             self.logger.error(f'未知表名: {table_name}')
             self.logger.info(

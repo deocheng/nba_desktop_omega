@@ -32,12 +32,12 @@ br_crawler.py —— BR 综合爬虫(功能完整 / 无值守 / 2023→now 优�
   python br_crawler.py --dry-run
   nohup python br_crawler.py --loop --interval 3600 > br_crawler.out 2>&1 &
 """
+import argparse
+import logging
 import os
+import subprocess
 import sys
 import time
-import logging
-import subprocess
-import argparse
 from datetime import date
 
 BASE = os.path.dirname(os.path.abspath(__file__))

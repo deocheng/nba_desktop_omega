@@ -18,15 +18,15 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import random
 import sys
 import time
-import random
 from datetime import datetime
 from typing import Optional
 
 import psycopg2
-from psycopg2.extras import execute_batch
 from curl_cffi import requests as cffi_requests
+from psycopg2.extras import execute_batch
 
 logging.basicConfig(
     level=logging.INFO,

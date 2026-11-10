@@ -5,7 +5,16 @@
   - DB: player_gamelog(game_type='play_in') 该场各队 SUM(pts) + COUNT(*)
 输出差异报告 backups/playin_br_xcheck_20260817.csv + 汇总。
 复用单个 CDP 标签页(导航式), BR 间隔 1.5s。"""
-import sys, os, json, time, re, websocket, urllib.request, urllib.parse
+import json
+import os
+import re
+import sys
+import time
+import urllib.parse
+import urllib.request
+
+import websocket
+
 sys.stdout.reconfigure(encoding="utf-8")
 import psycopg2
 

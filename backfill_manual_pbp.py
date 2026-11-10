@@ -44,11 +44,12 @@ backfill_manual_pbp.py
 """
 from __future__ import annotations
 
+import argparse
 import os
+import shutil
 import sys
 import time
-import shutil
-import argparse
+
 import psycopg2
 from psycopg2.extras import execute_batch
 
@@ -65,12 +66,14 @@ except Exception:
 # 复用既能绕过 Cloudflare 的抓取基础设施，又不触发 br_fill_pbp 的 main()/watchdog
 # （main() 仅在 __name__ == "__main__" 时执行，import 安全）。
 import br_fill_pbp as _bf  # noqa: E402
+from br_fill_pbp import (
+    DB,
+    RateLimiter,
+    SessionGone,
+    fetch_pbp_soup,
+)
 from br_fill_pbp import (  # noqa: E402
     build_driver as _raw_build_driver,
-    fetch_pbp_soup,
-    SessionGone,
-    RateLimiter,
-    DB,
 )
 from br_pbp_parse import parse_pbp  # noqa: E402
 

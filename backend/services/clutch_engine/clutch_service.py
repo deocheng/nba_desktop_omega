@@ -7,7 +7,8 @@ identifiability flag, and rounds everything. No pandas / no per-row loops.
 from __future__ import annotations
 
 from backend.core import db
-from backend.services.clutch_engine import clutch_queries, clutch_utils as u
+from backend.services.clutch_engine import clutch_queries
+from backend.services.clutch_engine import clutch_utils as u
 
 
 def _post_process(row: dict) -> dict:

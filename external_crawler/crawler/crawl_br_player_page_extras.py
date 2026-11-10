@@ -38,11 +38,11 @@ import psycopg2
 from bs4 import BeautifulSoup, Comment
 
 from common.br_team_page import (
-    BRTeamPageCrawler,
     DB_CONFIG,
-    safe_int,
-    safe_float,
+    BRTeamPageCrawler,
     _row_data_stats,
+    safe_float,
+    safe_int,
 )
 from common.browser import ensure_cf_cleared
 from common.player_page_cache import is_valid_player_page

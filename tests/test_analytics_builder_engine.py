@@ -22,10 +22,10 @@ except Exception:
 
 needs_db = pytest.mark.skipif(not _DB_AVAILABLE, reason="needs live PostgreSQL")
 
-from backend.services.analytics_builder_engine import ab_utils as U
 from backend.services.analytics_builder_engine import ab_graph as G
-from backend.services.analytics_builder_engine import ab_validation as V
 from backend.services.analytics_builder_engine import ab_service
+from backend.services.analytics_builder_engine import ab_utils as U
+from backend.services.analytics_builder_engine import ab_validation as V
 from backend.services.analytics_builder_engine.ab_executors import (
     execute_aggregate,
     execute_filter,

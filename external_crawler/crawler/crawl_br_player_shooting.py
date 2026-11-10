@@ -36,12 +36,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 import psycopg2
 from bs4 import BeautifulSoup
 
-from common.br_player_page import BRPlayerPageCrawler, DB_CONFIG
-from common.br_team_page import safe_int, safe_float
+from common.br_player_page import DB_CONFIG, BRPlayerPageCrawler
+from common.br_team_page import safe_float, safe_int
 from common.browser import quit_driver  # 基类无 quit_driver 方法，勿用 self.quit_driver
 from common.season_priority import season_tier  # 赛季抓取优先级（2010+ > 2000s > 1980s > pre-1980）
 from common.season_type_norm import canon_season_type  # season_type 写入约定统一对齐 dim_games
-
 
 DOMAIN = "player_shooting"
 RAW_ARCHIVE = "raw_archive/br_players_shooting"

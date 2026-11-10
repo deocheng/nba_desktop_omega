@@ -37,23 +37,24 @@ IMPORTANT — BR rate limit:
 """
 from __future__ import annotations
 
-import sys
-import os
-import time
 import atexit
 import logging
+import os
+import sys
+import time
 
 # --- path setup (mirrors test_br_pbp.py which worked) ---
 CRAWLER_DIR = r'C:/autopick/AutoPick/nba_data'
 sys.path.insert(0, CRAWLER_DIR)
 os.chdir(CRAWLER_DIR)
 
-from backend.core import config  # works: script dir (omega) is on sys.path[0]
-from nba_daily_crawler import BrowserManager, CrawlLogger
-from br_pbp_parse import parse_pbp, SEASON
-from bs4 import BeautifulSoup
 import psycopg2
+from bs4 import BeautifulSoup
+from nba_daily_crawler import BrowserManager, CrawlLogger
 from psycopg2.extras import execute_batch
+
+from backend.core import config  # works: script dir (omega) is on sys.path[0]
+from br_pbp_parse import SEASON, parse_pbp
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
 logger = logging.getLogger("BRPBP")

@@ -23,6 +23,7 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from psycopg2 import connect  # noqa: E402
+
 from backend.core import config  # noqa: E402
 
 

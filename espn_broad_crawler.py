@@ -38,15 +38,16 @@ if HERE not in sys.path:
     sys.path.insert(0, HERE)
 
 import requests  # noqa: E402
-from common.bridge_constants import get_pg_conn, ARCHIVE_ROOT  # noqa: E402
+
 import raw_archiver  # noqa: E402
+from common.bridge_constants import ARCHIVE_ROOT, get_pg_conn  # noqa: E402
 
 # 复用既有脚本的端点 / 请求头 / 缩写映射（ARCH: 直接 import 复用，不重写）
 from external_crawler.crawler.espn_backfill_shot_coords import (  # noqa: E402
-    SCOREBOARD,
     HDR,
-    our_to_espn,
+    SCOREBOARD,
     espn_to_our,
+    our_to_espn,
 )
 
 SUMMARY = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event={eid}"

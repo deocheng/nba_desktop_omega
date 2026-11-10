@@ -24,6 +24,8 @@ NBA 交易模拟器（v1）核心计算引擎。严格四层隔离：
 from __future__ import annotations
 
 from backend.services.trade_engine import (
+    cba_aux,  # v8.3.2+ 补充：可独立 CLI 跑；不影响现有计算路径
+    cba_aux_db,  # v8.x DB 接入层：cba_aux 域对象从真实 DB 构造
     constants,
     db,
     match_engine,
@@ -35,14 +37,7 @@ from backend.services.trade_engine import (
     tax_engine,
     timeline,
     trade_graph,
-    cba_aux,  # v8.3.2+ 补充：可独立 CLI 跑；不影响现有计算路径
-    cba_aux_db,  # v8.x DB 接入层：cba_aux 域对象从真实 DB 构造
     trade_semantics_db,  # v8 AI 语义解析：trade_semantics 写层（§6 唯一含 SQL）
-)
-from backend.services.trade_engine.service import TradeService
-from backend.services.trade_engine.llm_provider import (  # noqa: E402,F401
-    OllamaProvider,
-    get_provider,
 )
 
 # 暴露 cba_aux 公共类（便于 `from backend.services.trade_engine import cba_aux` 使用）
@@ -53,6 +48,7 @@ from backend.services.trade_engine.cba_aux import (  # noqa: E402,F401
     Team,
     TradeSimulator,
 )
+
 # cba_aux_db 公共 load 函数（DB 接入层），不影响现有导出
 from backend.services.trade_engine.cba_aux_db import (  # noqa: E402,F401
     TradeSemantics,
@@ -64,6 +60,12 @@ from backend.services.trade_engine.cba_aux_db import (  # noqa: E402,F401
     load_trades,
     parse_trade_semantics,
 )
+from backend.services.trade_engine.llm_provider import (  # noqa: E402,F401
+    OllamaProvider,
+    get_provider,
+)
+from backend.services.trade_engine.service import TradeService
+
 # AI 语义解析写层公共函数（便于 `from backend.services.trade_engine import ...`）
 from backend.services.trade_engine.trade_semantics_db import (  # noqa: E402,F401
     delete_trade_semantics,

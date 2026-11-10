@@ -3,8 +3,9 @@
 添加games表缺失的3分球字段，然后从PBP重新计算投篮命中率
 """
 
-import psycopg2
 import os
+
+import psycopg2
 from dotenv import load_dotenv
 
 load_dotenv()

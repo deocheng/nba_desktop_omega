@@ -32,7 +32,7 @@ from __future__ import annotations
 import logging
 import os
 import time
-from datetime import datetime, date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 

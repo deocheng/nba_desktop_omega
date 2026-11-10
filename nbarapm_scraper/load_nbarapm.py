@@ -9,10 +9,10 @@ to the project's canonical BR slug key where possible.
 Usage:
   python load_nbarapm.py [--jsonl nbarapm_rapm.jsonl]
 """
+import argparse
+import json
 import os
 import sys
-import json
-import argparse
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)

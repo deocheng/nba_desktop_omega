@@ -19,7 +19,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import psycopg2  # noqa: E402
 
 from external_crawler.crawler.crawl_br_player_shot_chart import (  # noqa: E402
-    PlayerShotChartCrawler, parse_shot_chart_html, DB_CONFIG,
+    DB_CONFIG,
+    PlayerShotChartCrawler,
+    parse_shot_chart_html,
 )
 
 logging.basicConfig(level=logging.INFO,

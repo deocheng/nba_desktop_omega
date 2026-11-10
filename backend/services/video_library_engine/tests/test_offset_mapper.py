@@ -10,7 +10,6 @@ import pytest
 from backend.services.video_library_engine import offset_mapper
 from backend.services.video_library_engine.schemas import EventTimeMark
 
-
 # ── period_length ──
 
 class TestPeriodLength:

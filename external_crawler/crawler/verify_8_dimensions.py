@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """verify_8_dimensions.py — 校验 8 张核心数据表覆盖，标缺口季。只读。"""
-import re, psycopg2
+import re
+
+import psycopg2
+
 PROJECT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
 pw = None
 for line in open(f"{PROJECT}/.env"):

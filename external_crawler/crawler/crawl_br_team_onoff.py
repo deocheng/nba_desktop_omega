@@ -31,16 +31,17 @@ from typing import Dict, List, Optional
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from bs4 import BeautifulSoup
-from common.season_type_norm import canon_season_type  # season_type 写入约定统一对齐 dim_games
+
 from common.br_team_page import (
     BRTeamPageCrawler,
+    _row_data_stats,
     build_arg_parser,
     dispatch_cli,
     extract_player_links,
     safe_float,
     safe_int,
-    _row_data_stats,
 )
+from common.season_type_norm import canon_season_type  # season_type 写入约定统一对齐 dim_games
 
 # BR on/off 表真实列（三组，每组 11 列）→ DDL 数值列，顺序与 DDL 列顺序一致，
 # 供 ``build_rows`` 注入。无幻影列、无漏列。

@@ -25,7 +25,6 @@ from backend.services.metric_engine.matrix_builder import build_matrix, coerce_n
 from backend.services.metric_engine.rank import rank_players, to_dataframe
 from backend.services.metric_engine.registry import MetricRegistry, MetricSpec, get_registry
 
-
 # ── TestRegistry ──
 
 class TestRegistry:

@@ -22,7 +22,7 @@ import psycopg2
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, JSONResponse
 
-from .registry import CRAWLERS, CDP_ENV, DB, LOG_DIR, PROJECT_ROOT, VENV_PY, WATCHER
+from .registry import CDP_ENV, CRAWLERS, DB, LOG_DIR, PROJECT_ROOT, VENV_PY, WATCHER
 
 app = FastAPI(title="NBA 爬虫控制台")
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")

@@ -45,8 +45,8 @@ def load_db_config():
     )
 
 
-from crawl_br_player_shot_chart import parse_shot_chart_html  # noqa: E402
 import psycopg2  # noqa: E402
+from crawl_br_player_shot_chart import parse_shot_chart_html  # noqa: E402
 
 
 def db_has(conn, slug, season):

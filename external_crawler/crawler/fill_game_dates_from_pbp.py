@@ -5,9 +5,10 @@
 PBP数据中包含时间戳，可以提取比赛日期
 """
 
-import psycopg2
-from datetime import datetime
 import logging
+from datetime import datetime
+
+import psycopg2
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("FillGameDate")

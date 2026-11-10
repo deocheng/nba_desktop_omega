@@ -9,10 +9,16 @@
  3) 归一 playin_game_dates 主客队缩写为 NBA 三位码(CHO->CHA, BRK->BKN) 保持一致
 team 缩写 BR->NBA: CHO=CHA, BRK=BKN; 其余相同。
 """
-import sys, os, re, time, json
+import json
+import os
+import re
+import sys
+import time
+
 sys.stdout.reconfigure(encoding="utf-8")
 import psycopg2
 from psycopg2.extras import execute_batch
+
 sys.path.insert(0, os.path.dirname(__file__))
 from xcheck_playin_br import CDPClient
 
@@ -118,7 +124,7 @@ def main():
         cur.execute(f"UPDATE playin_game_dates SET away_team_abbr='{nba}' WHERE away_team_abbr='{br}'")
     conn.commit()
     print(f"\nDELETE 旧 {bak_n} 行, INSERT 新 {len(all_rows)} 行; OK={ok} FAIL={fail}")
-    print(f"playin_game_dates 缩写已归一(CHO->CHA, BRK->BKN)")
+    print("playin_game_dates 缩写已归一(CHO->CHA, BRK->BKN)")
     conn.close()
 
 if __name__ == "__main__":

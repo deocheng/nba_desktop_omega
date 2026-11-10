@@ -1,4 +1,5 @@
-import os, zipfile
+import os
+import zipfile
 
 ROOT = r"C:\autopick\AutoPick\nba_data\nba_desktop\nba_desktop_omega"
 OUT = os.path.join(ROOT, "nba_desktop_omega_mac_migrate_2026-07-13.zip")

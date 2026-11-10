@@ -69,6 +69,7 @@ class CFChallengeError(Exception):
 # 无需每个爬虫各写一遍。默认 max_cooldowns=0 = 无限自恢复。
 # ---------------------------------------------------------------------------
 import os as _os  # 模块级，供下方 _BREAKER 读取 CF_* 环境变量
+
 from .cf_breaker import CFBreaker  # noqa: E402  (同包, 仅依赖标准库)
 
 _BREAKER = CFBreaker(
@@ -691,6 +692,7 @@ def _cdp_call_browser(method: str, params=None, timeout=30):
     """Send one CDP command to the *browser* endpoint, return its result."""
     import asyncio
     import json as _json
+
     import websockets
     ver = _cdp_http_get("/json/version")
     bws = _cdp_ws_url(ver["webSocketDebuggerUrl"])
@@ -762,6 +764,7 @@ class _RawCDPDriver:
     def _send(target_ws: str, method: str, params=None, timeout=60):
         import asyncio
         import json as _json
+
         import websockets
 
         async def go():
@@ -1183,6 +1186,7 @@ atexit.register(quit_driver)
 # fetch.py 用 `from common.browser import get_driver, reset_driver, warmup_once`
 # 在 import 时即拿到最终绑定值，因此零改动即可切换后端。
 import os as _os
+
 _BACKEND = _os.environ.get("BROWSER_BACKEND", "playwright").lower()
 if _BACKEND == "uc":
     from common import browser_uc

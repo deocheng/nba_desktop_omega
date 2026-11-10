@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import os, unicodedata
+import os
+import unicodedata
+
 BASE = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
 cfg = {}
 with open(os.path.join(BASE, ".env")) as f:
@@ -11,6 +13,7 @@ with open(os.path.join(BASE, ".env")) as f:
             cfg[k.strip()] = v.strip().strip('"').strip("'")
 DSN = f"host=localhost port=5433 dbname=nba user={cfg.get('DB_USER','postgres')} password={cfg['DB_PASSWORD']}"
 import psycopg2
+
 conn = psycopg2.connect(DSN)
 cur = conn.cursor()
 cur.execute("""SELECT d.player_name, b.career_honors_text

@@ -1,6 +1,7 @@
 """Bob diagnostic part 4 — A1 precision + player_id_orig diff."""
 from backend.core.db import batch_query
 
+
 def section(t):
     print("\n" + "=" * 70); print(t); print("=" * 70)
 def show(rows, n=12):

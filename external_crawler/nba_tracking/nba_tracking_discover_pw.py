@@ -11,7 +11,10 @@ RISK: exactly ONE page load (same as a human opening the page once).
 """
 from __future__ import annotations
 
-import os, sys, json, time
+import json
+import os
+import sys
+import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 RAW = os.path.join(HERE, "probe_raw")

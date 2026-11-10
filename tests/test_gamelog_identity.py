@@ -45,9 +45,9 @@ def _load_module():
     """
     try:
         from external_crawler.crawler.crawl_br_gamelog import (
+            build_insert,
             parse_gamelog_html,
             scrape_gamelog,
-            build_insert,
         )
         return SimpleNamespace(
             parse_gamelog_html=parse_gamelog_html,

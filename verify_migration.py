@@ -1,5 +1,6 @@
 """Independent QA verification of migration #46. READ-ONLY. SELECT only."""
 import psycopg2
+
 from backend.core.config import db_dsn
 
 DSN = db_dsn()

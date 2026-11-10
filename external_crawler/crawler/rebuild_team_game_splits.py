@@ -3,8 +3,9 @@
 重新聚合team_game_splits表（减少NULL值）
 """
 
-import psycopg2
 import os
+
+import psycopg2
 from dotenv import load_dotenv
 
 load_dotenv()

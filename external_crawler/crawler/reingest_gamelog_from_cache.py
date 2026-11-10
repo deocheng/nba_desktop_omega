@@ -28,10 +28,11 @@ Standalone (stdlib + psycopg2 only) to avoid importing the crawler's heavy
 Usage:
   python reingest_gamelog_from_cache.py [--dry-run] [--seasons 1980 1981 ...]
 """
+import argparse
 import json
 import os
 import sys
-import argparse
+
 import psycopg2
 
 ROOT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"

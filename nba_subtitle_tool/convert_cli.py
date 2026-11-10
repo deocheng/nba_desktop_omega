@@ -16,8 +16,8 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
-from src.pipeline import load_config
 from src import convert as _convert
+from src.pipeline import load_config
 
 
 def main():

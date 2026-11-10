@@ -52,8 +52,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-import transactions_crawl.fetch as tx_fetch  # noqa: E402
 import hof_exec.fetch as hof_fetch  # noqa: E402
+import transactions_crawl.fetch as tx_fetch  # noqa: E402
 
 
 # ---------------------------------------------------------------------------

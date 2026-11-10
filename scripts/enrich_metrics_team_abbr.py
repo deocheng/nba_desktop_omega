@@ -36,11 +36,11 @@ USAGE
     .venv/bin/python scripts/enrich_metrics_team_abbr.py --date 2026-08-29
     .venv/bin/python scripts/enrich_metrics_team_abbr.py --date 2026-08-29 --dry-run
 """
+import argparse
 import io
+import json
 import os
 import sys
-import json
-import argparse
 from pathlib import Path
 
 for _v in ("http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY",
@@ -49,8 +49,11 @@ for _v in ("http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY",
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
-from daily_metrics_snapshot import (           # noqa: E402
-    BR_TO_MODERN_ABBR, MULTI_TEAM_CODES, connect, load_env,
+from daily_metrics_snapshot import (  # noqa: E402
+    BR_TO_MODERN_ABBR,
+    MULTI_TEAM_CODES,
+    connect,
+    load_env,
 )
 
 ROLLBACK_DIR = ROOT / "scripts" / "rollback"

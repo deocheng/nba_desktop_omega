@@ -316,8 +316,9 @@ def _db_conn_or_skip():
     from backend.core.db import is_port_open, ping
     if not (is_port_open() and ping()):
         pytest.skip("PostgreSQL not available — set DB_PORT and start service")
-    from backend.core import config
     import psycopg2
+
+    from backend.core import config
     return psycopg2.connect(config.db_dsn())
 
 

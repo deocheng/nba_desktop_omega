@@ -17,7 +17,6 @@ from backend.core import config
 from backend.core.db import validate_batch_sql
 from backend.core.logging import new_query_id, query_id_var, setup_logging
 
-
 # ── §4 Phase 0: config management ──
 
 class TestConfig:

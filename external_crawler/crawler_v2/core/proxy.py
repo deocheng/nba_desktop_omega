@@ -8,8 +8,8 @@ v2 关键改进：把旧 cf_breaker 的 "cf_clearance 绑定 IP ~30-60min 过期
 只要新增一个 Provider 子类，爬取逻辑一行不动。
 """
 import abc
-import time
 import logging
+import time
 from typing import List, Optional
 
 log = logging.getLogger("br_crawler_v2.proxy")

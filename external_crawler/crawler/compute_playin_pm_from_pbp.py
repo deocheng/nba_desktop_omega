@@ -17,19 +17,23 @@
 输出：对比 box 页全场值（同意率）+ 可选落库（--write 覆盖 player_playin_plus_minus
 的 q 列与 plus_minus_total，以 PBP 重建为权威；off/net 保留 pm 页值）。
 """
-import sys, os, re, argparse, logging
+import argparse
+import logging
+import os
+import re
+import sys
 from pathlib import Path
+
 sys.path.insert(0, "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13")
 sys.path.insert(0, "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/external_crawler/crawler")
-from bs4 import BeautifulSoup
 import psycopg2
+from bs4 import BeautifulSoup
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s",
                     datefmt="%H:%M:%S")
 log = logging.getLogger("pm_pbp")
 
-from scrape_playin_all4 import (db_conn, load_games, cached_fetch, parse_box_pm,
-                                BR_ABBR, NBA_ABBR)
+from scrape_playin_all4 import BR_ABBR, NBA_ABBR, cached_fetch, db_conn, load_games, parse_box_pm
 
 SUB_RE = re.compile(r"enters the game for", re.I)
 SCORE_RE = re.compile(r"(\d+)\s*-\s*(\d+)")

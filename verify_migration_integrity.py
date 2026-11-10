@@ -26,11 +26,11 @@ from viz.theme import compat_vars
 # 本文件不抄写色值，改内核一处、本报告同步跟随。
 VIZ_VARS = compat_vars("dark")
 
+import datetime
+import html
 import os
 import re
 import sys
-import html
-import datetime
 
 import psycopg2
 

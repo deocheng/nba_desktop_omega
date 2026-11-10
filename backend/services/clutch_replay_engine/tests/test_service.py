@@ -3,9 +3,9 @@ from __future__ import annotations
 
 import pytest
 
+from backend.services.clutch_engine import clutch_service
 from backend.services.clutch_replay_engine import schemas
 from backend.services.clutch_replay_engine import service as svc_mod
-from backend.services.clutch_engine import clutch_service
 from backend.services.tactics_engine import service as tactics_service
 
 

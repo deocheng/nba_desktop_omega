@@ -13,7 +13,11 @@
 安全：执行前先整表快照到 player_salaries_historical_bak_<日期>_preattr，可回滚。
 """
 from __future__ import annotations
-import psycopg2, datetime, sys
+
+import datetime
+import sys
+
+import psycopg2
 
 DB = dict(host="127.0.0.1", port=5433, dbname="nba", user="postgres",
           password="R!h0N-ctlg=xB01V_-1VJcFeCCuBjS6UCvV1")

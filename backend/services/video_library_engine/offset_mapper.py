@@ -21,7 +21,6 @@ from typing import List
 from backend.services.clutch_replay_engine.mapper import first_frame_for_event_index
 from backend.services.video_library_engine import schemas
 
-
 # ───────────────────────── Core mapping functions ─────────────────────────
 
 def period_length(p: int) -> int:

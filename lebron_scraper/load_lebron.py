@@ -8,10 +8,11 @@ are kept with br_player_id = NULL (nba_id is the stable key).
 
 Idempotent: INSERT ... ON CONFLICT (nba_id, season) DO UPDATE.
 """
+import argparse
+import json
 import os
 import sys
-import json
-import argparse
+
 import psycopg2
 
 

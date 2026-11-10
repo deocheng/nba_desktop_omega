@@ -12,6 +12,7 @@
 import os
 import sys
 
+
 def main() -> None:
     if len(sys.argv) < 3:
         sys.exit("usage: detach_launch.py <logfile> <cmd> [args...]")

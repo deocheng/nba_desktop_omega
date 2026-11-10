@@ -11,8 +11,8 @@ core/retry.py — 借鉴 MediaCrawler 对 tenacity 的使用，但用纯 stdlib 
 但零依赖、可审计。
 """
 import functools
-import time
 import logging
+import time
 
 log = logging.getLogger("br_crawler_v2.retry")
 

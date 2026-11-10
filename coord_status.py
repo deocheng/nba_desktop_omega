@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 import os
+
 """坐标覆盖现状 + 实时爬虫冒烟测试"""
-import sys, time
+import sys
+import time
+
 sys.path.insert(0, "external_crawler/crawler")
 from curl_cffi import requests as cffi_requests
 
 DB = dict(host="localhost", port=5433, dbname="nba", user="postgres", password=os.environ.get("DB_PASSWORD"))
 import psycopg2
+
 conn = psycopg2.connect(**DB)
 cur = conn.cursor()
 

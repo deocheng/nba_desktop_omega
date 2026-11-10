@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Probe: fetch a 2023 Play-In BR boxscore and inspect parse-ability."""
-import sys, time, random
+import random
+import sys
+import time
+
 sys.stdout.reconfigure(encoding="utf-8")
-from curl_cffi import requests
 from bs4 import BeautifulSoup
+from curl_cffi import requests
 
 URL = "https://www.basketball-reference.com/boxscores/202304110MIA.html"
 HEADERS = {

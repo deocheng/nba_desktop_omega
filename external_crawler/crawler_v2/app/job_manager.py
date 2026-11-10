@@ -16,13 +16,13 @@ job_manager.py — BR 爬虫套装独立 App 的任务调度 + 工作日志。
   season  赛季全量爬取（daemon.runner，自带 STATE 续爬）
   resume  根据 worklog 续爬（重派未成功 job）
 """
-import os
-import sys
 import json
-import time
+import os
 import signal
-import threading
 import subprocess
+import sys
+import threading
+import time
 from pathlib import Path
 from typing import Dict, List, Optional
 

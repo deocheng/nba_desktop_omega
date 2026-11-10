@@ -37,6 +37,7 @@ import sys
 
 import psycopg2
 
+
 # 与项目其他脚本一致的 DB 连接参数（密码从环境变量读取，避免硬编码）。
 # ── DB 口令：只从环境变量 / 项目根 .env 取，脚本内不落明文 ──────────
 def _load_dotenv() -> None:

@@ -1,6 +1,7 @@
 import os
-from dotenv import load_dotenv
+
 import psycopg2
+from dotenv import load_dotenv
 
 ENV_PATH = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/.env"
 load_dotenv(ENV_PATH)

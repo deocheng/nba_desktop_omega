@@ -7,8 +7,9 @@ Then match to BR player_id via name matching.
 Source: CSV/1947/csv/draft_combine_stats.csv (1202 records, 2001-2023)
 """
 import csv
-import re
 import logging
+import re
+
 import psycopg2
 from psycopg2.extras import execute_batch
 

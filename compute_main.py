@@ -1,6 +1,8 @@
-import os, json
-from dotenv import load_dotenv
+import json
+import os
+
 import psycopg2
+from dotenv import load_dotenv
 
 ENV_PATH = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/.env"
 load_dotenv(ENV_PATH)
@@ -89,6 +91,7 @@ for e in eras:
 
 print("\nUnclassified positions (count):", len(unclassified))
 from collections import Counter
+
 uc = Counter(p for (_,_,_,p) in unclassified)
 for k,v in uc.most_common():
     print("   ", repr(k), v)

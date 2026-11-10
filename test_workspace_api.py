@@ -1,5 +1,6 @@
-import requests
 import time
+
+import requests
 
 endpoints = [
     'http://127.0.0.1:5577/api/workspaces',

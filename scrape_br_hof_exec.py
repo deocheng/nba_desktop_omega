@@ -6,7 +6,12 @@ tables). UC Chrome executes the JS so the page fully renders, then we
 parse every <table> from BOTH the main doc and the comment blocks.
 Outputs raw HTML + per-table CSV + a combined JSON under det2026_br/.
 """
-import os, re, sys, time, json
+import json
+import os
+import re
+import sys
+import time
+
 import undetected_chromedriver as uc
 from bs4 import BeautifulSoup, Comment
 

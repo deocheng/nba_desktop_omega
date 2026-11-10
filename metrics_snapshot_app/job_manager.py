@@ -12,12 +12,12 @@ Design rules inherited from the crawler-control-panel pattern:
     single job can be stopped on its own.
 """
 import io
-import os
 import json
-import time
+import os
 import signal
-import threading
 import subprocess
+import threading
+import time
 from datetime import datetime
 from pathlib import Path
 

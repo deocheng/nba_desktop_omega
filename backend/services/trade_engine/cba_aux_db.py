@@ -36,15 +36,14 @@ import time
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
-from backend.services.trade_engine import cba_aux, constants, db
-from backend.services.trade_engine.llm_provider import get_provider
-from backend.services.trade_engine import trade_semantics_db
+from backend.services.trade_engine import cba_aux, constants, db, trade_semantics_db
 from backend.services.trade_engine.cba_aux import (
     LeagueSimulator,
     Player,
     SalaryCapRules,
     Team,
 )
+from backend.services.trade_engine.llm_provider import get_provider
 
 DEFAULT_SEASON = "2025-26"
 

@@ -4,8 +4,11 @@ but description is present. Idempotent — only touches rows still NULL.
 Run after backfill_action_verb_all.py Pass1 (or standalone re-run; safe).
 """
 from __future__ import annotations
+
 import sys
+
 import psycopg2
+
 from backend.core import config
 
 SQL_PASS2 = """

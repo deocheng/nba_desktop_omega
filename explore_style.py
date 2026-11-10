@@ -1,4 +1,7 @@
-import psycopg2, os, sys
+import os
+import sys
+
+import psycopg2
 from dotenv import dotenv_values
 
 env = dotenv_values("/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/.env")

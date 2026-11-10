@@ -14,10 +14,10 @@ but retain nba_id so they remain joinable later.
 
 Idempotent upsert keyed on (nba_id, snapshot_date).
 """
+import argparse
+import json
 import os
 import sys
-import json
-import argparse
 from datetime import date
 
 HERE = os.path.dirname(os.path.abspath(__file__))

@@ -12,11 +12,11 @@ from __future__ import annotations
 import pytest
 
 from backend.services.intelligence_engine import (
-    ROLE_TYPES,
     DNA_DIMENSIONS,
+    ROLE_TYPES,
     classify_role,
-    compute_dna,
     compute_availability,
+    compute_dna,
     load_player_intel,
     scoring_profile,
 )

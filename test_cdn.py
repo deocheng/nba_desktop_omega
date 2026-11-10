@@ -2,7 +2,10 @@
 Tests both with default env (proxy if set) and with proxy explicitly unset.
 """
 from __future__ import annotations
-import os, json, sys
+
+import json
+import os
+import sys
 import urllib.request
 
 DATE = sys.argv[1] if len(sys.argv) > 1 else "20251022"

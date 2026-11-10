@@ -19,10 +19,11 @@ dim_games.nba_api_id 为权威键）。本脚本做**覆盖度可见化**：
   python fusion_report.py --season 2026
   python fusion_report.py --json
 """
+import argparse
+import json
 import os
 import sys
-import json
-import argparse
+
 import psycopg2
 
 HERE = os.path.dirname(os.path.abspath(__file__))

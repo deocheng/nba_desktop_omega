@@ -15,20 +15,17 @@ BR (Basketball-Reference) 每日自动化爬取包装脚本
   每周一 10:30: br_daily.py --mode payroll
 """
 
-import sys
-import os
-import time
 import argparse
 import logging
+import os
+import sys
+import time
 from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from injuries_payroll_scraper import (
-    LightScraper, init_db, scrape_injuries, scrape_all_payroll,
-    DB_CONFIG, TEAM_ABBRS
-)
 import psycopg2
+from injuries_payroll_scraper import DB_CONFIG, TEAM_ABBRS, LightScraper, init_db, scrape_all_payroll, scrape_injuries
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("br_daily")

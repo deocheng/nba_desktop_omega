@@ -6,10 +6,10 @@ NO pandas, NO computation — only request shaping + metric_engine calls.
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse
-from pathlib import Path
 from pydantic import BaseModel
 
 from backend.api.schemas import (
@@ -24,6 +24,12 @@ from backend.api.schemas import (
     SeasonCoverage,
     ShootingProfileResponse,
 )
+from backend.data_layer.entity_loader import (
+    load_player_games_aggregated,
+    load_player_seasons,
+    season_label,
+)
+from backend.services.growth_report import build_growth_report
 from backend.services.metric_engine import (
     get_available_seasons,
     get_player_bios,
@@ -32,13 +38,7 @@ from backend.services.metric_engine import (
     player_metrics_dict,
     search_players_by_name,
 )
-from backend.services.growth_report import build_growth_report
 from backend.services.player_profile import get_career_defense, get_shooting_profile
-from backend.data_layer.entity_loader import (
-    load_player_games_aggregated,
-    load_player_seasons,
-    season_label,
-)
 
 router = APIRouter(prefix="/players", tags=["players"])
 

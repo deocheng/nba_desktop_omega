@@ -16,8 +16,8 @@ v8 §2 compliance:
 """
 from __future__ import annotations
 
-from backend.services.context_engine.similar_players import find_similar_players
 from backend.services.context_engine.role_evolution import player_role_evolution
+from backend.services.context_engine.similar_players import find_similar_players
 from backend.services.context_engine.trend_analysis import player_trend
 
 __all__ = [

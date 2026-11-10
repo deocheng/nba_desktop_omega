@@ -12,8 +12,14 @@
   4) 打印每季 before/after 与剩余样例，供逐行核对（L3 显式映射另行处理）。
 """
 from __future__ import annotations
-import psycopg2, datetime, re, sys, unicodedata
+
+import datetime
+import re
+import sys
+import unicodedata
 from difflib import SequenceMatcher
+
+import psycopg2
 
 DB = dict(host="127.0.0.1", port=5433, dbname="nba", user="postgres",
           password="R!h0N-ctlg=xB01V_-1VJcFeCCuBjS6UCvV1")

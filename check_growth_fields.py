@@ -1,5 +1,5 @@
-import subprocess
 import json
+import subprocess
 
 result = subprocess.run(
     ['powershell', '-Command', '(Invoke-WebRequest -Uri "http://127.0.0.1:5577/players/jamesle01/growth" -UseBasicParsing).Content'],

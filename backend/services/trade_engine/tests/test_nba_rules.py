@@ -6,7 +6,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from backend.services.trade_engine import nba_rules, rules as rules_mod, schemas
+from backend.services.trade_engine import nba_rules, schemas
+from backend.services.trade_engine import rules as rules_mod
 from backend.services.trade_engine.tests.conftest import (
     SECOND_APRON,
     make_asset,

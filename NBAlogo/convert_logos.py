@@ -1,6 +1,7 @@
 """Convert NBA team SVG logos to PNG for Ardot upload."""
-import cairosvg
 import os
+
+import cairosvg
 
 SIZE = 200  # output PNG size (square)
 SRC_DIR = r"C:\autopick\AutoPick\nba_data\NBAlogo"

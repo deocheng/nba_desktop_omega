@@ -20,13 +20,13 @@ daemon/runner.py — v2 主入口/编排器，忠实还原 recrawl_2004_2026_aut
 
 本文件只在 crawler_v2/daemon/ 新建，绝不改动旧 crawler/ 脚本与 nba_daily_crawler.py。
 """
+import argparse
+import logging
 import os
 import re
+import subprocess
 import sys
 import time
-import argparse
-import subprocess
-import logging
 from pathlib import Path
 
 # ---- 路径（从本文件推导，避免硬编码 ROOT）----
@@ -36,7 +36,7 @@ ROOT = CRAWLER_V2.parents[1]                      # nba_desktop_omega_mac_migrat
 CRAWLER = CRAWLER_V2.parent                       # external_crawler
 LOGDIR = ROOT / "logs"
 sys.path.insert(0, str(CRAWLER_V2))
-from core.config import get_db_config, get_cdp_url, clear_outbound_proxy  # noqa: E402
+from core.config import clear_outbound_proxy, get_cdp_url, get_db_config  # noqa: E402
 
 LOGDIR.mkdir(exist_ok=True)
 

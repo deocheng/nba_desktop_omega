@@ -34,8 +34,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from hof_exec.config import get_conn  # real connection factory
 import transactions_crawl.load as load_mod
+from hof_exec.config import get_conn  # real connection factory
 from transactions_crawl.parse import TxnEntry
 
 TEST_SCHEMA = "qa_txn_seqtest"
@@ -134,8 +134,8 @@ def _seed_old_row_and_desync(high_id: int = 26242, seq_at: int = 14) -> None:
         with conn.cursor() as cur:
             cur.execute(f"SET search_path TO {TEST_SCHEMA}, pg_catalog")
             cur.execute(
-                f"INSERT INTO transactions (id, transaction_date, team_abbr, "
-                f"transaction_type, description, source) VALUES (%s, %s, %s, %s, %s, %s)",
+                "INSERT INTO transactions (id, transaction_date, team_abbr, "
+                "transaction_type, description, source) VALUES (%s, %s, %s, %s, %s, %s)",
                 (
                     high_id,
                     "2025-07-07",
@@ -146,8 +146,8 @@ def _seed_old_row_and_desync(high_id: int = 26242, seq_at: int = 14) -> None:
                 ),
             )
             cur.execute(
-                f"INSERT INTO transactions (id, transaction_date, team_abbr, "
-                f"transaction_type, description, source) VALUES (%s, %s, %s, %s, %s, %s)",
+                "INSERT INTO transactions (id, transaction_date, team_abbr, "
+                "transaction_type, description, source) VALUES (%s, %s, %s, %s, %s, %s)",
                 (
                     seq_at + 1,  # 15 — the id the desynced sequence will emit
                     "2025-07-06",
@@ -158,7 +158,7 @@ def _seed_old_row_and_desync(high_id: int = 26242, seq_at: int = 14) -> None:
                 ),
             )
             # The historical desync: sequence last_value << max(id).
-            cur.execute(f"SELECT setval('transactions_id_seq', %s, true)", (seq_at,))
+            cur.execute("SELECT setval('transactions_id_seq', %s, true)", (seq_at,))
         conn.commit()
     finally:
         conn.close()
@@ -243,8 +243,8 @@ def test_twin_repair_still_works(isolated_txn_schema):
         with conn.cursor() as cur:
             cur.execute(f"SET search_path TO {TEST_SCHEMA}, pg_catalog")
             cur.execute(
-                f"INSERT INTO transactions (transaction_date, team_abbr, "
-                f"transaction_type, description, source) VALUES (%s, %s, %s, %s, %s)",
+                "INSERT INTO transactions (transaction_date, team_abbr, "
+                "transaction_type, description, source) VALUES (%s, %s, %s, %s, %s)",
                 (
                     "2025-07-11",
                     "DET",
@@ -253,7 +253,7 @@ def test_twin_repair_still_works(isolated_txn_schema):
                     "basketball-reference",
                 ),
             )
-            cur.execute(f"SELECT setval('transactions_id_seq', 1, true)")
+            cur.execute("SELECT setval('transactions_id_seq', 1, true)")
         conn.commit()
     finally:
         conn.close()

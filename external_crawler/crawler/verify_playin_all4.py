@@ -13,9 +13,12 @@
        29 行名字变体行旧值已核实一致）。
 输出: 逐场表 + 汇总（任何 FAIL 即 rc=1）。
 """
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13")
 import psycopg2
+
 
 def conn():
     pw = ""

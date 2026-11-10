@@ -32,18 +32,18 @@ import tempfile
 from typing import Any, Dict, List
 
 from fiba_api import (
+    FIBAError,
+    get_competition_id_from_stats_url,
+    get_competition_players_game_highs,
+    get_competition_teams_game_highs,
     get_game,
     get_game_boxscore,
     get_game_live_detail,
+    get_rounds,
+    parse_boxscore_from_live,
+    parse_game_id,
     parse_play_by_play,
     parse_shot_chart,
-    parse_boxscore_from_live,
-    get_competition_players_game_highs,
-    get_competition_teams_game_highs,
-    get_rounds,
-    get_competition_id_from_stats_url,
-    parse_game_id,
-    FIBAError,
 )
 
 HERE = os.path.dirname(os.path.abspath(__file__))

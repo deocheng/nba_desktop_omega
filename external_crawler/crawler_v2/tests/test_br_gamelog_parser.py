@@ -11,9 +11,10 @@ fixture 来源（只读拷贝）：tests/fixtures/gamelog_*.html
 运行：
   cd external_crawler/crawler_v2 && python -m pytest tests/test_br_gamelog_parser.py -q
 """
+import glob
 import os
 import sys
-import glob
+
 import pytest
 
 ROOT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"

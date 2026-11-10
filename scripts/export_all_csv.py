@@ -5,11 +5,15 @@
 - Partition children are skipped (parent SELECT covers them).
 - Uses server-side COPY TO STDOUT streaming (no temp memory blowup).
 """
-import sys, os, time, csv
+import csv
+import os
+import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, ".")
 from dotenv import load_dotenv
+
 load_dotenv()
 import psycopg2
 

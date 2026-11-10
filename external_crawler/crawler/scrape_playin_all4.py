@@ -24,15 +24,25 @@ BR 缩写归一化（URL/BR 侧）：PHX→PHO、CHA→CHO、BKN→BRK。
   .venv/bin/python external_crawler/crawler/scrape_playin_all4.py                    # 全量落库
   ... --only pbp|shots|pm   # 只跑某一产品
 """
-import sys, os, re, json, time, csv, urllib.request, urllib.parse, argparse, logging
+import argparse
+import csv
+import json
+import logging
+import os
+import re
+import sys
+import time
+import urllib.parse
+import urllib.request
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
 sys.path.insert(0, "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13")
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from bs4 import BeautifulSoup
 import psycopg2
+from bs4 import BeautifulSoup
+
 import br_pbp_parse
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s",
@@ -248,6 +258,7 @@ def parse_plus_minus(html, game):
 # th[data-append-csv] = BR slug。经 202105190LAL / 202304120TOR 双案仲裁：
 # box 页与另一来源恒一致，pm 页 On 与旧 CDN 值各有离群 → box 为准。
 import re as _re
+
 BOX_TID = _re.compile(r"^box-([A-Z]{3})-(game|q(\d+)|ot(\d+))-basic$")
 
 def parse_box_pm(html, game):

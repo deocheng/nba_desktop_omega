@@ -33,13 +33,13 @@ non-blocking, fully autonomous)
   * Resumable: a player already in the JSONL (or whose raw cache exists when
     --use-cache) is skipped on restart, so the crawl can be killed/ resumed.
 """
+import argparse
+import json
 import os
 import sys
-import json
 import time
-import argparse
-import urllib.request
 import urllib.error
+import urllib.request
 from datetime import date
 
 BASE = "https://www.nbarapm.com"

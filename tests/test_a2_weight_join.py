@@ -4,13 +4,13 @@ from __future__ import annotations
 import pytest
 from psycopg2 import sql as psql
 
+from backend.data_layer import batch_loader
 from backend.data_layer.joins import (
     join_player_weight,
     load_player_gamelog_with_game_context,
     load_player_season_stats_with_bio,
     select_weight_cols,
 )
-from backend.data_layer import batch_loader
 
 
 def test_join_player_weight_rejects_unknown_key():
@@ -27,6 +27,7 @@ def test_join_player_weight_returns_composed_with_dim_players(db_available):
     from tests.conftest import skip_without_db
     skip_without_db(db_available)
     import psycopg2
+
     from backend.core import config
 
     frag = join_player_weight("player_id")
@@ -44,6 +45,7 @@ def test_select_weight_cols_aliased(db_available):
     from tests.conftest import skip_without_db
     skip_without_db(db_available)
     import psycopg2
+
     from backend.core import config
 
     frag = select_weight_cols("p_w")

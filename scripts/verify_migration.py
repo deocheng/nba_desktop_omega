@@ -77,7 +77,7 @@ def main() -> None:
 
         overall = _dist(cur, "", ())
         overall_dup = _dup_groups(cur, "", ())
-        print(f"\nALL SEASONS")
+        print("\nALL SEASONS")
         print(f"  total rows      : {overall['total']}")
         print(f"  BR-format id    : {overall['br_format']}")
         print(f"  numeric id      : {overall['numeric']}")

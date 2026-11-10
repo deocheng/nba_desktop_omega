@@ -2,7 +2,10 @@
 - meta_data_verification：每张表/数据集一行，status 盖 VERIFIED/IN_PROGRESS/ABANDONED/BACKUP
 - 清理：精确 COUNT 后 DROP 已确认的空表/已停管线/404 残留（不碰 _bak 备份、不碰维度表、不碰分区默认）
 """
-import re, json, psycopg2
+import json
+import re
+
+import psycopg2
 
 ROOT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
 
@@ -100,6 +103,7 @@ for r in tables:
     rows.append((name, cat, status, cov, method, note))
 
 from psycopg2.extras import execute_values
+
 execute_values(cur,
     """INSERT INTO meta_data_verification (dataset, category, status, coverage, method, note)
        VALUES %s""",

@@ -19,9 +19,10 @@ import sys
 from datetime import datetime
 
 sys.stdout.reconfigure(encoding='utf-8')
+import logging
+
 import psycopg2
 from psycopg2.extras import execute_batch
-import logging
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
 logger = logging.getLogger("PlayoffGamelogV2")

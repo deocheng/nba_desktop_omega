@@ -41,8 +41,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 import psycopg2
 from bs4 import BeautifulSoup
 
-from common.br_player_onoff import BRPlayerOnOffCrawlerBase, DB_CONFIG
-from common.br_team_page import safe_float, _row_data_stats
+from common.br_player_onoff import DB_CONFIG, BRPlayerOnOffCrawlerBase
+from common.br_team_page import _row_data_stats, safe_float
 from common.season_type_norm import canon_season_type  # season_type 写入约定统一对齐 dim_games
 
 # split_id 原始文本 -> 规范化 split 值（BR 用 U+2212 减号 "On − Off"）。

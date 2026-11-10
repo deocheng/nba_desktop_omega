@@ -1,12 +1,13 @@
 """
 Parse Basketball-Reference NYK contracts HTML and insert into PostgreSQL.
 """
+import json
 import os
 import re
-import json
 from datetime import datetime
-from bs4 import BeautifulSoup
+
 import psycopg2
+from bs4 import BeautifulSoup
 from psycopg2.extras import execute_values
 
 # ---------------- 配置 ----------------

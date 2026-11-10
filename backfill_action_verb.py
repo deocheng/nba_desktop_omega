@@ -17,8 +17,10 @@ Usage:
 from __future__ import annotations
 
 import sys
+
 import psycopg2
-from psycopg2.extras import execute_batch, RealDictCursor
+from psycopg2.extras import RealDictCursor, execute_batch
+
 from backend.core import config
 from br_pbp_parse import extract_action_verb, extract_subtype
 
@@ -59,6 +61,7 @@ if null_verb:
 
 # quick distribution
 from collections import Counter
+
 dist = Counter(u[0] for u in updates)
 print("\naction_verb distribution:")
 for v, c in dist.most_common():

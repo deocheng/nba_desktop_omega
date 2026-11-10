@@ -1,9 +1,14 @@
 """Retry cdn.nba.com with browser-like headers; also probe play_by_play schema."""
 from __future__ import annotations
-import os, json, sys
+
+import json
+import os
+import sys
 import urllib.request
+
 import psycopg2
 from psycopg2.extras import RealDictCursor
+
 from backend.core import config
 
 DATE = sys.argv[1] if len(sys.argv) > 1 else "20251022"
@@ -46,7 +51,7 @@ except Exception as e:
 
 # also try stats.nba.com playbyplayv3
 print("\nTRY stats.nba.com playbyplayv3:")
-surl = f"https://stats.nba.com/stats/playbyplayv3?GameID=0022500001&StartPeriod=0&EndPeriod=0"
+surl = "https://stats.nba.com/stats/playbyplayv3?GameID=0022500001&StartPeriod=0&EndPeriod=0"
 sh = dict(HDRS)
 sh["Referer"] = "https://www.nba.com/"
 try:

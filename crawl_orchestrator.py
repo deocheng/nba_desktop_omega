@@ -23,14 +23,14 @@
   - 不重写任何爬虫核心逻辑；仅启停子进程 + 传 --resume。
   - 节流铁律不变（≤5 req/s，~7s/req）；轮换 ≠ 提速。
 """
-import os
-import sys
-import time
+import argparse
+import datetime
 import json
+import os
 import signal
 import subprocess
-import datetime
-import argparse
+import sys
+import time
 
 import psycopg2
 

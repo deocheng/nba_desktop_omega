@@ -21,10 +21,10 @@ import signal
 import subprocess
 import threading
 import urllib.parse
-from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from job_manager import JobManager, ROOT, METRICS, FIBA_DEFAULT_COMP, FIBA_DEFAULT_DAYS
+from job_manager import FIBA_DEFAULT_COMP, FIBA_DEFAULT_DAYS, METRICS, ROOT, JobManager
 
 PORT = 8793
 APP_DIR = Path(__file__).resolve().parent

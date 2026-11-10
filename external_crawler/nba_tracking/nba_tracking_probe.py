@@ -22,13 +22,13 @@ Usage:
 """
 from __future__ import annotations
 
+import json
 import os
 import sys
-import json
 import time
-import urllib.request
 import urllib.error
 import urllib.parse
+import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 RAW_DIR = os.path.join(HERE, "probe_raw")

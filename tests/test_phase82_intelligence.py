@@ -32,7 +32,6 @@ from backend.services.intelligence_engine import (
     team_possessions,
 )
 
-
 # ── §12 Season Type Separation ──
 
 class TestSeasonType:

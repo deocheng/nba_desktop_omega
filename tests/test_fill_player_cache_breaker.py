@@ -23,9 +23,8 @@ sys.path.insert(
     ),
 )
 
-import pytest
-
 import fill_player_cache as fpc
+import pytest
 
 
 class _FakeDriver:

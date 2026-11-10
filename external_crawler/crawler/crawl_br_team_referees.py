@@ -24,13 +24,14 @@ from typing import Dict, List, Optional
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from bs4 import BeautifulSoup, Comment
+
 from common.br_team_page import (
     BRTeamPageCrawler,
+    _row_data_stats,
     build_arg_parser,
     dispatch_cli,
     safe_float,
     safe_int,
-    _row_data_stats,
 )
 
 _REF_SLUG_RE = re.compile(r"/referees/([^./]+)\.html")

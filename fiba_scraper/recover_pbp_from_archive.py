@@ -38,8 +38,8 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import fiba_db as db
 import fiba_api as fa
+import fiba_db as db
 from batch_scrape_fiba import ARCHIVE_DIR, insert_pbp_from_live
 
 

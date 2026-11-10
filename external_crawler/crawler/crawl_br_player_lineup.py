@@ -37,14 +37,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 import psycopg2
 from bs4 import BeautifulSoup
 
-from common.br_player_lineup import BRPlayerLineupCrawlerBase, DB_CONFIG
-from common.season_type_norm import canon_season_type  # season_type 写入约定统一对齐 dim_games
+from common.br_player_lineup import DB_CONFIG, BRPlayerLineupCrawlerBase
 from common.br_team_page import (
+    _row_data_stats,
     extract_player_links,
     safe_float,
     safe_int,
-    _row_data_stats,
 )
+from common.season_type_norm import canon_season_type  # season_type 写入约定统一对齐 dim_games
 
 # 最小上场分钟阈值（默认 0 = 全存 BR 实际组合，不改变语义）。
 MIN_MINUTES = 0

@@ -35,17 +35,16 @@ advanced / adj_shooting / team_misc / team_and_opponent，及其 Playoffs 的
         .venv/bin/python external_crawler/crawler/crawl_br_team_pbp.py \
         --season 2026 --resume --cache-dir /Volumes/12T/NBA/br_team_pbp_cache
 """
+import logging
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional
-import logging
 
 logger = logging.getLogger(__name__)
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from bs4 import BeautifulSoup
-from common.season_type_norm import canon_season_type  # season_type 写入约定统一对齐 dim_games
 from bs4.element import Comment
 
 from common.br_team_page import (
@@ -55,7 +54,7 @@ from common.br_team_page import (
     safe_float,
     safe_int,
 )
-
+from common.season_type_norm import canon_season_type  # season_type 写入约定统一对齐 dim_games
 
 # ── 注释感知表查找（移植 crawl_br_player_lineup._find_br_table）──────────────
 # BR 季后赛表常包在 <!-- --> 注释里，soup.find("table", id=...) 扫不到，

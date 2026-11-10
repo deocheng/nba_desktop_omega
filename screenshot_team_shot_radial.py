@@ -4,7 +4,6 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
-
 html_path = Path(__file__).parent / "team_shot_radial.html"
 out_path = Path(__file__).parent / "team_shot_radial_preview.png"
 

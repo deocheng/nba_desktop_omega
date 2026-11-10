@@ -11,11 +11,11 @@ Usage:
   python crawler/daily_maintenance.py --skip-injuries
   python crawler/daily_maintenance.py --only injuries
 """
-import sys
-import os
-import time
-import logging
 import argparse
+import logging
+import os
+import sys
+import time
 from datetime import datetime
 
 logging.basicConfig(

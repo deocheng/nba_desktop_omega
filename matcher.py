@@ -56,7 +56,9 @@ def resolve_espn_event(game_date, home_abbr: str, away_abbr: str,
     # 复用既有脚本的端点 / 请求头 / 缩写映射（照 ARCH：复用现成逻辑）
     try:
         from external_crawler.crawler.espn_backfill_shot_coords import (
-            SCOREBOARD, HDR, our_to_espn,
+            HDR,
+            SCOREBOARD,
+            our_to_espn,
         )
     except Exception:  # noqa: BLE001
         return None

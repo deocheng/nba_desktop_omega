@@ -13,6 +13,7 @@ import os
 import pytest
 
 from backend.services.trade_engine import cba_aux_db
+from backend.services.trade_engine.cba_aux import LeagueSimulator, Player, SalaryCapRules, Team
 from backend.services.trade_engine.cba_aux_db import (
     TradeRecord,
     TradeSemantics,
@@ -23,7 +24,6 @@ from backend.services.trade_engine.cba_aux_db import (
     load_trades,
     parse_trade_semantics,
 )
-from backend.services.trade_engine.cba_aux import LeagueSimulator, Player, SalaryCapRules, Team
 from backend.services.trade_engine.llm_provider import LLMProvider
 
 from .conftest import skip_if_no_db

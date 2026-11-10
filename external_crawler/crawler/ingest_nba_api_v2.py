@@ -21,8 +21,8 @@
     .venv/bin/python external_crawler/crawler/ingest_nba_api_v2.py --auto
     .venv/bin/python external_crawler/crawler/ingest_nba_api_v2.py --season 2025 --resume
 """
-import sys
 import argparse
+import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))

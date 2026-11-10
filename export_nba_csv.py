@@ -8,6 +8,7 @@
 import os
 import sys
 import time
+
 import psycopg2
 
 DB = dict(host="127.0.0.1", port=5433, dbname="nba",

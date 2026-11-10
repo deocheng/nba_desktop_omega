@@ -8,15 +8,21 @@
 新行 game_id_full/gameid 用 NBA-API 8/10位 (与现有 349 行一致), game_type='play_in'。
 回滚: 记录所有新 game_id_full, 如需回退 DELETE WHERE game_id_full IN (...)。
 """
-import sys, os, time, random, json
+import json
+import os
+import random
+import sys
+import time
+
 sys.stdout.reconfigure(encoding="utf-8")
 # 去掉可能干扰的代理
 for k in ("HTTP_PROXY","HTTPS_PROXY","http_proxy","https_proxy","ALL_PROXY","all_proxy"):
     os.environ.pop(k, None)
-import psycopg2
-from psycopg2.extras import execute_batch
-from curl_cffi import requests
 from datetime import datetime
+
+import psycopg2
+from curl_cffi import requests
+from psycopg2.extras import execute_batch
 
 ROOT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
 PW = "R!h0N-ctlg=xB01V_-1VJcFeCCuBjS6UCvV1"
@@ -166,7 +172,7 @@ def main():
             f.write("\n".join(sorted(set(new_gids))))
         print(f"\nINSERT {len(all_rows)} 行 / {len(set(new_gids))} 场比赛")
         print(f"OK={ok} SKIP={skip} FAIL={fail}")
-        print(f"回滚清单: playin_cdn_new_gids_20260817.txt")
+        print("回滚清单: playin_cdn_new_gids_20260817.txt")
     else:
         print("无新数据写入")
     conn.close()

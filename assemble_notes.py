@@ -3,7 +3,11 @@
 """合并 BASE_NOTES 与 5 个批次小注，复用 build_nicknames_bz.py 的纯函数，
 生成更丰富版本的 analysis_nicknames_bz.md，并导出合并后的 notes_enriched.json。
 """
-import os, re, html, unicodedata, json
+import html
+import json
+import os
+import re
+import unicodedata
 
 BASE = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
 OUT_MD  = os.path.join(BASE, "analysis_nicknames_bz.md")
@@ -75,6 +79,7 @@ for f in batch_files:
 
 # ---------- 4. 跑与原脚本相同的查询 ----------
 import psycopg2
+
 conn = psycopg2.connect(DSN)
 cur = conn.cursor()
 cur.execute("""SELECT d.player_name, d.nickname,

@@ -12,9 +12,10 @@
 - ast / plus_minus                              : 本 PBP 数据集未抓 -> 留 NULL (不伪造)
 - minutes / seconds_played                      : 事件时钟跨度近似 (PBP-estimated, 精度有限)
 """
-import psycopg2
-import os
 import argparse
+import os
+
+import psycopg2
 from dotenv import load_dotenv
 
 load_dotenv()

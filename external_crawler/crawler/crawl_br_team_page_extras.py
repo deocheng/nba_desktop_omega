@@ -37,10 +37,10 @@ import psycopg2
 from bs4 import BeautifulSoup, Comment
 
 from common.br_team_page import (
-    BRTeamPageCrawler,
     DB_CONFIG,
-    safe_int,
+    BRTeamPageCrawler,
     safe_float,
+    safe_int,
 )
 from common.browser import ensure_cf_cleared
 from common.season_type_norm import canon_season_type  # season_type 写入约定统一对齐 dim_games

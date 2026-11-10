@@ -8,10 +8,10 @@ v2 把这一契约显式化：LocalCache 带 TTL + 可主动 invalidate；RedisC
 """
 import abc
 import json
+import logging
 import os
 import threading
 import time
-import logging
 
 log = logging.getLogger("br_crawler_v2.cache")
 

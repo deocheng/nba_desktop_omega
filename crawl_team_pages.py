@@ -43,20 +43,22 @@ import sys
 
 # 30-team canon abbrs — the single list we iterate as the outer loop.
 from common.team_names import TEAM_ABBRS  # noqa: F401  (consumed by sub-packages too)
-
-from transactions_crawl.fetch import (
-    fetch_transactions_page,
-    looks_like_404 as txn_looks_like_404,
-)
-from transactions_crawl.parse import parse_transactions
-from transactions_crawl.load import upsert_transactions
-
 from hof_exec.fetch import (
     fetch_team_page,
+)
+from hof_exec.fetch import (
     looks_like_404 as he_looks_like_404,
 )
-from hof_exec.parse import parse_executives_table, parse_hof_div
 from hof_exec.load import upsert_executives, upsert_hof
+from hof_exec.parse import parse_executives_table, parse_hof_div
+from transactions_crawl.fetch import (
+    fetch_transactions_page,
+)
+from transactions_crawl.fetch import (
+    looks_like_404 as txn_looks_like_404,
+)
+from transactions_crawl.load import upsert_transactions
+from transactions_crawl.parse import parse_transactions
 
 logger = logging.getLogger("crawl_team_pages")
 

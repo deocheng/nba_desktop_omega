@@ -1,6 +1,8 @@
 """Test cdn.nba.com via curl_cffi (chrome impersonation) — the method ingest_2026_pbp.py uses."""
 from __future__ import annotations
+
 import sys
+
 from curl_cffi import requests as cffi_requests
 
 DATE = sys.argv[1] if len(sys.argv) > 1 else "20251022"

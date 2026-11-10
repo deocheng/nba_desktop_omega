@@ -30,14 +30,14 @@ from viz.theme import compat_vars
 
 VIZ_VARS = compat_vars("dark")
 
-import os
-import sys
 import json
-import time
-import subprocess
+import os
 import re
+import subprocess
+import sys
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import parse_qs, urlparse
 
 ROOT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
 CRAWLER = os.path.join(ROOT, "external_crawler", "crawler")

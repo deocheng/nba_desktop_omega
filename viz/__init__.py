@@ -21,23 +21,54 @@
    用 compat_vars() 取 **--viz-* 前缀** 的令牌块：直接换成 var(--bg) 会
    产出 `--bg: var(--bg)` 自引用，CSS 变量随即失效。
 """
-from . import theme, svg, base, charts, meta
-from .theme import (
-    SPORTS, FINANCE, DIVERGING, CATEGORICAL, TEAM_COLORS,
-    SPACING, TYPO, RADIUS, SHADOW,
-    NEUTRALS_DARK, NEUTRALS_LIGHT, STATE,
-    CSS_VARS_DARK, CSS_VARS_LIGHT, compat_vars, hex,
-)
+from . import base, charts, meta, svg, theme
 from .base import (
-    page, table, card, kpi, kpi_row, grid, section, badge, note, chart,
+    badge,
+    card,
+    chart,
+    grid,
+    kpi,
+    kpi_row,
+    note,
+    page,
+    section,
+    table,
 )
-from .svg import svg_frame, axes, legend, scale_linear, bubble
 from .charts import (
-    rank_bars, diverging_bars, stacked_bars, lollipop, scatter, action_bars,
+    action_bars,
     categorical_palette,
+    diverging_bars,
+    lollipop,
+    rank_bars,
+    scatter,
+    stacked_bars,
 )
 from .meta import (
-    build_meta, git_sha, git_branch, git_dirty, generation_timestamp, lineage,
+    build_meta,
+    generation_timestamp,
+    git_branch,
+    git_dirty,
+    git_sha,
+    lineage,
+)
+from .svg import axes, bubble, legend, scale_linear, svg_frame
+from .theme import (
+    CATEGORICAL,
+    CSS_VARS_DARK,
+    CSS_VARS_LIGHT,
+    DIVERGING,
+    FINANCE,
+    NEUTRALS_DARK,
+    NEUTRALS_LIGHT,
+    RADIUS,
+    SHADOW,
+    SPACING,
+    SPORTS,
+    STATE,
+    TEAM_COLORS,
+    TYPO,
+    compat_vars,
+    hex,
 )
 
 __all__ = [

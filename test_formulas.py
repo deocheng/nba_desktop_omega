@@ -1,5 +1,5 @@
-import urllib.request
 import json
+import urllib.request
 
 r = urllib.request.urlopen('http://127.0.0.1:5577/api/workspaces/formulas/presets')
 data = json.loads(r.read())

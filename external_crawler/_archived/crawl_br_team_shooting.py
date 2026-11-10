@@ -45,16 +45,17 @@ from typing import Dict, List, Optional
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from bs4 import BeautifulSoup
-from common.season_type_norm import canon_season_type  # season_type 写入约定统一对齐 dim_games
+
 from common.br_team_page import (
     BRTeamPageCrawler,
+    _row_data_stats,
     build_arg_parser,
     dispatch_cli,
     extract_player_links,
     safe_float,
     safe_int,
-    _row_data_stats,
 )
+from common.season_type_norm import canon_season_type  # season_type 写入约定统一对齐 dim_games
 
 # BR team_shooting / opponent_shooting 表已知 zone / 距离桶标签（受控词表）。
 # 仅这些标签的行被保留；其余（如 "Team" 汇总行、空行）跳过。

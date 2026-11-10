@@ -11,8 +11,11 @@
   - video_index.json
   - calendar.html (自包含, 内嵌数据)
 """
-import os, re, json, sys
-from datetime import datetime, date
+import json
+import os
+import re
+import sys
+from datetime import date, datetime
 
 ROOT = "/Volumes/12T/NBA/比赛录像"
 OUT_DIR = os.path.dirname(os.path.abspath(__file__))

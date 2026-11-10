@@ -235,6 +235,7 @@ def fetch_image_via_cdp(driver, url: str, timeout: int = 30) -> bytes | None:
 
         import asyncio
         import json
+
         import websockets
 
         target_name = urllib.parse.urlparse(url).path.rstrip("/").split("/")[-1]

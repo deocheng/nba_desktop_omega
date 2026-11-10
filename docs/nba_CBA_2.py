@@ -1,6 +1,6 @@
-from dataclasses import dataclass
-from typing import List, Dict, Optional
 import json
+from dataclasses import dataclass
+from typing import Dict, List, Optional
 
 # ====================== NBA CBA 核心常量（2025-26赛季示例数据） ======================
 SALARY_CAP = 154_647_000          # 薪金帽

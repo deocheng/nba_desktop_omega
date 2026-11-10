@@ -31,7 +31,14 @@ Usage:
                        [--max-passes 0] [--log /path/backfill.log]
 """
 from __future__ import annotations
-import os, sys, json, time, argparse, subprocess, datetime
+
+import argparse
+import datetime
+import json
+import os
+import subprocess
+import sys
+import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)

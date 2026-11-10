@@ -3,15 +3,16 @@ NBA 伤病数据 + 球队薪资数据爬虫
 数据源: Basketball Reference
 """
 
-import requests
-import time
-import re
 import json
-import random
 import logging
+import random
+import re
+import time
 from datetime import datetime
-from bs4 import BeautifulSoup
+
 import psycopg2
+import requests
+from bs4 import BeautifulSoup
 from psycopg2.extras import execute_values
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

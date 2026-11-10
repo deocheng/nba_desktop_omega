@@ -12,6 +12,7 @@ import json
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
+from backend.api.routers.analytics_builder_schemas import FlowCreate, FlowResponse, FlowUpdate
 from backend.api.schemas import (
     FormulaPreset,
     WorkspaceChartCreate,
@@ -22,7 +23,6 @@ from backend.api.schemas import (
     WorkspaceResponse,
     WorkspaceUpdate,
 )
-from backend.api.routers.analytics_builder_schemas import FlowCreate, FlowResponse, FlowUpdate
 from backend.services.workspace_engine import (
     WorkspaceValidationError,
     add_chart,

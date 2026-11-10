@@ -1,6 +1,7 @@
 """Bob diagnostic part 2 — refinement of A1/A2/A3."""
 from backend.core.db import batch_query
 
+
 def section(t):
     print("\n" + "=" * 70); print(t); print("=" * 70)
 def show(rows, n=15):

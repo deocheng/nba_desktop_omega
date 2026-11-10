@@ -12,8 +12,13 @@ player_per_game 是聚合表，漏掉了只打几场/没出场的边缘与海外
 可回滚：先整表快照。
 """
 from __future__ import annotations
-import psycopg2, datetime, re, unicodedata
+
+import datetime
+import re
+import unicodedata
 from collections import Counter
+
+import psycopg2
 
 DB = dict(host="127.0.0.1", port=5433, dbname="nba", user="postgres",
           password="R!h0N-ctlg=xB01V_-1VJcFeCCuBjS6UCvV1")

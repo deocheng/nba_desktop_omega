@@ -23,8 +23,8 @@ verify_gaps.py — 严格逐人完整性校验（替代临场手写 SQL，杜绝
 退出码：0 = 所有指定季无缺口；1 = 存在缺口（便于当 CI/门禁）。
 """
 import os
-import sys
 import subprocess
+import sys
 
 ROOT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
 PSQL = "/opt/homebrew/opt/postgresql@18/bin/psql"
@@ -128,13 +128,13 @@ def check_season(S: int, quiet: bool = False):
             print(f"  比赛覆盖(RS): player_gamelog 覆盖 {cov_g} / dim_games(Reg) {exp_g}"
                   + ("  OK" if cov_ok else f"  !! 覆盖不足（缺 {miss} 场）"))
         else:
-            print(f"  比赛覆盖(RS): dim_games 无该季 Regular Season 记录，跳过覆盖校验")
+            print("  比赛覆盖(RS): dim_games 无该季 Regular Season 记录，跳过覆盖校验")
         if null_rows:
             print(f"  [告警] br_player_id 为 NULL 的孤儿行: {null_rows}（不影响逐人缺口，待去重）")
         if extra_players:
             print(f"  [告警] gamelog 有但 player_per_game 无 slug 匹配的球员: {extra_players}（身份/来源差异，需人工核）")
         if not gap_rows:
-            print(f"  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）")
+            print("  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）")
         else:
             total_gap = 0
             print(f"  [逐人完整性] !! {len(gap_rows)} 个球员缺失场次:")
@@ -177,9 +177,9 @@ def main():
             print(pid)
         sys.exit(0)
     if rc:
-        print(f"\n>>> 存在缺口（rc=1）")
+        print("\n>>> 存在缺口（rc=1）")
     else:
-        print(f"\n>>> 全部指定季通过逐人完整性校验（rc=0）")
+        print("\n>>> 全部指定季通过逐人完整性校验（rc=0）")
     sys.exit(rc)
 
 

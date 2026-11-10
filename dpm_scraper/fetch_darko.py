@@ -26,12 +26,12 @@ USAGE
 -----
     .venv/bin/python dpm_scraper/fetch_darko.py [--dry-run] [--out PATH] [--date YYYY-MM-DD]
 """
+import argparse
+import io
+import json
 import os
 import re
-import io
 import sys
-import json
-import argparse
 import urllib.request
 from datetime import date
 from pathlib import Path

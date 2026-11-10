@@ -41,6 +41,7 @@ import psycopg2
 # 项目根（本文件向上两级）加入 sys.path，使 `import common.*` / `import backend.*` 可解析
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+from backend.core import config  # noqa: E402  —— fail-safe DSN（不回退弱口令 'postgres'）
 from common.player_bio_ext import (
     PlayerBioExtExtractor,
     fetch_player_page,
@@ -48,7 +49,6 @@ from common.player_bio_ext import (
     upsert_player_bio_ext,
 )
 from common.player_page_cache import is_valid_player_page
-from backend.core import config  # noqa: E402  —— fail-safe DSN（不回退弱口令 'postgres'）
 
 logging.basicConfig(
     level=logging.INFO,

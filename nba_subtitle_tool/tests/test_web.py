@@ -7,15 +7,15 @@
 
 真正的 ASR 成功路径依赖本地 Whisper 模型，需手动下载后实跑验证。
 """
-import os
-import sys
 import io
 import json
+import os
+import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from web import app, JOBS, WORK, OUTPUT
+from web import JOBS, OUTPUT, WORK, app
 
 
 def _make_fake_model(tmpdir):

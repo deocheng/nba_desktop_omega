@@ -14,79 +14,79 @@ Phase 1: temp table loaders + schema drift validation + join loaders
 Phase 2: feature-complete loaders (teams, games, player charts, system, charts)
 """
 from backend.data_layer.batch_loader import (
+    load_games,
     load_player_gamelog,
+    load_player_honors,
     load_player_season_stats,
     load_player_team_share,
     load_players,
-    load_games,
-    load_team_season_stats,
     load_seasons_available,
-    load_player_honors,
+    load_team_season_stats,
     search_players,
 )
-from backend.data_layer.temp_loader import (
-    load_player_gamelog_by_ids,
-    load_players_by_ids,
-    should_use_temp_table,
-    TEMP_TABLE_THRESHOLD,
-)
-from backend.data_layer.joins import (
-    load_player_gamelog_with_game_context,
-    load_player_season_stats_with_bio,
-    join_player_weight,
-    select_weight_cols,
+from backend.data_layer.charts_loader import (
+    get_late_clock_player_stats,
+    get_late_clock_team_stats,
 )
 from backend.data_layer.entity_loader import (
     load_player_games_aggregated,
     load_player_seasons,
-    load_team_games_aggregated,
     load_team_gamelog_with_game_context,
+    load_team_games_aggregated,
     load_team_seasons,
     season_label,
 )
-from backend.data_layer.schema_validator import (
-    validate_registry,
-    registry_healthy,
-    drift_summary,
-)
-from backend.data_layer.team_loader import (
-    list_all_teams,
-    get_teams_board,
-    get_team_splits,
-    get_team_standings,
-    get_team_stats_per_game,
-    get_team_ratios,
-    get_team_scoring_trend,
-    get_team_radar,
-    get_league_radar_avg,
-    get_team_history,
-    get_team_legend_players,
-    get_team_season_roster,
-)
 from backend.data_layer.game_loader import (
-    list_games,
-    get_quarter_stats,
     get_game_detail,
+    get_game_player_performance,
     get_game_radar,
     get_play_by_play,
-    get_game_player_performance,
+    get_quarter_stats,
+    list_games,
+)
+from backend.data_layer.joins import (
+    join_player_weight,
+    load_player_gamelog_with_game_context,
+    load_player_season_stats_with_bio,
+    select_weight_cols,
 )
 from backend.data_layer.player_chart_loader import (
     compute_box_stats,
-    get_scoring_distribution,
     get_player_advanced,
-    get_player_shooting,
-    get_player_ratios,
     get_player_per_game,
+    get_player_ratios,
+    get_player_shooting,
+    get_scoring_distribution,
+)
+from backend.data_layer.schema_validator import (
+    drift_summary,
+    registry_healthy,
+    validate_registry,
 )
 from backend.data_layer.system_loader import (
-    list_tables,
-    get_table_data,
     get_status_summary,
+    get_table_data,
+    list_tables,
 )
-from backend.data_layer.charts_loader import (
-    get_late_clock_team_stats,
-    get_late_clock_player_stats,
+from backend.data_layer.team_loader import (
+    get_league_radar_avg,
+    get_team_history,
+    get_team_legend_players,
+    get_team_radar,
+    get_team_ratios,
+    get_team_scoring_trend,
+    get_team_season_roster,
+    get_team_splits,
+    get_team_standings,
+    get_team_stats_per_game,
+    get_teams_board,
+    list_all_teams,
+)
+from backend.data_layer.temp_loader import (
+    TEMP_TABLE_THRESHOLD,
+    load_player_gamelog_by_ids,
+    load_players_by_ids,
+    should_use_temp_table,
 )
 
 __all__ = [

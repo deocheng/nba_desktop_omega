@@ -14,8 +14,7 @@ import os
 import sys
 
 import psycopg2
-
-from crawl_br_player_shot_chart import PlayerShotChartCrawler, DB_CONFIG
+from crawl_br_player_shot_chart import DB_CONFIG, PlayerShotChartCrawler
 
 SEASON = 2027
 

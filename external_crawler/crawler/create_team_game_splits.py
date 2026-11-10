@@ -1,4 +1,5 @@
 import os
+
 import psycopg2
 
 conn = psycopg2.connect(host='localhost', port=5433, dbname='nba', user='postgres', password=os.environ.get('DB_PASSWORD'))

@@ -30,11 +30,11 @@ build_driver 带重试，单场异常只记录、继续，绝不让异常跳过�
 """
 from __future__ import annotations
 
+import argparse
 import os
+import shutil
 import sys
 import time
-import shutil
-import argparse
 from collections import Counter
 
 import psycopg2
@@ -52,16 +52,19 @@ except Exception:
 
 # 复用既能绕过 Cloudflare 的抓取基础设施，又不触发 br_fill_pbp 的 main()/watchdog
 # （main() 仅在 __name__ == "__main__" 时执行，import 安全）。
+from selenium.common.exceptions import WebDriverException  # noqa: E402
+
 import br_fill_pbp as _bf  # noqa: E402
+from br_fill_pbp import (
+    DB,
+    RateLimiter,
+    SessionGone,
+    fetch_pbp_soup,
+)
 from br_fill_pbp import (  # noqa: E402
     build_driver as _raw_build_driver,
-    fetch_pbp_soup,
-    SessionGone,
-    RateLimiter,
-    DB,
 )
 from br_pbp_parse import parse_pbp  # noqa: E402
-from selenium.common.exceptions import WebDriverException  # noqa: E402
 
 # 关键修复：用全新 profile 目录，彻底绕开旧 .uc_pbp_profile / .uc_pbp_profile_run2
 # 的 SingletonLock（旧锁会让 chrome 起不来，build_driver 抛 SessionNotCreatedException）。

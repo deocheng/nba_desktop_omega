@@ -1,5 +1,8 @@
-import re, json, sys
+import json
+import re
+import sys
 from collections import defaultdict
+
 from playwright.sync_api import sync_playwright
 
 SLUGS = "ATL,BOS,BRK,CHI,CHO,CLE,DAL,DEN,DET,GSW,HOU,IND,LAC,LAL,MEM,MIA,MIL,MIN,NOP,NYK,OKC,ORL,PHI,PHO,POR,SAC,SAS,TOR,UTA,WAS".split(",")

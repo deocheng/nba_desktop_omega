@@ -71,15 +71,15 @@ dim_games.pbp_imported 存在大量 NULL（29566 行）与 True（35692 行）�
 """
 from __future__ import annotations
 
-import os
-import sys
-import time
-import threading
-import shutil
-import json
-import re
 import argparse
-from collections import defaultdict, Counter
+import json
+import os
+import re
+import shutil
+import sys
+import threading
+import time
+from collections import Counter, defaultdict
 
 import psycopg2
 
@@ -93,18 +93,21 @@ try:
 except Exception:
     pass
 
-import br_fill_pbp as _bf  # noqa: E402
-from br_fill_pbp import (  # noqa: E402
-    build_driver as _raw_build_driver,
-    cf_challenge,
-    SessionGone,
-    RateLimiter,
-    DB,
-)
 from bs4 import BeautifulSoup  # noqa: E402
 from selenium.common.exceptions import (  # noqa: E402
-    WebDriverException,
     SessionNotCreatedException,
+    WebDriverException,
+)
+
+import br_fill_pbp as _bf  # noqa: E402
+from br_fill_pbp import (
+    DB,
+    RateLimiter,
+    SessionGone,
+    cf_challenge,
+)
+from br_fill_pbp import (  # noqa: E402
+    build_driver as _raw_build_driver,
 )
 
 

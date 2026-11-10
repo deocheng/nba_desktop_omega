@@ -26,6 +26,7 @@ Usage
     daily_scrape_fiba.py [--competition-id 208943] [--days 2] [--no-archive]
 """
 from __future__ import annotations
+
 import argparse
 import os
 import subprocess
@@ -34,9 +35,9 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import fiba_db as db
 import fiba_api as fa
-from batch_scrape_fiba import load_game, ARCHIVE_DIR, _delay
+import fiba_db as db
+from batch_scrape_fiba import ARCHIVE_DIR, _delay, load_game
 
 DEFAULT_COMPETITION = 208943
 DEFAULT_DAYS = 2  # > retention window (~17h) so we never skip a catchable game

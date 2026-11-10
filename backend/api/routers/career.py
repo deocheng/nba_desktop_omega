@@ -20,8 +20,8 @@ from backend.api.routers.career_schemas import (
 from backend.services.career_engine import career_service
 from backend.services.career_engine.career_constants import (
     ALGORITHMS,
-    DEFAULT_ALGORITHM,
     DEFAULT_AGE_CURVE_MIN_GAMES,
+    DEFAULT_ALGORITHM,
     DEFAULT_LIMIT,
     DEFAULT_MIN_GAMES,
     DEFAULT_MIN_SEASONS,

@@ -18,8 +18,13 @@ Usage:
 """
 from __future__ import annotations
 
-import os, sys, json, time
-import urllib.request, urllib.error, urllib.parse
+import json
+import os
+import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
 
 API = "https://stats.nba.com/stats/"
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "

@@ -1,12 +1,17 @@
 """Feasibility: fetch a BR PBP page via crawler browser; inspect table + nba_api_id."""
 from __future__ import annotations
-import sys, os, re
+
+import os
+import re
+import sys
+
 sys.path.insert(0, r'C:/autopick/AutoPick/nba_data')
 os.chdir(r'C:/autopick/AutoPick/nba_data')
 import psycopg2
-from psycopg2.extras import RealDictCursor
-from backend.core import config
 from nba_daily_crawler import BrowserManager, CrawlLogger
+from psycopg2.extras import RealDictCursor
+
+from backend.core import config
 
 # get one BR game_id from the 291 gap games
 conn = psycopg2.connect(**config.DB_CONFIG, cursor_factory=RealDictCursor)

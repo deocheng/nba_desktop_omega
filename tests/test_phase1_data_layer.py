@@ -15,13 +15,12 @@ import ast
 
 import pytest
 
-
 # ── §4 Phase 1: temp table loader ──
 
 class TestTempTableLoader:
 
     def test_should_use_temp_table_threshold(self):
-        from backend.data_layer.temp_loader import should_use_temp_table, TEMP_TABLE_THRESHOLD
+        from backend.data_layer.temp_loader import TEMP_TABLE_THRESHOLD, should_use_temp_table
         assert TEMP_TABLE_THRESHOLD == 500
         assert not should_use_temp_table(list(range(499)))
         assert should_use_temp_table(list(range(500)))
@@ -93,8 +92,8 @@ class TestSchemaValidator:
         """Synthetic test: a TableSchema with a bogus column must fail."""
         if not db_available:
             pytest.skip("PostgreSQL not available")
-        from backend.data_layer.schema_validator import validate_table
         from backend.data_layer.schema import TableSchema
+        from backend.data_layer.schema_validator import validate_table
         fake = TableSchema(
             name="dim_teams",
             season_col=None,
@@ -194,9 +193,8 @@ class TestTempTableRealQuery:
         """v8 §2: temp table works for dimension loads too."""
         if not db_available:
             pytest.skip("PostgreSQL not available")
-        from backend.data_layer import load_players, load_players_by_ids
         # Get 3 IDs first
-        from backend.data_layer import load_player_season_stats
+        from backend.data_layer import load_player_season_stats, load_players, load_players_by_ids
         stats = load_player_season_stats(2025)
         ids = [r["player_id"] for r in stats[:3] if r.get("player_id")]
 

@@ -1,4 +1,5 @@
 import os
+
 """
 BR Transactions 爬虫
 数据源: https://www.basketball-reference.com/leagues/NBA_{year}_transactions.html
@@ -9,13 +10,14 @@ BR Transactions 爬虫
   python crawl_br_transactions.py --year 2026 --dry-run # 测试
   python crawl_br_transactions.py --year 2026 --year 2025 # 多赛季
 """
-import requests
-from bs4 import BeautifulSoup
-import psycopg2
 import argparse
 import re
 import time
 from datetime import datetime
+
+import psycopg2
+import requests
+from bs4 import BeautifulSoup
 
 try:
     from curl_cffi import requests as cffi_requests
@@ -121,6 +123,7 @@ def fetch_with_playwright(url: str) -> str:
     """Fetch page HTML using Playwright Stealth to bypass Cloudflare."""
     import random
     import time as _time
+
     from playwright.sync_api import sync_playwright
 
     user_agents = [
@@ -213,7 +216,7 @@ def scrape_season(year: int) -> list:
             print(f'  curl_cffi error: {e}')
 
     if not html:
-        print(f'  Falling back to Playwright...')
+        print('  Falling back to Playwright...')
         try:
             html = fetch_with_playwright(url)
             print(f'  Playwright: OK ({len(html)} chars)')

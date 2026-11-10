@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """提取 B~Z 有绰号球员，按荣誉计算"特点鲜明度"分数，输出候选名单 JSON。"""
-import os, re, json, unicodedata
+import json
+import os
+import re
+import unicodedata
+
 import psycopg2
 
 BASE = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
@@ -64,7 +68,7 @@ players.sort(key=lambda p: (-p["score"], p["name"]))
 candidates = [p for p in players if p["score"] >= 3]
 print(f"总 B-Z 有绰号球员={len(players)}")
 print(f"候选(score>=3)={len(candidates)}")
-print(f"分数分布:",
+print("分数分布:",
       {s: sum(1 for p in players if p['score']==s) for s in sorted({p['score'] for p in players}, reverse=True)[:12]})
 
 with open(os.path.join(BASE, "bz_candidates.json"), "w", encoding="utf-8") as f:

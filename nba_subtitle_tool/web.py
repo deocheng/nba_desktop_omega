@@ -7,15 +7,15 @@
   - 点「选择文件」用系统文件选择器（自动上传）
   - 直接填写本机绝对路径（免上传，适合 12T 上已存在的大视频）
 """
-import os
-import sys
 import io
-import uuid
-import threading
+import os
 import subprocess
-from werkzeug.utils import secure_filename
+import sys
+import threading
+import uuid
 
-from flask import (Flask, request, jsonify, send_file)
+from flask import Flask, jsonify, request, send_file
+from werkzeug.utils import secure_filename
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)

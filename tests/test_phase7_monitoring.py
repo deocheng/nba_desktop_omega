@@ -12,7 +12,6 @@ import hashlib
 
 import pytest
 
-
 # ── §1 Phase 5: Context Engine ──
 
 @pytest.mark.usefixtures("db_available")

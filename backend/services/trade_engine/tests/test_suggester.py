@@ -9,13 +9,15 @@ from datetime import datetime
 
 import pytest
 
-from backend.services.trade_engine import rules as rules_mod, schemas, suggester
+from backend.services.trade_engine import rules as rules_mod
+from backend.services.trade_engine import schemas, suggester
 from backend.services.trade_engine.tests.conftest import (
+    AS_OF,
     DB_OK,
     make_asset,
     skip_if_no_db,
 )
-from backend.services.trade_engine.tests.conftest import RULE_SET as RS, AS_OF
+from backend.services.trade_engine.tests.conftest import RULE_SET as RS
 
 SV = suggester.MatchSuggester()
 

@@ -1,12 +1,12 @@
 """流水线编排：抽音频 → 分块识别 → 翻译 → 出 SRT + Markdown。
 块级与翻译级均支持断点续跑（缓存 json）。"""
+import glob
 import json
 import os
-import glob
 
 import yaml
 
-from . import audio_utils, transcriber, translator, subtitle, transcript
+from . import audio_utils, subtitle, transcriber, transcript, translator
 
 
 def _resolve(base_dir: str, p: str) -> str:
@@ -29,6 +29,7 @@ def _dominant_language(segs: list) -> str:
 
 
 import re as _re
+
 _CJK = _re.compile(r"[\u3400-\u9fff]")
 _ASCII_LETTER = _re.compile(r"[A-Za-z]")
 

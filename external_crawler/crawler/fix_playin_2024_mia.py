@@ -2,13 +2,17 @@
 """修正 2024-04-19 MIA@CHI 这场 Play-In: 之前仅从 player_game_details 转入 6 行(不完整),
 CDN 补爬时被 NOT EXISTS 跳过。现用 cdn.nba.com boxscore(0052300201) 全量替换。
 可回滚: 先备 6 行到 backup 表, 再 DELETE + INSERT 全量。"""
-import sys, os, time, json
+import json
+import os
+import sys
+import time
+
 sys.stdout.reconfigure(encoding="utf-8")
 for k in ("HTTP_PROXY","HTTPS_PROXY","http_proxy","https_proxy","ALL_PROXY","all_proxy"):
     os.environ.pop(k, None)
 import psycopg2
-from psycopg2.extras import execute_batch
 from curl_cffi import requests
+from psycopg2.extras import execute_batch
 
 ROOT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
 PW = "R!h0N-ctlg=xB01V_-1VJcFeCCuBjS6UCvV1"
@@ -75,7 +79,7 @@ def parse(gid10, data, season):
 def main():
     conn = psycopg2.connect(**DB); cur = conn.cursor()
     # 0) 备份旧 6 行
-    cur.execute(f"DROP TABLE IF EXISTS player_gamelog_playin_2024mia_bak_20260817")
+    cur.execute("DROP TABLE IF EXISTS player_gamelog_playin_2024mia_bak_20260817")
     cur.execute(f"CREATE TABLE player_gamelog_playin_2024mia_bak_20260817 AS SELECT * FROM player_gamelog WHERE game_id_full='{OLD_GID}'")
     cur.execute(f"SELECT COUNT(*) FROM player_gamelog WHERE game_id_full='{OLD_GID}'")
     old_n = cur.fetchone()[0]

@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """抓 202404190MIA 三页存盘 + 离线打印投篮图/正负值表结构。"""
-import sys, json, time, urllib.request, urllib.parse, os
+import json
+import os
+import sys
+import time
+import urllib.parse
+import urllib.request
+
 sys.stdout.reconfigure(encoding="utf-8")
 sys.path.insert(0, "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13")
 import websocket
@@ -74,7 +80,7 @@ def main():
             if tid and tid.startswith("shooting-"):
                 dump_table(tbl, tid)
             elif tag == "pm":
-                dump_table(tbl, f"pm-table")
+                dump_table(tbl, "pm-table")
 
 if __name__ == "__main__":
     main()

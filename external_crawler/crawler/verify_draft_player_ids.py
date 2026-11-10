@@ -59,13 +59,13 @@ Design notes
 
 from __future__ import annotations
 
-import os
-import sys
-import re
-import csv
-import time
-import logging
 import argparse
+import csv
+import logging
+import os
+import re
+import sys
+import time
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 

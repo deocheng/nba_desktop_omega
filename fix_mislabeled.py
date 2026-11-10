@@ -8,8 +8,10 @@ Also reports PBP/gamelog coverage for these 7 and for the whole 2026 Playoffs,
 so we know if playoff PBP also needs backfilling.
 """
 from __future__ import annotations
+
 import psycopg2
 from psycopg2.extras import RealDictCursor
+
 from backend.core import config
 
 conn = psycopg2.connect(**config.DB_CONFIG, cursor_factory=RealDictCursor)
@@ -69,7 +71,7 @@ cur.execute("""
     WHERE g.season=2026 AND g.season_type='Playoffs' AND g.nba_api_id IS NOT NULL
 """)
 po_with_pbp = cur.fetchone()['c']
-print(f"\n=== 2026 Playoffs PBP coverage ===")
+print("\n=== 2026 Playoffs PBP coverage ===")
 print(f"  total PO games: {total_po}")
 print(f"  PO games with PBP (nba_api key): {po_with_pbp}  (missing {total_po - po_with_pbp})")
 

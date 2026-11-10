@@ -20,9 +20,10 @@ from __future__ import annotations
 
 import logging
 import os
-import psycopg2
 from pathlib import Path
 from typing import List, Optional
+
+import psycopg2
 
 # 复用基类（反屏蔽/限速/CF/失败登记/解析纯函数均在其内）
 from common.br_team_page import BRTeamPageCrawler

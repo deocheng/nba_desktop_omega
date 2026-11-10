@@ -13,9 +13,16 @@ Box Plus/Minus (BPM) 作为替代指标，映射到 player_epm 表：
     .venv/bin/python supplement_bpm_1997_2001.py            # 默认 dry-run 预览
     .venv/bin/python supplement_bpm_1997_2001.py --write   # 落库(先建备份表+manifest)
 """
-import os, sys, re, json, subprocess, time, psycopg2
-from bs4 import BeautifulSoup
+import json
+import os
+import re
+import subprocess
+import sys
+import time
 from datetime import datetime
+
+import psycopg2
+from bs4 import BeautifulSoup
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 CACHE = os.path.join(ROOT, "raw_archive", "bbr_bpm")

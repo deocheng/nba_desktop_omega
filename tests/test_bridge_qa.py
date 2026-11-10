@@ -16,8 +16,8 @@
 # ============================================================================
 from __future__ import annotations
 
-import os
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -33,9 +33,9 @@ if PROJECT_ROOT not in sys.path:
 
 # 被测模块
 import raw_archiver  # noqa: E402
+from common.bridge_constants import PG_DSN  # noqa: E402
+from common.bridge_constants import PROJECT_ROOT as BR_ROOT
 from matcher import match_game  # noqa: E402
-from common.bridge_constants import PG_DSN, PROJECT_ROOT as BR_ROOT  # noqa: E402
-
 
 # ---------------------------------------------------------------------------
 # 工具：运行工程脚本（subprocess）

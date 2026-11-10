@@ -38,12 +38,12 @@ USAGE
     .venv/bin/python scripts/daily_metrics_snapshot.py --no-fetch      # reuse cache
     .venv/bin/python scripts/daily_metrics_snapshot.py --limit 40      # smoke test
 """
-import io
-import os
-import sys
-import json
 import argparse
+import io
+import json
+import os
 import subprocess
+import sys
 from datetime import date
 from pathlib import Path
 
@@ -431,7 +431,7 @@ def connect():
 
 
 def upsert_rows(conn, rows):
-    from psycopg2.extras import execute_batch, Json
+    from psycopg2.extras import Json, execute_batch
     params = [
         (r["snapshot_date"], r["metric"], r["player_key"], r["source"],
          r["nba_id"], r["player_name"], r["team_abbr"], r["season_label"],

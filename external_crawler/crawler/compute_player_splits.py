@@ -20,10 +20,11 @@ Split 类型:
 """
 
 import argparse
-import psycopg2
 import sys
 import time
 from datetime import datetime
+
+import psycopg2
 
 DB_CONFIG = {
     'host': 'localhost',
@@ -458,7 +459,7 @@ def build_split_sql(season, split_type):
 
 def verify(cur, season=None):
     """验证结果"""
-    print(f"\n[3/4] 验证数据...")
+    print("\n[3/4] 验证数据...")
 
     if season:
         cur.execute("""
@@ -497,7 +498,7 @@ def verify(cur, season=None):
     """)
     rows = cur.fetchall()
     if rows:
-        print(f"\n  📝 样本: LeBron James 2026")
+        print("\n  📝 样本: LeBron James 2026")
         print(f"  {'Category':15s} {'Split':15s} {'G':>4s} {'PTS':>6s} {'REB':>5s} {'AST':>5s} {'FG%':>6s} {'3P%':>6s} {'+/-':>6s}")
         for r in rows:
             print(f"  {r[0]:15s} {r[1]:15s} {r[2]:>4} {r[3]:>6} {r[4]:>5} {r[5]:>5} {r[6]!s:>6} {r[7]!s:>6} {r[8]!s:>6}")
@@ -536,7 +537,7 @@ def main():
                 sys.exit(1)
 
     print("=" * 70)
-    print(f"  Player Season Splits — 从数据库计算")
+    print("  Player Season Splits — 从数据库计算")
     print(f"  赛季: {seasons}")
     print(f"  Split 类型: {split_types}")
     print("=" * 70)
@@ -551,7 +552,7 @@ def main():
     verify(cur, seasons[0] if len(seasons) == 1 else None)
 
     # Step 4: Create index if not exists
-    print(f"\n[4/4] 创建索引...")
+    print("\n[4/4] 创建索引...")
     cur.execute("""
         CREATE INDEX IF NOT EXISTS idx_pss_season_category 
         ON player_season_splits (season, split_category)

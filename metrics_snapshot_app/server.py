@@ -20,10 +20,10 @@ import os
 import signal
 import threading
 import urllib.parse
-from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from job_manager import JobManager, ROOT, METRICS
+from job_manager import METRICS, ROOT, JobManager
 
 PORT = 8791
 APP_DIR = Path(__file__).resolve().parent

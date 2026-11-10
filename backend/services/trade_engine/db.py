@@ -20,7 +20,8 @@ from psycopg2 import connect
 from psycopg2.extras import RealDictCursor
 from psycopg2.pool import ThreadedConnectionPool
 
-from backend.core import config, db as core_db
+from backend.core import config
+from backend.core import db as core_db
 from backend.services.trade_engine import constants, schemas
 
 logger = logging.getLogger("nbacore.trade.db")

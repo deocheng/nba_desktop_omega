@@ -3,8 +3,9 @@
 重新聚合player_career_totals（修正字段名）
 """
 
-import psycopg2
 import os
+
+import psycopg2
 from dotenv import load_dotenv
 
 load_dotenv()

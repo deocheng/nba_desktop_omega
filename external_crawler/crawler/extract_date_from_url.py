@@ -6,9 +6,10 @@
 boxscore_url 格式: https://www.basketball-reference.com/boxscores/202510210OKC.html
 """
 
-import psycopg2
-import re
 import logging
+import re
+
+import psycopg2
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("ExtractDateFromURL")

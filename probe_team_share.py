@@ -1,4 +1,5 @@
 import sys
+
 sys.path.insert(0, ".")
 from backend.core.db import batch_query
 

@@ -31,30 +31,31 @@ BR 联盟赛程页 <-> dim_games 脏数据核查 (全量 1996-2026)。
   python recon_games_br.py --verify-only   # 仅 YYYY=2026 验证季
   python recon_games_br.py --all           # 全量 (断点续跑: 已完成的季自动跳过)
 """
-import os
-import sys
-import re
+import argparse
 import json
-import time
+import os
+import re
 import shutil
 import subprocess
-import argparse
-from datetime import datetime
+import sys
+import time
 from collections import defaultdict
+from datetime import datetime
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 import psycopg2
-from psycopg2.extensions import AsIs
 from dotenv import load_dotenv
+from psycopg2.extensions import AsIs
+
 load_dotenv(os.path.join(HERE, ".env"))
 # 代理会破坏 undetected_chromedriver, 清掉
 for k in ("http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY", "all_proxy", "ALL_PROXY"):
     os.environ.pop(k, None)
 
-from bs4 import BeautifulSoup, Comment
 import undetected_chromedriver as uc
+from bs4 import BeautifulSoup, Comment
 from selenium.common.exceptions import SessionNotCreatedException, WebDriverException
 
 REPORT = "/tmp/dirty_games_report.json"

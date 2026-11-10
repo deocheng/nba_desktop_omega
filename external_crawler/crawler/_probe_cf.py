@@ -1,11 +1,13 @@
 """CF 探针：用默认(headless Playwright)后端尝试抓一个 BR 球员页，
 判断当前无头通道能否过 Cloudflare。若打印 CLEARED → 无头可用；
 若 CF_CHALLENGE_RAISED → 无头被拦，需切 CDP(用户浏览器 9222)。"""
-import sys, time, os
+import os
+import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(".").resolve()))
-from common.browser import get_driver, CFChallengeError  # noqa: E402
+from common.browser import CFChallengeError, get_driver  # noqa: E402
 
 # 清掉上次爬行的旧 flag，保证本次判定干净
 _FLAG = "/tmp/br_cf_challenge.flag"
