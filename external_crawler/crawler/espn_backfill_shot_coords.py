@@ -75,6 +75,17 @@ _OUR_TO_ESPN_MAP = {
 }
 _ESPN_TO_OUR_MAP = {v: k for k, v in _OUR_TO_ESPN_MAP.items()}
 
+# 🔴 ESPN 个别场次的 team.abbreviation 与同季其余场次不一致（2026-11-10 实测）：
+#    2022-10-06 / 2022-10-09 两场灰熊写作 'MRC'，而 2022-10-01~2023-01-15
+#    期间其余 47 场均为 'MEM'。旧代码无此映射 → espn_to_our('MRC') 原样返回
+#    'MRC'，与我们的 'MEM' 比对失败 → `resolve_event_id` 静默返回 None，
+#    该场次永远无法回填（表现为「ESPN 抓取失败/无法解析」而非报错）。
+#
+#    只补 **ESPN → 我们** 单向：反向（我们→ESPN）绝不能改成 'MRC'，
+#    否则 matcher / 投篮坐标回补会去找 ESPN 现在已不用的缩写，
+#    反而把原本正常的 47 场弄坏（our_to_espn('MEM') 必须仍是 'MEM'）。
+_ESPN_TO_OUR_MAP["MRC"] = "MEM"
+
 
 def our_to_espn(abbr: str | None) -> str | None:
     if not abbr:

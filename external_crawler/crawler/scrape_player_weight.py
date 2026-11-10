@@ -47,13 +47,19 @@ from br_safe_scraper import BR_BASE, HAS_BS4, SafeBRScraper
 # the local parameterized upsert below.
 _USE_BACKEND_WRITER = False
 try:
-    _OMEGA_ROOT = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", "nba_desktop", "nba_desktop_omega")
-    )
-    if os.path.isdir(_OMEGA_ROOT):
-        sys.path.insert(0, _OMEGA_ROOT)
-        from backend.data_layer.weight_writer import upsert_player_weight  # noqa: F401
-        _USE_BACKEND_WRITER = True
+    _CRAWLER_DIR = os.path.dirname(os.path.abspath(__file__))
+    # 两种布局都要认：
+    #   a) external_crawler/nba_desktop/nba_desktop_omega/（旧嵌套布局）
+    #   b) 仓库根（当前布局：external_crawler/crawler/ 之上两级即仓库根）
+    for _cand in (
+        os.path.abspath(os.path.join(_CRAWLER_DIR, "..", "nba_desktop", "nba_desktop_omega")),
+        os.path.abspath(os.path.join(_CRAWLER_DIR, "..", "..")),
+    ):
+        if os.path.isdir(os.path.join(_cand, "backend", "data_layer")):
+            sys.path.insert(0, _cand)
+            from backend.data_layer.weight_writer import upsert_player_weight  # noqa: F401
+            _USE_BACKEND_WRITER = True
+            break
 except Exception:  # pragma: no cover - optional integration
     _USE_BACKEND_WRITER = False
 
@@ -70,13 +76,43 @@ logging.basicConfig(
 )
 logger = logging.getLogger("WeightScraper")
 
-DB_CONFIG = {
-    "host": "localhost",
-    "port": 5433,
-    "dbname": "nba",
-    "user": "postgres",
-    "password": "postgres",
-}
+
+def _load_dotenv_quietly() -> None:
+    """把仓库根 .env 灌进 os.environ（若存在且 python-dotenv 可用）。
+
+    crawler 常常独立于 backend 包运行，此时没有 config 模块代劳加载 .env；
+    这里做一次 best-effort 加载，失败不致命（后续 DB 连接会明确报错）。
+    """
+    try:
+        from dotenv import load_dotenv
+    except Exception:  # pragma: no cover - dotenv 未安装
+        return
+    root = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+    for cand in (os.path.join(root, ".env"), os.path.join(os.getcwd(), ".env")):
+        if os.path.isfile(cand):
+            load_dotenv(cand, override=False)
+            return
+
+
+def _db_config() -> dict:
+    """DB 连接配置 —— 口令与端点一律走 env（禁止硬编码）。
+
+    🔴 2026-11-10 修正：此前此处硬编码 ``password="postgres"``，与生产库实际
+       口令不符 → 脚本连库直接 ``FATAL: password authentication failed``，
+       即**整个补爬脚本在当前环境下完全不可用**。
+    """
+    _load_dotenv_quietly()
+    pw = os.environ.get("DB_PASSWORD") or os.environ.get("PGPASSWORD") or ""
+    return {
+        "host": os.environ.get("DB_HOST", "localhost"),
+        "port": int(os.environ.get("DB_PORT", "5433")),
+        "dbname": os.environ.get("DB_NAME", "nba"),
+        "user": os.environ.get("DB_USER", "postgres"),
+        "password": pw.strip().strip('"').strip("'"),
+    }
+
+
+DB_CONFIG = _db_config()
 
 DEFAULT_BATCH = 20  # 默认每批 20 个球员
 
@@ -169,32 +205,40 @@ def ensure_table(conn):
 
 
 def get_players_to_scrape(conn, batch_size=DEFAULT_BATCH, single_player=None):
-    """Get list of player_ids to scrape (skip already done)."""
+    """Get list of player_ids to scrape (skip already done).
+
+    🔴 2026-11-10 修正：候选宇宙原为 ``player_per_game``（= 有赛季统计的球员），
+       比目标表窄 —— 2026-11-10 实测有 9 名 dim_players 球员缺 weight，其中 6 人
+       从未出现在 player_per_game（无 fact 赛季行），因此**永远不会被补爬**
+       （"Remaining players to scrape: 3" 正是当年的老 3 人）。
+       改为以 ``dim_players``（权威球员表）为候选宇宙，与目标口径一致。
+    """
     cur = conn.cursor()
 
     if single_player:
+        # 显式指定时以 dim_players 为准（该球员可能没有任何赛季统计行）
         cur.execute("""
-            SELECT player_id, player FROM player_per_game
+            SELECT player_id, player_name FROM dim_players
             WHERE player_id = %s
             LIMIT 1
         """, (single_player,))
     else:
         if batch_size > 0:
             cur.execute("""
-                SELECT DISTINCT ppg.player_id, ppg.player
-                FROM player_per_game ppg
-                WHERE ppg.player_id IS NOT NULL
-                  AND ppg.player_id NOT IN (SELECT player_id FROM player_weight_history)
-                ORDER BY ppg.player_id
+                SELECT DISTINCT d.player_id, d.player_name
+                FROM dim_players d
+                WHERE d.player_id IS NOT NULL
+                  AND d.player_id NOT IN (SELECT player_id FROM player_weight_history)
+                ORDER BY d.player_id
                 LIMIT %s
             """, (batch_size,))
         else:
             cur.execute("""
-                SELECT DISTINCT ppg.player_id, ppg.player
-                FROM player_per_game ppg
-                WHERE ppg.player_id IS NOT NULL
-                  AND ppg.player_id NOT IN (SELECT player_id FROM player_weight_history)
-                ORDER BY ppg.player_id
+                SELECT DISTINCT d.player_id, d.player_name
+                FROM dim_players d
+                WHERE d.player_id IS NOT NULL
+                  AND d.player_id NOT IN (SELECT player_id FROM player_weight_history)
+                ORDER BY d.player_id
             """)
 
     rows = cur.fetchall()
@@ -203,13 +247,13 @@ def get_players_to_scrape(conn, batch_size=DEFAULT_BATCH, single_player=None):
 
 
 def get_remaining_count(conn) -> int:
-    """获取还需要爬取的球员总数"""
+    """获取还需要爬取的球员总数（候选宇宙与 get_players_to_scrape 一致：dim_players）。"""
     cur = conn.cursor()
     cur.execute("""
-        SELECT COUNT(DISTINCT ppg.player_id)
-        FROM player_per_game ppg
-        WHERE ppg.player_id IS NOT NULL
-          AND ppg.player_id NOT IN (SELECT player_id FROM player_weight_history)
+        SELECT COUNT(DISTINCT d.player_id)
+        FROM dim_players d
+        WHERE d.player_id IS NOT NULL
+          AND d.player_id NOT IN (SELECT player_id FROM player_weight_history)
     """)
     count = cur.fetchone()[0]
     cur.close()
@@ -356,8 +400,13 @@ def main():
                             f"Height: {info['height'] or '?'}")
             else:
                 no_weight += 1
-                save_player(conn, player_id, player_name, info)
-                logger.warning("  No weight data found (saved other info)")
+                # 🔴 2026-11-10 修正：此前此分支也调用 save_player → 写入
+                #    「weight/height/born 全 NULL」的空行，破坏 player_weight_history
+                #    的完整性不变量（with_kg == total），且每次重跑都会重新插入。
+                #    BR 页面确实没有体重字段的球员（实测 leedi01 / mitchmu01 /
+                #    wertira01 —— 页面只有 per-game 统计表，无 bio info 表）
+                #    **不写库**，只在日志留痕；其 dim_players.weight 保持 NULL。
+                logger.warning("  No weight data found (not persisted: row would carry no data)")
 
         # 进度报告
         if (i + 1) % 5 == 0 or i == len(players) - 1:
