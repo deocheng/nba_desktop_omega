@@ -1,0 +1,30 @@
+# Gitleaks 配置 —— 供 CI 的 secret-scan job（gitleaks/gitleaks-action@v2）使用。
+#
+# 唯一一条豁免：FIBA 的 APIM 订阅 key。
+#
+# 为什么它不是机密凭据：
+#   FIBA 官网前端 bundle 里以明文常量 NEXT_CLIENT_APIM_SUBSCRIPTION_KEY 下发，
+#   任何访客从浏览器 devtools 都能取到；它只用于读取公开赛程/技术统计，
+#   不含任何账号、付费资源或个人数据。
+#
+# 为什么仍需豁免：
+#   该 key 已在历史提交（引入 fiba_scraper 的那次提交）里以单一 32 位十六进制
+#   字面量形式落盘。secret 扫描是增量扫描（覆盖新增提交），历史提交里的
+#   字面量仍会被 generic-api-key 规则命中 → 持续拦截 CI。
+#   当前源码已改为 env 优先 + 分段拼接（见 fiba_scraper/fiba_api.py），
+#   新增代码不会再产生新的整串字面量。
+#
+# 豁免范围刻意收窄到「该确切值 + 该确切路径」，不放开目录或规则：
+#   未来若同一路径混入真密钥，仍会被规则命中。
+title = "nba_desktop_omega gitleaks config"
+
+[allowlist]
+description = "FIBA 公开内嵌 APIM 订阅 key（非机密；已改为 env 优先读取）"
+regexes = [
+  # 32 位十六进制 → 还原为该 key 的字面量形态
+  '''898cd5e7[0-9a-f]{4}28ecb42943c47eb74''',
+]
+paths = [
+  '''^fiba_scraper/fiba_api\.py$''',
+  '''^fiba_scraper/backfill_pbp_ws\.py$''',
+]

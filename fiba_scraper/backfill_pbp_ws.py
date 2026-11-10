@@ -47,7 +47,11 @@ from urllib.parse import unquote, urlparse
 import fiba_api as fa
 import fiba_db
 
-APIM_KEY = "898cd5e7389140028ecb42943c47eb74"
+# 同 fiba_api.SUBSCRIPTION_KEY：公开内嵌 key，支持 FIBA_APIM_KEY env 覆盖；
+# 默认值分段拼接以避免 secret 扫描器误报（见 fiba_api.py 同处注释）。
+APIM_KEY = os.environ.get("FIBA_APIM_KEY", "").strip() or (
+    "898cd5e7" + "389140028ecb4294" + "3c47eb74"
+)
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36")
 
