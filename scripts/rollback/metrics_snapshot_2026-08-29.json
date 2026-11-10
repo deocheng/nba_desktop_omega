@@ -1,0 +1,26 @@
+{
+  "action": "daily_metrics_snapshot",
+  "snapshot_date": "2026-08-29",
+  "table": "public.player_metrics_daily",
+  "archive_dir": "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/metrics_snapshot/raw_archive/2026-08-29",
+  "metrics": {
+    "dpm": {
+      "rows": 530,
+      "status": "ok"
+    },
+    "rapm": {
+      "rows": 529,
+      "status": "ok"
+    },
+    "lebron": {
+      "rows": 582,
+      "status": "ok"
+    }
+  },
+  "rollback_sql": [
+    "DELETE FROM public.player_metrics_daily WHERE snapshot_date = '2026-08-29' AND metric = 'dpm';",
+    "DELETE FROM public.player_metrics_daily WHERE snapshot_date = '2026-08-29' AND metric = 'lebron';",
+    "DELETE FROM public.player_metrics_daily WHERE snapshot_date = '2026-08-29' AND metric = 'rapm';"
+  ],
+  "notes": "Idempotent UPSERT on PK (snapshot_date, metric, player_key). Rollback = delete that date+metric slice; no other rows are touched."
+}

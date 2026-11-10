@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import os, unicodedata
-BASE = "/Users/deocheng/Downloads/nba_desktop_omega_mac_migrate_2026-07-13"
+BASE = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
 cfg = {}
 with open(os.path.join(BASE, ".env")) as f:
     for line in f:

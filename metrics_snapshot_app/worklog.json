@@ -1,0 +1,22 @@
+[
+  {
+    "id": "snapshot-1788004888280",
+    "kind": "snapshot",
+    "metrics": [
+      "dpm"
+    ],
+    "date": null,
+    "dry_run": true,
+    "no_fetch": true,
+    "limit": 0,
+    "lebron_season": "2025-26",
+    "status": "done",
+    "pid": 62300,
+    "cmd": "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/.venv/bin/python scripts/daily_metrics_snapshot.py --metrics dpm --dry-run --no-fetch --lebron-season 2025-26",
+    "log_file": "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/metrics_snapshot_app/logs/snapshot-1788004888280.log",
+    "started_at": "2026-08-29T20:01:28",
+    "finished_at": "2026-08-29T20:01:28",
+    "exit_code": 0,
+    "summary": "           Kawhi Leonard: 5.85453 |            Shai Gilgeous-Alexander: 5.61163 |            Giannis Antetokounmpo: 4.5906 | === summary === |   dpm      rows=530   dry-run |   all metrics ok (exit 0)"
+  }
+]

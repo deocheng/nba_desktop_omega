@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# NBA 指标快照面板 — 双击启动器（.app 包，无终端窗口）
+# 双击后：起本地服务 (127.0.0.1:8791) + 自动打开浏览器面板。
+set -u
+# 解析符号链接到真实路径（经 /Applications 符号链接双击时 $0 是链接路径，必须 readlink -f）
+REAL="$(readlink -f "$0" 2>/dev/null || "$0")"
+APP_DIR="$(cd "$(dirname "$REAL")" && pwd)"       # .../MetricsSnapshot.app/Contents/MacOS
+ROOT="$(cd "$APP_DIR/../../../.." && pwd)"         # 项目根（MacOS→Contents→.app→metrics_snapshot_app→root）
+# 兜底：相对推导失败时退回绝对路径
+if [ ! -d "$ROOT/metrics_snapshot_app" ]; then
+  ROOT="/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
+fi
+cd "$ROOT" || exit 1
+
+PORT=8791
+unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY
+mkdir -p "$ROOT/metrics_snapshot_app/logs"
+
+# 端口已被占用 → 直接开浏览器（服务已在跑）
+if command -v lsof >/dev/null 2>&1; then
+  OLD="$(lsof -tiTCP:"$PORT" -sTCP:LISTEN 2>/dev/null || true)"
+  if [ -n "${OLD:-}" ]; then
+    open "http://127.0.0.1:$PORT" 2>/dev/null || true
+    exit 0
+  fi
+fi
+
+echo "[launch] 项目根: $ROOT"
+nohup "$ROOT/.venv/bin/python" metrics_snapshot_app/server.py > "$ROOT/metrics_snapshot_app/logs/server.out" 2>&1 &
+echo $! > "$ROOT/metrics_snapshot_app/logs/server.pid"
+
+for i in $(seq 1 40); do
+  if curl --noproxy '*' -s -o /dev/null "http://127.0.0.1:$PORT/api/status" 2>/dev/null; then
+    break
+  fi
+  sleep 0.5
+done
+
+open "http://127.0.0.1:$PORT" 2>/dev/null || \
+  echo "[launch] 请手动打开 http://127.0.0.1:$PORT"
+exit 0

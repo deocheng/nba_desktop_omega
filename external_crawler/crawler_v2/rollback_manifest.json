@@ -1,0 +1,57 @@
+{
+  "v2_project": "br_crawler_v2",
+  "created_at": "2026-08-25",
+  "author": "WorkBuddy (小虾)",
+  "principle": "回滚铁律：旧版本(OLD)零改动，v2 为新增同级目录(ADDITIVE)。回滚=删除整个 crawler_v2/ 目录，旧代码与数据不受影响。",
+  "old_version": {
+    "root": "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/external_crawler/crawler/",
+    "status": "UNTOUCHED",
+    "preserved_evidence": [
+      "external_crawler/crawler/crawl_br_gamelog.py (1306行, 未改动)",
+      "external_crawler/crawler/br_fill_pbp.py 位于迁移包根 (543行, 未改动)",
+      "external_crawler/crawler/crawler_watchdog.sh (250行, 未改动)",
+      "external_crawler/crawler/crawler_watchdog_v2.sh (275行, 未改动)",
+      "external_crawler/nba_daily_crawler.py (1515行, 未改动)"
+    ]
+  },
+  "v2_version": {
+    "root": "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/external_crawler/crawler_v2/",
+    "rollback_action": "rm -rf /Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/external_crawler/crawler_v2",
+    "reversible": true,
+    "risk_to_old": "NONE (独立新目录，无任何 import 反向指向旧代码会破坏旧版；v2 仅单向 import 复用旧 parse/DB 函数)"
+  },
+  "files_created": [
+    "core/__init__.py",
+    "core/config.py",
+    "core/retry.py",
+    "core/cache.py",
+    "core/proxy.py",
+    "core/store.py",
+    "core/base_crawler.py",
+    "adapters/__init__.py",
+    "daemon/__init__.py",
+    "tests/__init__.py"
+  ],
+  "files_pending": [],
+  "status": "COMPLETE 2026-08-26",
+  "verification": {
+    "py_compile": "OK (全部 13 个 .py 通过)",
+    "import_smoke": "12/12 模块 import 通过",
+    "parser_fixture_tests": {
+      "pytest": "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/.venv/bin/python -m pytest tests/",
+      "test_br_pbp_parser.py": "5 passed",
+      "test_br_gamelog_parser.py": "3 passed",
+      "fixtures": "tests/fixtures/ (3 PBP + 2 gamelog 真实归档 HTML)"
+    },
+    "old_untouched": "crawler/ 下无 .py 近 3 天改动；关键文件 mtime 仍 7-19/8-9/8-12/8-16"
+  },
+  "old_to_v2_mapping": {
+    "br_fill_pbp.py": "adapters/br_pbp_adapter.py (复用 br_pbp_parse.parse_pbp + raw_archiver)",
+    "crawl_br_gamelog.py": "adapters/br_gamelog_adapter.py (复用既有 parse/DB 约定)",
+    "crawler_watchdog.sh + crawler_watchdog_v2.sh + nba_daily_crawler.BrowserManager": "daemon/watchdog.py + daemon/runner.py",
+    "cf_breaker 逻辑": "core/proxy.py:CfClearanceProvider(带 TTL) + daemon 内 MAX_STALL→PAUSED",
+    "handoff_watcher 逻辑": "daemon/runner.py:gap 归零切源",
+    "verify_gaps 门禁": "daemon/runner.py:selfcheck() 复用 verify_gaps.py",
+    "raw_archiver / pbp_raw / gamelog_cache": "core/cache.py:LocalCache (TTL + 持久化)"
+  }
+}

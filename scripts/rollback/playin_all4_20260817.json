@@ -1,0 +1,356 @@
+{
+ "created_at": "2026-08-18T06:16:53.647451",
+ "task": "Play-In 37场 四维补齐: PBP + ShotChart + PlusMinus (独立表)",
+ "games": [
+  {
+   "season": 2020,
+   "game_id_full": "51900111",
+   "br_game_id": "202008150POR",
+   "br_url_id": "202008150POR",
+   "game_date": "2020-08-15",
+   "home": "POR",
+   "away": "MEM"
+  },
+  {
+   "season": 2021,
+   "game_id_full": "52000101",
+   "br_game_id": "202105180BOS",
+   "br_url_id": "202105180BOS",
+   "game_date": "2021-05-18",
+   "home": "BOS",
+   "away": "WAS"
+  },
+  {
+   "season": 2021,
+   "game_id_full": "52000111",
+   "br_game_id": "202105180IND",
+   "br_url_id": "202105180IND",
+   "game_date": "2021-05-18",
+   "home": "IND",
+   "away": "CHA"
+  },
+  {
+   "season": 2021,
+   "game_id_full": "52000131",
+   "br_game_id": "202105190MEM",
+   "br_url_id": "202105190MEM",
+   "game_date": "2021-05-19",
+   "home": "MEM",
+   "away": "SAS"
+  },
+  {
+   "season": 2021,
+   "game_id_full": "52000121",
+   "br_game_id": "202105190LAL",
+   "br_url_id": "202105190LAL",
+   "game_date": "2021-05-19",
+   "home": "LAL",
+   "away": "GSW"
+  },
+  {
+   "season": 2021,
+   "game_id_full": "52000201",
+   "br_game_id": "202105200WAS",
+   "br_url_id": "202105200WAS",
+   "game_date": "2021-05-20",
+   "home": "WAS",
+   "away": "IND"
+  },
+  {
+   "season": 2021,
+   "game_id_full": "52000211",
+   "br_game_id": "202105210GSW",
+   "br_url_id": "202105210GSW",
+   "game_date": "2021-05-21",
+   "home": "GSW",
+   "away": "MEM"
+  },
+  {
+   "season": 2022,
+   "game_id_full": "52100101",
+   "br_game_id": "202204120BRK",
+   "br_url_id": "202204120BRK",
+   "game_date": "2022-04-12",
+   "home": "BKN",
+   "away": "CLE"
+  },
+  {
+   "season": 2022,
+   "game_id_full": "52100121",
+   "br_game_id": "202204120MIN",
+   "br_url_id": "202204120MIN",
+   "game_date": "2022-04-12",
+   "home": "MIN",
+   "away": "LAC"
+  },
+  {
+   "season": 2022,
+   "game_id_full": "52100111",
+   "br_game_id": "202204130ATL",
+   "br_url_id": "202204130ATL",
+   "game_date": "2022-04-13",
+   "home": "ATL",
+   "away": "CHA"
+  },
+  {
+   "season": 2022,
+   "game_id_full": "52100131",
+   "br_game_id": "202204130NOP",
+   "br_url_id": "202204130NOP",
+   "game_date": "2022-04-13",
+   "home": "NOP",
+   "away": "SAS"
+  },
+  {
+   "season": 2022,
+   "game_id_full": "52100211",
+   "br_game_id": "202204150LAC",
+   "br_url_id": "202204150LAC",
+   "game_date": "2022-04-15",
+   "home": "LAC",
+   "away": "NOP"
+  },
+  {
+   "season": 2022,
+   "game_id_full": "52100201",
+   "br_game_id": "202204150CLE",
+   "br_url_id": "202204150CLE",
+   "game_date": "2022-04-15",
+   "home": "CLE",
+   "away": "ATL"
+  },
+  {
+   "season": 2023,
+   "game_id_full": "0052200121",
+   "br_game_id": "202304110LAL",
+   "br_url_id": "202304110LAL",
+   "game_date": "2023-04-11",
+   "home": "LAL",
+   "away": "MIN"
+  },
+  {
+   "season": 2023,
+   "game_id_full": "0052200101",
+   "br_game_id": "202304110MIA",
+   "br_url_id": "202304110MIA",
+   "game_date": "2023-04-11",
+   "home": "MIA",
+   "away": "ATL"
+  },
+  {
+   "season": 2023,
+   "game_id_full": "0052200111",
+   "br_game_id": "202304120TOR",
+   "br_url_id": "202304120TOR",
+   "game_date": "2023-04-12",
+   "home": "TOR",
+   "away": "CHI"
+  },
+  {
+   "season": 2023,
+   "game_id_full": "0052200131",
+   "br_game_id": "202304120NOP",
+   "br_url_id": "202304120NOP",
+   "game_date": "2023-04-12",
+   "home": "NOP",
+   "away": "OKC"
+  },
+  {
+   "season": 2023,
+   "game_id_full": "0052200211",
+   "br_game_id": "202304140MIN",
+   "br_url_id": "202304140MIN",
+   "game_date": "2023-04-14",
+   "home": "MIN",
+   "away": "OKC"
+  },
+  {
+   "season": 2023,
+   "game_id_full": "0052200201",
+   "br_game_id": "202304140MIA",
+   "br_url_id": "202304140MIA",
+   "game_date": "2023-04-14",
+   "home": "MIA",
+   "away": "CHI"
+  },
+  {
+   "season": 2024,
+   "game_id_full": "0052300131",
+   "br_game_id": "202404160SAC",
+   "br_url_id": "202404160SAC",
+   "game_date": "2024-04-16",
+   "home": "SAC",
+   "away": "GSW"
+  },
+  {
+   "season": 2024,
+   "game_id_full": "0052300121",
+   "br_game_id": "202404160NOP",
+   "br_url_id": "202404160NOP",
+   "game_date": "2024-04-16",
+   "home": "NOP",
+   "away": "LAL"
+  },
+  {
+   "season": 2024,
+   "game_id_full": "0052300101",
+   "br_game_id": "202404170PHI",
+   "br_url_id": "202404170PHI",
+   "game_date": "2024-04-17",
+   "home": "PHI",
+   "away": "MIA"
+  },
+  {
+   "season": 2024,
+   "game_id_full": "0052300111",
+   "br_game_id": "202404170CHI",
+   "br_url_id": "202404170CHI",
+   "game_date": "2024-04-17",
+   "home": "CHI",
+   "away": "ATL"
+  },
+  {
+   "season": 2024,
+   "game_id_full": "0052300211",
+   "br_game_id": "202404190NOP",
+   "br_url_id": "202404190NOP",
+   "game_date": "2024-04-19",
+   "home": "NOP",
+   "away": "SAC"
+  },
+  {
+   "season": 2024,
+   "game_id_full": "0052300201",
+   "br_game_id": "202404190MIA",
+   "br_url_id": "202404190MIA",
+   "game_date": "2024-04-19",
+   "home": "MIA",
+   "away": "CHI"
+  },
+  {
+   "season": 2025,
+   "game_id_full": "52400101",
+   "br_game_id": "202504150ORL",
+   "br_url_id": "202504150ORL",
+   "game_date": "2025-04-15",
+   "home": "ORL",
+   "away": "ATL"
+  },
+  {
+   "season": 2025,
+   "game_id_full": "52400121",
+   "br_game_id": "202504150GSW",
+   "br_url_id": "202504150GSW",
+   "game_date": "2025-04-15",
+   "home": "GSW",
+   "away": "MEM"
+  },
+  {
+   "season": 2025,
+   "game_id_full": "52400131",
+   "br_game_id": "202504160SAC",
+   "br_url_id": "202504160SAC",
+   "game_date": "2025-04-16",
+   "home": "SAC",
+   "away": "DAL"
+  },
+  {
+   "season": 2025,
+   "game_id_full": "52400111",
+   "br_game_id": "202504160CHI",
+   "br_url_id": "202504160CHI",
+   "game_date": "2025-04-16",
+   "home": "CHI",
+   "away": "MIA"
+  },
+  {
+   "season": 2025,
+   "game_id_full": "52400211",
+   "br_game_id": "202504180MEM",
+   "br_url_id": "202504180MEM",
+   "game_date": "2025-04-18",
+   "home": "MEM",
+   "away": "DAL"
+  },
+  {
+   "season": 2025,
+   "game_id_full": "52400201",
+   "br_game_id": "202504180ATL",
+   "br_url_id": "202504180ATL",
+   "game_date": "2025-04-18",
+   "home": "ATL",
+   "away": "MIA"
+  },
+  {
+   "season": 2026,
+   "game_id_full": "0052500121",
+   "br_game_id": "202604140PHX",
+   "br_url_id": "202604140PHO",
+   "game_date": "2026-04-14",
+   "home": "PHO",
+   "away": "POR"
+  },
+  {
+   "season": 2026,
+   "game_id_full": "0052500111",
+   "br_game_id": "202604140CHA",
+   "br_url_id": "202604140CHO",
+   "game_date": "2026-04-14",
+   "home": "CHA",
+   "away": "MIA"
+  },
+  {
+   "season": 2026,
+   "game_id_full": "0052500101",
+   "br_game_id": "202604150PHI",
+   "br_url_id": "202604150PHI",
+   "game_date": "2026-04-15",
+   "home": "PHI",
+   "away": "ORL"
+  },
+  {
+   "season": 2026,
+   "game_id_full": "0052500131",
+   "br_game_id": "202604150LAC",
+   "br_url_id": "202604150LAC",
+   "game_date": "2026-04-15",
+   "home": "LAC",
+   "away": "GSW"
+  },
+  {
+   "season": 2026,
+   "game_id_full": "0052500211",
+   "br_game_id": "202604170PHX",
+   "br_url_id": "202604170PHO",
+   "game_date": "2026-04-17",
+   "home": "PHO",
+   "away": "GSW"
+  },
+  {
+   "season": 2026,
+   "game_id_full": "0052500201",
+   "br_game_id": "202604170ORL",
+   "br_url_id": "202604170ORL",
+   "game_date": "2026-04-17",
+   "home": "ORL",
+   "away": "CHA"
+  }
+ ],
+ "backups": [
+  {
+   "table": "player_gamelog_playin_pm_bak_20260817",
+   "rows": 1071,
+   "purpose": "player_gamelog play_in 切片含 plus_minus 旧值，回填前快照"
+  }
+ ],
+ "rollback_sql": [
+  "-- 1) 清除新增 PBP（37场）",
+  "DELETE FROM play_by_play WHERE gameid IN ('51900111','52000101','52000111','52000131','52000121','52000201','52000211','52100101','52100121','52100111','52100131','52100211','52100201','0052200121','0052200101','0052200111','0052200131','0052200211','0052200201','0052300131','0052300121','0052300101','0052300111','0052300211','0052300201','52400101','52400121','52400131','52400111','52400211','52400201','0052500121','0052500111','0052500101','0052500131','0052500211','0052500201');",
+  "-- 2) 清除新增投篮图（仅4场，且 season_type='Play-In' 保护既有行）",
+  "DELETE FROM player_shot_chart WHERE season_type='Play-In' AND game_id IN ('202008150POR','202105180BOS','202105180IND','202105190LAL','202105190MEM','202105200WAS','202105210GSW','202204120BRK','202204120MIN','202204130ATL','202204130NOP','202204150CLE','202204150LAC','202304110LAL','202304110MIA','202304120NOP','202304120TOR','202304140MIA','202304140MIN','202404160NOP','202404160SAC','202404170CHI','202404170PHI','202404190MIA','202404190NOP','202504150GSW','202504150ORL','202504160CHI','202504160SAC','202504180ATL','202504180MEM','202604140CHO','202604140PHO','202604150LAC','202604150PHI','202604170ORL','202604170PHO');",
+  "-- 3) 清空独立正负值表",
+  "TRUNCATE player_playin_plus_minus;",
+  "-- 4) 回滚 player_gamelog.plus_minus 回填",
+  "UPDATE player_gamelog g SET plus_minus = b.plus_minus FROM player_gamelog_playin_pm_bak_20260817 b WHERE g.game_id_full = b.game_id_full AND g.gameid = b.gameid AND g.player_name IS NOT DISTINCT FROM b.player_name AND g.game_type='play_in';"
+ ]
+}

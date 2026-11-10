@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, crawler-verified-2026-07-29, 'feature/**']
   pull_request:
-    branches: [main, master]
+    branches: [main, master, crawler-verified-2026-07-29, 'feature/**']
 
 jobs:
   secret-scan:
@@ -79,3 +79,29 @@ jobs:
           sleep 5
           curl -sf http://localhost:5577/health || exit 1
           docker stop nbacore-test
+
+  frontend-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Generate viz theme tokens
+        # theme_tokens.json 是 viz/base.py 的生成物且未纳入版本控制，
+        # 每次 CI 现生成，避免第 7 条契约断言被 t.skip 静默跳过；
+        # 也能捕获「改了 theme.py 色板却没同步测试预期」的回归。
+        run: python3 viz/base.py
+
+      - name: Run frontend contract tests
+        run: node --test frontend/tests/*.test.js
+
+      - name: report-size-gate
+        # 显式限定只扫描仓库根与 frontend/（脚本非递归），不依赖脚本默认值：
+        # reports/_pre_strip_backup/ 内存放 7 份剥离前原始 HTML（4.66~4.93 MB），
+        # 是刻意的例外，勿将其加入 dirs、勿改成递归 / 全仓扫描，否则硬门禁会被打爆。
+        run: python3 tools/check_report_size.py --max-mb 2 "$GITHUB_WORKSPACE" "$GITHUB_WORKSPACE/frontend"

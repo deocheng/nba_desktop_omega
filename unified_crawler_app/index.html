@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NBA 统一爬虫控制面板</title>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#161b22; --panel2:#1c2230; --border:#2a313c;
+    --txt:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --accent2:#3fb950;
+    --warn:#d29922; --bad:#f85149; --good:#3fb950; --chip:#21262d;
+    --fiba:#bc8cff; --br:#ff9e64;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}
+  a{color:var(--accent);text-decoration:none}
+  header{padding:14px 20px;border-bottom:1px solid var(--border);
+    display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:var(--panel)}
+  header h1{font-size:16px;margin:0;font-weight:600}
+  .stat{display:flex;flex-direction:column;line-height:1.25}
+  .stat .k{font-size:11px;color:var(--muted)}
+  .stat .v{font-size:15px;font-weight:600}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  .dot.on{background:var(--good)} .dot.off{background:var(--bad)}
+  main{padding:18px 20px;display:grid;gap:18px}
+  section{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px}
+  h2{font-size:13px;margin:0 0 12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+  h2 .tag{font-size:11px;padding:2px 8px;border-radius:20px;margin-left:8px;vertical-align:middle}
+  .tag.metrics{background:rgba(88,166,255,.18);color:var(--accent)}
+  .tag.fiba{background:rgba(188,140,255,.18);color:var(--fiba)}
+  .tag.br{background:rgba(255,158,100,.18);color:var(--br)}
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:880px){.cards{grid-template-columns:1fr}}
+  .card{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:8px}
+  .card .name{font-size:15px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+  .card .rows{font-size:26px;font-weight:700}
+  .meta{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+  .meta b{color:var(--txt);font-weight:600}
+  .bar{height:6px;border-radius:4px;background:#30363d;overflow:hidden}
+  .bar>i{display:block;height:100%;background:var(--accent2)}
+  .controls{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
+  .ctl{display:flex;flex-direction:column;gap:4px}
+  .ctl label{font-size:11px;color:var(--muted)}
+  input[type=text],input[type=number],input[type=date]{background:var(--panel2);border:1px solid var(--border);
+    color:var(--txt);border-radius:6px;padding:7px 9px;font-size:13px;min-width:120px}
+  .toggle{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer;user-select:none}
+  button{background:var(--accent);color:#08111f;border:none;border-radius:6px;padding:8px 14px;
+    font-size:13px;font-weight:600;cursor:pointer;transition:.12s}
+  button:hover{filter:brightness(1.08)}
+  button.ghost{background:var(--chip);color:var(--txt);border:1px solid var(--border)}
+  button.sm{padding:4px 9px;font-size:12px}
+  button.danger{background:var(--bad);color:#fff}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+  .brstatus{display:flex;align-items:center;gap:12px}
+  .brstatus .big{font-size:18px;font-weight:600}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+  td.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--muted)}
+  .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+  .b-running{background:rgba(88,166,255,.18);color:var(--accent)}
+  .b-done{background:rgba(63,185,80,.18);color:var(--good)}
+  .b-failed{background:rgba(248,81,73,.18);color:var(--bad)}
+  .b-stopped{background:rgba(210,153,34,.18);color:var(--warn)}
+  .b-superseded{background:rgba(139,148,158,.18);color:var(--muted)}
+  .log{background:#0a0d12;border:1px solid var(--border);border-radius:8px;padding:12px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;white-space:pre-wrap;
+    word-break:break-all;max-height:340px;overflow:auto;color:#c9d1d9;min-height:80px}
+  .log-empty{color:var(--muted);font-style:italic}
+  .pill{display:inline-block;background:var(--chip);border:1px solid var(--border);border-radius:20px;
+    padding:2px 9px;font-size:11px;margin:2px 4px 2px 0;cursor:pointer}
+  .pill:hover{border-color:var(--accent)}
+  .hint{font-size:12px;color:var(--muted);margin-top:8px}
+  .toast{position:fixed;bottom:22px;right:22px;background:var(--panel2);border:1px solid var(--border);
+    border-left:3px solid var(--accent);padding:11px 16px;border-radius:8px;font-size:13px;
+    box-shadow:0 6px 24px rgba(0,0,0,.5);opacity:0;transform:translateY(8px);transition:.2s;pointer-events:none}
+  .toast.show{opacity:1;transform:none}
+  .grid2{display:grid;grid-template-columns:1.3fr 1fr;gap:18px}
+  @media(max-width:880px){.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>NBA 统一爬虫控制面板</h1>
+  <div class="stat"><span class="k">指标库</span><span class="v"><span id="dbDot" class="dot off"></span><span id="dbTxt">…</span></span></div>
+  <div class="stat"><span class="k">FIBA 库</span><span class="v"><span id="fibaDot" class="dot off"></span><span id="fibaTxt">…</span></span></div>
+  <div class="stat"><span class="k">BR 爬虫</span><span class="v"><span id="brDot" class="dot off"></span><span id="brTxt">…</span></span></div>
+  <div class="stat"><span class="k">运行中任务</span><span class="v" id="runningCount">—</span></div>
+  <div class="stat"><span class="k">今天</span><span class="v" id="today">—</span></div>
+  <div class="stat" style="margin-left:auto"><span class="k">自动刷新</span><span class="v"><span id="refreshTxt">开</span> · <a href="#" id="toggleRefresh">点此暂停</a></span></div>
+</header>
+
+<main>
+  <!-- ============ 1. 指标快照 ============ -->
+  <section>
+    <h2>① NBA 高阶指标快照 <span class="tag metrics">DPM / RAPM / LEBRON</span></h2>
+    <div class="cards" id="srcCards"></div>
+    <div class="hint">覆盖率为带有效球队缩写 player 占比。每天点「单独抓取」追加一条新快照日；落库 nba.player_metrics_daily。</div>
+    <div class="controls" style="margin-top:12px">
+      <div class="ctl"><label>快照日期（默认今天）</label><input type="date" id="dateInput"></div>
+      <div class="ctl"><label>每源采样上限（0=全量）</label><input type="number" id="limitInput" value="0" min="0"></div>
+      <div class="ctl"><label>LEBRON 赛季</label><input type="text" id="lebronInput" value="2025-26"></div>
+      <label class="toggle"><input type="checkbox" id="dryRun"> dry-run（仅抓缓存不入库）</label>
+      <label class="toggle"><input type="checkbox" id="noFetch"> no-fetch（仅本地缓存）</label>
+    </div>
+    <div class="btnrow">
+      <button id="btnAll">一键全量抓取（DPM+RAPM+LEBRON）</button>
+      <button class="ghost" id="btnEnrich">治理 team_abbr</button>
+      <button class="ghost" id="btnResume">按日志续跑未完成任务</button>
+    </div>
+  </section>
+
+  <!-- ============ 2. FIBA ============ -->
+  <section>
+    <h2>② FIBA 爬虫 <span class="tag fiba">fiba_scraper · 独立 fiba 库</span></h2>
+    <div class="cards" id="fibaCards"></div>
+    <div class="hint">FIBA 走 Azure APIM（无 CF 墙，纯 API）。每日增量优先抓 PBP（实时窗口 ~17h）；整赛事批量初始化整库。</div>
+    <div class="controls" style="margin-top:12px">
+      <div class="ctl"><label>FIBA 赛事（competition_id）</label>
+        <select id="fibaCompSel"></select>
+        <input type="number" id="fibaComp" value="208943" min="1" style="margin-top:6px;display:none">
+      </div>
+      <div class="ctl"><label>每日增量回看天数（默认 2）</label><input type="number" id="fibaDays" value="2" min="1"></div>
+      <div class="ctl"><label>批量 --limit（0=全量）</label><input type="number" id="fibaLimit" value="0" min="0"></div>
+      <label class="toggle"><input type="checkbox" id="fibaDryRun"> dry-run（仅列目标）</label>
+      <label class="toggle"><input type="checkbox" id="fibaNoArchive"> 不落原始 JSON</label>
+      <label class="toggle"><input type="checkbox" id="fibaNoLeaders"> 批量跳过榜单</label>
+    </div>
+    <div class="btnrow">
+      <button id="btnFibaDaily">每日增量抓取（PBP 优先）</button>
+      <button id="btnFibaBatch">整赛事批量抓取</button>
+    </div>
+  </section>
+
+  <!-- ============ 3. BR ============ -->
+  <section>
+    <h2>③ BR 爬虫 <span class="tag br">编译型 BRCrawler.app</span></h2>
+    <div class="brstatus">
+      <span class="dot" id="brDot2"></span>
+      <span class="big" id="brState">检测中…</span>
+      <span class="hint" id="brPath"></span>
+    </div>
+    <div class="btnrow" style="margin-top:12px">
+      <button id="btnBrStart">启动 BR Crawler</button>
+      <button class="danger" id="btnBrStop">停止 BR Crawler</button>
+    </div>
+    <div class="hint">启动会打开 BR 的独立 GUI（Chromedriver 抓 Basketball-Reference）。停止向其发 quit 事件，不影响其已落库数据。</div>
+  </section>
+
+  <!-- ============ 4. 开机自启 ============ -->
+  <section>
+    <h2>④ 开机自启 <span class="tag br">macOS LaunchAgent</span></h2>
+    <div class="brstatus">
+      <span class="dot" id="autoDot"></span>
+      <span class="big" id="autoState">检测中…</span>
+    </div>
+    <div class="btnrow" style="margin-top:10px">
+      <button id="btnAutoOn">启用登录自启</button>
+      <button class="ghost" id="btnAutoOff">关闭自启</button>
+    </div>
+    <div class="hint" id="autoHint">在 ~/Library/LaunchAgents 写入 com.nbacore.unifiedcrawler.plist，登录时自动起面板（仅写用户目录，不改任何爬虫/DB）。</div>
+  </section>
+
+  <div class="grid2">
+    <!-- 任务队列 -->
+    <section>
+      <h2>任务队列（三类通用）</h2>
+      <table id="jobsTable">
+        <thead><tr><th>ID</th><th>类型</th><th>源/参数</th><th>状态</th><th>起止</th><th></th></tr></thead>
+        <tbody id="jobsBody"></tbody>
+      </table>
+      <div class="hint">任务子进程独立运行，可单点「停止」。点「看日志」下方实时滚动。</div>
+    </section>
+
+    <!-- 检索 + 历史 -->
+    <section>
+      <h2>球员检索 / 历史轨迹（指标库）</h2>
+      <div class="ctl"><label>按姓名搜索</label><input type="text" id="searchInput" placeholder="输入球员名，如 Jokic"></div>
+      <div id="searchPills" style="margin:10px 0"></div>
+      <h2 style="margin-top:14px">历史时间序列 <span id="histWho" style="color:var(--accent)"></span></h2>
+      <div id="histTable" class="hint">搜索并选择球员后显示逐日快照轨迹（val / 攻 / 守）。</div>
+    </section>
+  </div>
+
+  <!-- 日志 -->
+  <section>
+    <h2>实时日志 <span id="logTitle" style="color:var(--muted)"></span></h2>
+    <div class="log" id="logView"><span class="log-empty">未选择任务。在任务队列点「看日志」。</span></div>
+  </section>
+
+  <section>
+    <div class="btnrow">
+      <button class="danger" id="btnStopServer" title="停止本地服务（端口 8793）并关闭本面板">停止服务</button>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = "";
+let autoRefresh = true, refreshTimer = null, logJobId = null, logTimer = null;
+const $ = id => document.getElementById(id);
+
+function toast(msg){
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove("show"), 2600);
+}
+async function api(path, opts){
+  const r = await fetch(API+path, opts||{});
+  let body; try{ body = await r.json(); }catch(e){ body = {error:"bad json"}; }
+  if(!r.ok) throw new Error(body.error || ("HTTP "+r.status));
+  return body;
+}
+function fmtDate(s){ return s ? s.slice(0,10) : "—"; }
+
+// ---------- 状态 ----------
+async function loadStatus(){
+  try{
+    const st = await api("/api/status");
+    $("dbDot").className = "dot " + (st.db_online ? "on" : "off");
+    $("dbTxt").textContent = st.db_online ? "PG 在线" : ("离线: "+(st.error||""));
+    $("latestDate") && ($("latestDate").textContent = fmtDate(st.latest_date));
+    $("totalRows") && ($("totalRows").textContent = (st.total_rows||0).toLocaleString());
+    $("runningCount").textContent = st.running||0;
+    $("today").textContent = fmtDate(st.today);
+    renderMetricsCards(st.metrics||{}, st.missing||[]);
+    if(st.fiba){ renderFiba(st.fiba); loadFibaCompetitions(st.fiba.competitions_list||[]); }
+    if(st.br) renderBr(st.br.running);
+    $("toggleRefresh").textContent = autoRefresh ? "点此暂停" : "点此恢复";
+    $("refreshTxt").textContent = autoRefresh ? "开" : "关";
+  }catch(e){ $("dbTxt").textContent = "请求失败"; }
+}
+
+function renderMetricsCards(metrics, missing){
+  const wrap = $("srcCards"); wrap.innerHTML = "";
+  for(const m of ["dpm","rapm","lebron"]){
+    if(missing.includes(m)){ wrap.appendChild(emptyCard(m,"尚未抓取。点「单独抓取」建立首条快照。")); continue; }
+    const d = metrics[m]; if(!d){ continue; }
+    const cov = Math.round((d.coverage||0)*100);
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <div class="name">${m.toUpperCase()}<button class="sm ghost" data-m="${m}">单独抓取</button></div>
+      <div class="rows">${d.rows}</div>
+      <div class="meta"><span>带球队</span><b>${d.with_team} (${cov}%)</b></div>
+      <div class="bar"><i style="width:${cov}%"></i></div>
+      <div class="meta"><span>区间</span><b>${d.min_val} ~ ${d.max_val}</b></div>
+      <div class="meta"><span>均值</span><b>${d.avg_val}</b></div>`;
+    card.querySelector("button").onclick = ()=>submitSnapshot([m]);
+    wrap.appendChild(card);
+  }
+}
+function emptyCard(m, hint){
+  const c = document.createElement("div"); c.className = "card";
+  c.innerHTML = `<div class="name">${m.toUpperCase()}</div><div class="rows" style="color:var(--muted)">无数据</div>
+    <div class="hint">${hint}</div>`;
+  return c;
+}
+
+function renderFiba(fs){
+  $("fibaDot").className = "dot " + (fs.db_online ? "on" : "off");
+  $("fibaTxt").textContent = fs.db_online ? "在线" : ("离线");
+  const wrap = $("fibaCards"); wrap.innerHTML = "";
+  if(!fs.db_online){
+    const c = document.createElement("div"); c.className="card";
+    c.innerHTML = `<div class="name">fiba 库</div><div class="rows" style="color:var(--muted)">未连接</div>
+      <div class="hint">${fs.error||"运行一次每日/批量抓取即建库"}</div>`;
+    wrap.appendChild(c); return;
+  }
+  const items = [
+    ["games", fs.games], ["PBP 已捕获场", fs.games_pbp_loaded],
+    ["play_by_play 行", fs.play_by_play_rows], ["competitions", fs.competitions],
+    ["players", fs.players], ["game_player_stats", fs.game_player_stats],
+  ];
+  for(const [name,val] of items){
+    const c = document.createElement("div"); c.className="card";
+    c.innerHTML = `<div class="name">${name}</div><div class="rows">${(val||0).toLocaleString()}</div>`;
+    wrap.appendChild(c);
+  }
+}
+
+function renderBr(running){
+  $("brDot").className = "dot " + (running ? "on" : "off");
+  $("brDot2").className = "dot " + (running ? "on" : "off");
+  $("brTxt").textContent = running ? "运行中" : "未运行";
+  $("brState").textContent = running ? "运行中（GUI 已打开）" : "未运行";
+  $("brPath").textContent = "/external_crawler/crawler_v2/app/BRCrawler.app";
+}
+
+function loadFibaCompetitions(list){
+  const sel = $("fibaCompSel");
+  if(!sel) return;
+  sel.innerHTML = "";
+  (list||[]).forEach(c=>{
+    const o = document.createElement("option");
+    o.value = c.id;
+    o.textContent = `${c.id} · ${c.name||"未知赛事"}${c.season?" ("+c.season+")":""}`;
+    sel.appendChild(o);
+  });
+  const custom = document.createElement("option");
+  custom.value = "custom"; custom.textContent = "✎ 自定义 competition_id…";
+  sel.appendChild(custom);
+  // sync to the hidden number input
+  const sync = ()=>{
+    if(sel.value === "custom"){ $("fibaComp").style.display=""; }
+    else { $("fibaComp").style.display="none"; $("fibaComp").value = sel.value; }
+  };
+  sel.onchange = sync;
+  // default: first real competition, else 208943
+  if(list && list.length){ sel.selectedIndex = 0; }
+  else { sel.value = "custom"; }
+  sync();
+}
+
+// ---------- 指标任务 ----------
+function jobParams(){
+  return {
+    date: $("dateInput").value || null,
+    limit: parseInt($("limitInput").value||"0",10),
+    lebron_season: $("lebronInput").value || "2025-26",
+    dry_run: $("dryRun").checked,
+    no_fetch: $("noFetch").checked,
+  };
+}
+async function submitSnapshot(metrics){
+  const p = jobParams(); p.metrics = metrics;
+  try{
+    const job = await api("/api/snapshot", {method:"POST",
+      headers:{"Content-Type":"application/json"}, body:JSON.stringify(p)});
+    toast("已提交 "+metrics.join("/")+" 快照: "+job.id); loadJobs();
+  }catch(e){ toast("提交失败: "+e.message); }
+}
+$("btnAll").onclick = ()=>submitSnapshot(["dpm","rapm","lebron"]);
+$("btnEnrich").onclick = async ()=>{
+  try{
+    const job = await api("/api/enrich", {method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({date:$("dateInput").value||null, dry_run:$("dryRun").checked})});
+    toast("已提交团队缩写治理: "+job.id); loadJobs();
+  }catch(e){ toast("提交失败: "+e.message); }
+};
+$("btnResume").onclick = async ()=>{
+  try{ const r = await api("/api/resume",{method:"POST"});
+    toast(r.new_jobs.length ? ("续跑 "+r.new_jobs.length+" 个任务") : "无未完成任务"); loadJobs();
+  }catch(e){ toast("续跑失败: "+e.message); }
+};
+
+// ---------- FIBA 任务 ----------
+function fibaParams(){
+  return {
+    competition_id: parseInt($("fibaComp").value||"208943",10),
+    days: parseInt($("fibaDays").value||"2",10),
+    limit: parseInt($("fibaLimit").value||"0",10),
+    dry_run: $("fibaDryRun").checked,
+    no_archive: $("fibaNoArchive").checked,
+    no_leaders: $("fibaNoLeaders").checked,
+  };
+}
+$("btnFibaDaily").onclick = async ()=>{
+  try{
+    const job = await api("/api/fiba_daily", {method:"POST",
+      headers:{"Content-Type":"application/json"}, body:JSON.stringify(fibaParams())});
+    toast("已提交 FIBA 每日增量: "+job.id); loadJobs();
+  }catch(e){ toast("提交失败: "+e.message); }
+};
+$("btnFibaBatch").onclick = async ()=>{
+  if(!confirm("整赛事批量抓取会重跑（resume 跳过已完成）。确认启动？")) return;
+  try{
+    const job = await api("/api/fiba_batch", {method:"POST",
+      headers:{"Content-Type":"application/json"}, body:JSON.stringify(fibaParams())});
+    toast("已提交 FIBA 批量: "+job.id); loadJobs();
+  }catch(e){ toast("提交失败: "+e.message); }
+};
+
+// ---------- BR ----------
+$("btnBrStart").onclick = async ()=>{
+  try{ const r = await api("/api/br_start",{method:"POST"});
+    toast(r.already_running ? "BR 已在运行" : "已启动 BR Crawler"); loadStatus();
+  }catch(e){ toast("启动失败: "+e.message); }
+};
+$("btnBrStop").onclick = async ()=>{
+  if(!confirm("向 BR Crawler 发送退出事件？")) return;
+  try{ const r = await api("/api/br_stop",{method:"POST"});
+    toast("已发送退出事件"); loadStatus();
+  }catch(e){ toast("停止失败: "+e.message); }
+};
+
+// ---------- 开机自启 ----------
+async function loadAutoStatus(){
+  try{
+    const r = await api("/api/autostart_status");
+    $("autoDot").className = "dot " + (r.enabled ? "on" : "off");
+    $("autoState").textContent = r.enabled ? "已启用（登录自启）" : "未启用";
+  }catch(e){ $("autoState").textContent = "检测失败"; }
+}
+$("btnAutoOn").onclick = async ()=>{
+  try{ const r = await api("/api/autostart",{method:"POST"},
+        headers:{"Content-Type":"application/json"}, body:JSON.stringify({enabled:true}));
+    if(r.note) toast(r.note); else toast("已启用登录自启");
+    loadAutoStatus();
+  }catch(e){ toast("启用失败: "+e.message); }
+};
+$("btnAutoOff").onclick = async ()=>{
+  try{ await api("/api/autostart",{method:"POST"},
+        headers:{"Content-Type":"application/json"}, body:JSON.stringify({enabled:false}));
+    toast("已关闭自启"); loadAutoStatus();
+  }catch(e){ toast("关闭失败: "+e.message); }
+};
+
+// ---------- 任务表 ----------
+async function loadJobs(){
+  try{
+    const {jobs} = await api("/api/jobs");
+    const body = $("jobsBody"); body.innerHTML = "";
+    for(const j of jobs){
+      const tr = document.createElement("tr");
+      let params;
+      if(j.kind==="enrich") params = `date=${j.date||"today"}`;
+      else if(j.kind==="fiba_daily") params = `comp=${j.competition_id} days=${j.days}`+(j.dry_run?" dry":"")+(j.no_archive?" noarc":"");
+      else if(j.kind==="fiba_batch") params = `comp=${j.competition_id}`+(j.limit?(" lim="+j.limit):"")+(j.no_leaders?" nolead":"")+(j.no_archive?" noarc":"");
+      else params = `src=${Array.isArray(j.metrics)?j.metrics.join(","):j.metrics} date=${j.date||"today"}`
+            + (j.dry_run?" dry":"") + (j.no_fetch?" nofetch":"") + (j.limit?(" lim="+j.limit):"")
+            + (j.lebron_season?(" lb="+j.lebron_season):"");
+      const badge = `<span class="badge b-${j.status}">${j.status}</span>`;
+      tr.innerHTML = `
+        <td class="mono">${j.id}</td>
+        <td>${j.kind}</td>
+        <td class="mono">${params}</td>
+        <td>${badge}</td>
+        <td class="mono">${fmtDate(j.started_at)}${j.finished_at?"<br>→ "+fmtDate(j.finished_at):""}</td>
+        <td></td>`;
+      const td = tr.lastElementChild;
+      const logBtn = document.createElement("button"); logBtn.className="sm ghost"; logBtn.textContent="看日志";
+      logBtn.onclick = ()=>openLog(j.id);
+      td.appendChild(logBtn);
+      if(j.status==="running"){
+        const stopBtn = document.createElement("button"); stopBtn.className="sm danger"; stopBtn.textContent="停止";
+        stopBtn.style.marginLeft="6px";
+        stopBtn.onclick = async ()=>{ await api("/api/stop",{method:"POST",
+          headers:{"Content-Type":"application/json"},body:JSON.stringify({job_id:j.id})}); toast("已停止 "+j.id); loadJobs(); };
+        td.appendChild(stopBtn);
+      }
+      body.appendChild(tr);
+    }
+  }catch(e){}
+}
+
+// ---------- 日志 ----------
+function openLog(id){
+  logJobId = id;
+  $("logTitle").textContent = "· "+id;
+  $("logView").textContent = "加载中…";
+  pollLog();
+  if(logTimer) clearInterval(logTimer);
+  logTimer = setInterval(pollLog, 1500);
+}
+async function pollLog(){
+  if(!logJobId) return;
+  try{
+    const {log} = await api("/api/job_log?id="+encodeURIComponent(logJobId));
+    const view = $("logView");
+    if(!log){ view.innerHTML = '<span class="log-empty">（空日志）</span>'; return; }
+    view.textContent = log;
+    view.scrollTop = view.scrollHeight;
+    const job = (await api("/api/jobs")).jobs.find(j=>j.id===logJobId);
+    if(job && job.status!=="running" && logTimer){ clearInterval(logTimer); logTimer=null; }
+  }catch(e){}
+}
+
+// ---------- 搜索 + 历史 ----------
+$("searchInput").addEventListener("input", debounce(async (e)=>{
+  const q = e.target.value.trim(); const box = $("searchPills"); box.innerHTML="";
+  if(q.length<2) return;
+  try{
+    const {rows} = await api("/api/search?q="+encodeURIComponent(q));
+    for(const r of rows.slice(0,20)){
+      const p = document.createElement("span"); p.className="pill";
+      p.textContent = `${r.player_name} · ${r.nba_id}`;
+      p.onclick = ()=>loadHistory(r.player_key, r.player_name);
+      box.appendChild(p);
+    }
+    if(!rows.length) box.innerHTML = '<span class="hint">无匹配</span>';
+  }catch(e){}
+},300));
+
+async function loadHistory(pk, name){
+  $("histWho").textContent = name ? ("· "+name) : "";
+  try{
+    const {rows} = await api("/api/history?player_key="+encodeURIComponent(pk));
+    if(!rows.length){ $("histTable").innerHTML = '<span class="hint">该球员暂无快照</span>'; return; }
+    let html = '<table><thead><tr><th>日期</th><th>源</th><th>球员</th><th>球队</th><th>val</th><th>攻</th><th>守</th></tr></thead><tbody>';
+    for(const r of rows){
+      html += `<tr><td class="mono">${fmtDate(r.snapshot_date)}</td><td>${r.metric}</td><td>${r.player_name||""}</td>
+        <td>${r.team_abbr||"—"}</td><td>${r.val}</td><td>${r.val_o??"—"}</td><td>${r.val_d??"—"}</td></tr>`;
+    }
+    html += "</tbody></table>";
+    $("histTable").innerHTML = html;
+  }catch(e){}
+}
+
+function debounce(fn,ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; }
+
+$("btnStopServer").onclick = async ()=>{
+  if(!confirm("停止本地服务（端口 8793）并关闭本面板？\n（之后双击 UnifiedCrawler.app 可重新启动）")) return;
+  try{
+    await api("/api/stop_server",{method:"POST"});
+    toast("服务已停止");
+    document.body.innerHTML = '<header><h1>NBA 统一爬虫控制面板</h1></header><main><section><h2>已停止</h2><p>本地服务已关闭。重新双击 <b>UnifiedCrawler.app</b>（或 /Applications 里的「NBA 爬虫总控」）即可再次启动。</p></section></main>';
+  }catch(e){ toast("停止请求已发出"); }
+};
+
+$("toggleRefresh").onclick = ()=>{ autoRefresh=!autoRefresh; if(autoRefresh) startRefresh(); else { clearInterval(refreshTimer); refreshTimer=null; } loadStatus(); };
+function startRefresh(){
+  if(refreshTimer) clearInterval(refreshTimer);
+  refreshTimer = setInterval(()=>{ if(autoRefresh){ loadStatus(); loadJobs(); } }, 3000);
+}
+
+// ---------- boot ----------
+$("dateInput").value = new Date().toISOString().slice(0,10);
+loadStatus(); loadJobs(); loadAutoStatus(); startRefresh();
+</script>
+</body>
+</html>

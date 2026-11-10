@@ -6,16 +6,16 @@
 #   ② gamelog 互斥锁 —— gamelog（含 PID 15934）在跑时拒绝启动，绝不抢 9222 / 不并行争用 CF 会话。
 # 任意一锁命中立即 exit 1，绝不并行。
 set -a
-[ -f /Users/deocheng/Downloads/nba_desktop_omega_mac_migrate_2026-07-13/.env ] && . /Users/deocheng/Downloads/nba_desktop_omega_mac_migrate_2026-07-13/.env
+[ -f /Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/.env ] && . /Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/.env
 set +a
-cd /Users/deocheng/Downloads/nba_desktop_omega_mac_migrate_2026-07-13
+cd /Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13
 export BR_COOKIE_FILE=/tmp/br_cf_cookies.json
 # CDP 直连模式：驱动已手动过 CF 的用户 Chrome（9222）。cookies 走浏览器实时态，
 # 不与 gamelog 共享标签页（双锁保证两者不会并行）。
 export BROWSER_BACKEND=cdp
 export CHROME_CDP_URL=http://127.0.0.1:9222
 PY=.venv/bin/python
-LOG=/Users/deocheng/Downloads/nba_desktop_omega_mac_migrate_2026-07-13/headshots_crawl.log
+LOG=/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/headshots_crawl.log
 
 # 双锁之一：自身单实例锁
 if pgrep -f "crawl_br_headshots.py" >/dev/null 2>&1; then

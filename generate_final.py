@@ -6,7 +6,7 @@
 """
 import os, re, html, unicodedata, json, importlib.util
 
-BASE = "/Users/deocheng/Downloads/nba_desktop_omega_mac_migrate_2026-07-13"
+BASE = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
 OUT  = os.path.join(BASE, "analysis_nicknames_bz.md")
 JSON_OUT = os.path.join(BASE, "notes_enriched.json")
 

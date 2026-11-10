@@ -1,0 +1,28 @@
+{
+  "action": "playin_gamelog_dedup_20260818",
+  "date": "2026-08-18",
+  "user_decision": "用户 2026-08-18 07:03 拍板「去重」",
+  "problem": "player_gamelog 中 2025 季 6 场 Play-In 存在同场双行：play_in 行(gameid=API键, game_id_full=API键, game_type='play_in', br_player_id 空) 与 常规行(gameid=API键, game_id_full=BR 12位键, game_type 空, br_player_id=BR slug)。回填 slug 撞唯一约束 ux_player_gamelog_game_player。",
+  "dry_run_findings": {
+    "regular_rows": 202,
+    "regular_games": ["202504150GSW", "202504150ORL", "202504160CHI", "202504160SAC", "202504180ATL", "202504180MEM"],
+    "only_regular_side": 0,
+    "slug_fillable": 201,
+    "no_slug_either_side": [["52400121", "Taran Armstrong"]],
+    "slug_conflicts": 0
+  },
+  "operations": [
+    "backup: CREATE TABLE player_gamelog_playin_dup_reg_bak_20260818 AS SELECT * FROM player_gamelog WHERE gameid IN (SELECT game_id_full FROM playin_game_dates) AND game_type IS DISTINCT FROM 'play_in' (202 rows)",
+    "txn: DELETE 202 常规行 (释放 (gameid, br_player_id) 唯一键)",
+    "txn: UPDATE 201 play_in 行 br_player_id ← 常规行 slug (按 gameid + 归一化名字匹配: NFKD去重音符/去点号/去 III-Jr-Sr-II 后缀)"
+  ],
+  "rollback_sql": [
+    "-- 1) 撤销 slug 回填\nUPDATE player_gamelog g SET br_player_id = COALESCE(b.br_player_id_old, '') FROM (SELECT gameid, player_name, NULL AS br_player_id_old FROM player_gamelog_playin_dup_reg_bak_20260818) b WHERE false; -- 见精确版: 按 bak 表行还原 slug 为空\nUPDATE player_gamelog g SET br_player_id=NULL WHERE gameid IN (SELECT game_id_full FROM playin_game_dates) AND game_type='play_in' AND br_player_id IS NOT NULL AND created_at >= '2026-08-18';\n-- 2) 恢复被删的 202 行\nINSERT INTO player_gamelog SELECT * FROM player_gamelog_playin_dup_reg_bak_20260818;"
+  ],
+  "rollback_note": "slug 回填的精确回滚：bak 表中 slug 与 play_in 行一一对应（201 行），如需精确还原可按 (gameid, norm_name) 对照 bak 把 br_player_id 置回 NULL；上面 UPDATE ... created_at 版本为简化近似，建议用 bak 表驱动。",
+  "expected_after": {
+    "regular_rows_removed": 202,
+    "playin_slug_filled": 201,
+    "player_gamelog_game_player_unique_ok": true
+  }
+}

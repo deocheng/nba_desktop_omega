@@ -6,7 +6,7 @@
 # only ever matches the actual python crawler children (no self-match deadlock).
 set -u
 
-ROOT=/Users/deocheng/Downloads/nba_desktop_omega_mac_migrate_2026-07-13
+ROOT=/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13
 cd "$ROOT" || exit 1
 
 ts() { date '+%Y-%m-%d %H:%M:%S'; }

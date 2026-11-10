@@ -19,7 +19,7 @@ crawl_br_team_pages.py
     （bs4 若缺：.venv/bin/pip install bs4）
 
 用法：
-  cd /Users/deocheng/Downloads/nba_desktop_omega_mac_migrate_2026-07-13
+  cd /Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13
   .venv/bin/python crawl_br_team_pages.py
 
 输出：

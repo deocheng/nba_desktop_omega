@@ -48,7 +48,7 @@
 
 ## 2. 文件列表及相对路径
 
-> 路径均相对项目根 `/Users/deocheng/Downloads/nba_desktop_omega_mac_migrate_2026-07-13/`。
+> 路径均相对项目根 `/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/`。
 > 状态：**新建** / **修改**（在既有脚本上小步接入，不重写）。
 
 | 状态 | 相对路径 | 职责 |

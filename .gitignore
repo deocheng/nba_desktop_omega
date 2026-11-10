@@ -115,3 +115,34 @@ nba_subtitle_tool/work/
 nba_subtitle_tool/models/
 nba_subtitle_tool/output/
 fiba_scraper/backups/
+
+# ── 2026-11-10 代码质量治理：运行时产物与改造备份不入库 ──
+# backups/ 是数据快照（CSV/log），非源码
+backups/
+# 爬虫运行时缓存（301M / 263 文件，持续增长）
+external_crawler/crawler/cache/
+# 改造过程中的临时备份（内容已在正式文件中验证通过）
+*.bak
+# crawler_v2 子项目里的二进制产物与回滚旧版
+external_crawler/crawler_v2/**/*.png
+external_crawler/crawler_v2/**/*.old
+
+# ── 2026-11-10：子项目运行时产物（源码入库，数据不入库）────────────────
+# Chrome 用户 profile 缓存（含大量扩展 locale json）
+external_crawler/crawler_v2/app/.chrome_app_profile/
+# FIBA 抓取数据 2.5 万个 json（源码 .py/.md 入库）
+fiba_scraper/**/*.json
+fiba_scraper/backups/
+# RAPM 原始 jsonl
+nbarapm_scraper/*.jsonl
+# 球队 Markdown 缓存
+markdown_cache_backup/
+# 报告瘦身前的原始 HTML 备份（4.66~4.93MB × 7，刻意保留在本地不入库）
+reports/_pre_strip_backup/
+# crawler_v2 打包产物（.app bundle / 图标）与探查原始页
+external_crawler/crawler_v2/app/*.app/
+external_crawler/crawler_v2/app/native/
+external_crawler/nba_tracking/probe_raw/
+# 看门狗运行时状态（心跳/状态快照，每轮刷新）
+logs/crawler_watchdog.heartbeat
+logs/crawler_watchdog.status

@@ -1,0 +1,128 @@
+
+===== season 2004 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1189 / dim_games(Reg) 1192  !! 覆盖不足（缺 3 场）
+  [告警] gamelog 有但 player_per_game 无 slug 匹配的球员: 1（身份/来源差异，需人工核）
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+===== season 2005 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1230 / dim_games(Reg) 1230  OK
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+===== season 2006 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1230 / dim_games(Reg) 1230  OK
+  [告警] br_player_id 为 NULL 的孤儿行: 239（不影响逐人缺口，待去重）
+  [告警] gamelog 有但 player_per_game 无 slug 匹配的球员: 49（身份/来源差异，需人工核）
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+===== season 2007 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1230 / dim_games(Reg) 1230  OK
+  [告警] br_player_id 为 NULL 的孤儿行: 183（不影响逐人缺口，待去重）
+  [告警] gamelog 有但 player_per_game 无 slug 匹配的球员: 36（身份/来源差异，需人工核）
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+===== season 2008 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1230 / dim_games(Reg) 1230  OK
+  [告警] br_player_id 为 NULL 的孤儿行: 246（不影响逐人缺口，待去重）
+  [告警] gamelog 有但 player_per_game 无 slug 匹配的球员: 38（身份/来源差异，需人工核）
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+===== season 2009 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1230 / dim_games(Reg) 1230  OK
+  [告警] br_player_id 为 NULL 的孤儿行: 221（不影响逐人缺口，待去重）
+  [告警] gamelog 有但 player_per_game 无 slug 匹配的球员: 38（身份/来源差异，需人工核）
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+===== season 2010 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1230 / dim_games(Reg) 1230  OK
+  [告警] br_player_id 为 NULL 的孤儿行: 191（不影响逐人缺口，待去重）
+  [告警] gamelog 有但 player_per_game 无 slug 匹配的球员: 41（身份/来源差异，需人工核）
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+===== season 2011 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1230 / dim_games(Reg) 1230  OK
+  [告警] br_player_id 为 NULL 的孤儿行: 225（不影响逐人缺口，待去重）
+  [告警] gamelog 有但 player_per_game 无 slug 匹配的球员: 38（身份/来源差异，需人工核）
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+===== season 2012 =====
+  比赛覆盖(RS): player_gamelog 覆盖 990 / dim_games(Reg) 990  OK
+  [告警] br_player_id 为 NULL 的孤儿行: 84（不影响逐人缺口，待去重）
+  [告警] gamelog 有但 player_per_game 无 slug 匹配的球员: 21（身份/来源差异，需人工核）
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+===== season 2013 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1217 / dim_games(Reg) 1229  !! 覆盖不足（缺 12 场）
+  [告警] br_player_id 为 NULL 的孤儿行: 198（不影响逐人缺口，待去重）
+  [告警] gamelog 有但 player_per_game 无 slug 匹配的球员: 54（身份/来源差异，需人工核）
+  [逐人完整性] !! 8 个球员缺失场次:
+     Goran Dragić (dragigo01): 应有 77 场, 现有 75 场, 缺 2 场
+     Marcus Morris (morrima03): 应有 77 场, 现有 75 场, 缺 2 场
+     Ömer Aşık (asikom01): 应有 82 场, 现有 80 场, 缺 2 场
+     Donatas Motiejūnas (motiedo01): 应有 44 场, 现有 43 场, 缺 1 场
+     Greg Smith (smithgr02): 应有 70 场, 现有 69 场, 缺 1 场
+     Jan Veselý (veselja01): 应有 51 场, 现有 50 场, 缺 1 场
+     Maurice Harkless (harklma01): 应有 76 场, 现有 75 场, 缺 1 场
+     Nenê (hilarne01): 应有 61 场, 现有 60 场, 缺 1 场
+  [逐人完整性] 合计缺失场次: 11（跨 8 人）
+
+===== season 2014 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1230 / dim_games(Reg) 1230  OK
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+===== season 2015 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1230 / dim_games(Reg) 1230  OK
+  [逐人完整性] !! 1 个球员缺失场次:
+     E'Twaun Moore (mooreet01): 应有 56 场, 现有 52 场, 缺 4 场
+  [逐人完整性] 合计缺失场次: 4（跨 1 人）
+
+===== season 2016 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1230 / dim_games(Reg) 1230  OK
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+===== season 2017 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1230 / dim_games(Reg) 1230  OK
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+===== season 2018 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1230 / dim_games(Reg) 1230  OK
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+===== season 2019 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1230 / dim_games(Reg) 1230  OK
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+===== season 2020 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1059 / dim_games(Reg) 1059  OK
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+===== season 2021 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1080 / dim_games(Reg) 1080  OK
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+===== season 2022 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1230 / dim_games(Reg) 1230  OK
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+===== season 2023 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1230 / dim_games(Reg) 1230  OK
+  [告警] br_player_id 为 NULL 的孤儿行: 47（不影响逐人缺口，待去重）
+  [告警] gamelog 有但 player_per_game 无 slug 匹配的球员: 5（身份/来源差异，需人工核）
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+===== season 2024 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1230 / dim_games(Reg) 1230  OK
+  [告警] gamelog 有但 player_per_game 无 slug 匹配的球员: 2（身份/来源差异，需人工核）
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+===== season 2025 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1230 / dim_games(Reg) 1230  OK
+  [告警] br_player_id 为 NULL 的孤儿行: 126（不影响逐人缺口，待去重）
+  [告警] gamelog 有但 player_per_game 无 slug 匹配的球员: 18（身份/来源差异，需人工核）
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+===== season 2026 =====
+  比赛覆盖(RS): player_gamelog 覆盖 1230 / dim_games(Reg) 1230  OK
+  [告警] gamelog 有但 player_per_game 无 slug 匹配的球员: 4（身份/来源差异，需人工核）
+  [逐人完整性] OK: 0 缺失球员（按 player_per_game.g 比对，全部 slug 球员场次齐全）
+
+>>> 存在缺口（rc=1）

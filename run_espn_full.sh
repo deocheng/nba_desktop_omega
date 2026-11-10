@@ -6,7 +6,7 @@
 # ④ 归档校验钩子 verify_archive.py。
 # 幂等: 已抓的场自动跳过(espn_have=true / 坐标已补), 可随时重跑。
 set -u
-cd /Users/deocheng/Downloads/nba_desktop_omega_mac_migrate_2026-07-13
+cd /Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13
 # 注入 .env 中的 DB_PASSWORD 等机密到环境变量（供 Python 爬虫连接 PG）
 set -a; [ -f "$PWD/.env" ] && . "$PWD/.env"; set +a
 PY="$PWD/.venv/bin/python"

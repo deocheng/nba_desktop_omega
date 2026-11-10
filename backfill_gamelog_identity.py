@@ -11,8 +11,13 @@
   - player_name  : 100% 可靠。SET player_name = player（player 列已正确写入）。
   - br_player_id : best-effort。经 dim_players 用 player_name 关联回填 BR 字符串 id；
                   若某 player_name 命中多行(distinct br_player_id > 1)视为同名歧义，跳过不填。
+                  **源级硬化(2026-10-29)**：候选 slug 还须通过年代+球队一致性闸
+                  (ERA_TEAM_GATE)——该 slug 必须在同一 season 且 canon(team) 匹配(或 2TM)
+                  才允许回填，杜绝"同名唯一但错年代/错队"的误挂(如 Colby Jones 2024-26
+                  被挂到 1989 行)。宁可留 NULL 也不按名字猜错身份。
   - player_id    : best-effort。经 player_id_bridge 用 player_name 关联回填数字 bigint id；
-                  同样处理同名/多值歧义，无可靠映射则跳过。
+                  同样处理同名/多值歧义，无可靠映射则跳过；同样受 ERA_TEAM_GATE 约束
+                  (用桥表 br_player_id 作为候选 slug 校验年代+球队)。
 
 设计原则（与 backfill_nba_api_old.py 一致）：
   - 默认 dry-run 预览，只统计/打印将更新的行数，rollback 不写库。
@@ -71,6 +76,21 @@ DB_CONFIG = dict(
 
 # 仅回填这些老季的 NULL 行（含端点 1983 与 1996）。
 OLD_SEASON_PRED = "g.season BETWEEN 1983 AND 1996"
+
+# ── 源级硬化核心：年代 + 球队一致性闸（2026-10-29）──────────────────────
+# 候选 slug 必须在该 season 且 canon(team) 匹配（或 p.team='2TM'）才允许回填。
+# 杜绝"同名唯一、但错年代/错队"的误挂（如 Colby Jones 2024-26 被挂到 1989 行）。
+# 不变量：br_player_id 必为真正打了那场的人的 BR slug；宁可留 NULL 也不按名字猜。
+# 用法：ERA_TEAM_GATE.format(slug="dp.bid") —— slug 为候选 BR slug 的列引用。
+ERA_TEAM_GATE = """
+            AND EXISTS (
+                SELECT 1 FROM player_per_game p
+                WHERE p.player_id = {slug}
+                  AND p.season = g.season
+                  AND (p.team = '2TM'
+                       OR (CASE p.team WHEN 'PHO' THEN 'PHX' WHEN 'CHO' THEN 'CHA' WHEN 'BRK' THEN 'BKN' ELSE p.team END)
+                          = (CASE g.team WHEN 'PHO' THEN 'PHX' WHEN 'CHO' THEN 'CHA' WHEN 'BRK' THEN 'BKN' ELSE g.team END))
+            )"""
 
 
 def _exec(cur, total_sql: str, count_sql: str, update_sql: str, apply: bool) -> dict:
@@ -173,8 +193,10 @@ def backfill(cur, apply: bool) -> dict:
                 GROUP BY player_name
                 HAVING COUNT(DISTINCT player_id) = 1
             ) dp ON dp.pn = g.player
-            WHERE g.br_player_id IS NULL AND %s
-        """ % OLD_SEASON_PRED,
+            WHERE g.br_player_id IS NULL
+              AND %s
+              %s
+        """ % (OLD_SEASON_PRED, ERA_TEAM_GATE.format(slug="dp.bid")),
         update_sql="""
             UPDATE player_gamelog g
             SET br_player_id = dp.bid
@@ -185,8 +207,10 @@ def backfill(cur, apply: bool) -> dict:
                 GROUP BY player_name
                 HAVING COUNT(DISTINCT player_id) = 1
             ) dp
-            WHERE dp.pn = g.player AND g.br_player_id IS NULL AND %s
-        """ % OLD_SEASON_PRED,
+            WHERE dp.pn = g.player AND g.br_player_id IS NULL
+              AND %s
+              %s
+        """ % (OLD_SEASON_PRED, ERA_TEAM_GATE.format(slug="dp.bid")),
         apply=apply,
     )
 
@@ -201,28 +225,34 @@ def backfill(cur, apply: bool) -> dict:
         count_sql="""
             SELECT count(*) FROM player_gamelog g
             JOIN (
-                SELECT player_name AS bn, MAX(nba_player_id) AS num_id
+                SELECT player_name AS bn, MAX(nba_player_id) AS num_id,
+                       MAX(br_player_id) AS bid_slug
                 FROM player_id_bridge
                 WHERE nba_player_id IS NOT NULL AND nba_player_id <> ''
                   AND nba_player_id ~ '^[0-9]+$'
                 GROUP BY player_name
                 HAVING COUNT(DISTINCT nba_player_id) = 1
             ) b ON b.bn = g.player
-            WHERE g.player_id IS NULL AND %s
-        """ % OLD_SEASON_PRED,
+            WHERE g.player_id IS NULL
+              AND %s
+              %s
+        """ % (OLD_SEASON_PRED, ERA_TEAM_GATE.format(slug="b.bid_slug")),
         update_sql="""
             UPDATE player_gamelog g
             SET player_id = CAST(b.num_id AS bigint)
             FROM (
-                SELECT player_name AS bn, MAX(nba_player_id) AS num_id
+                SELECT player_name AS bn, MAX(nba_player_id) AS num_id,
+                       MAX(br_player_id) AS bid_slug
                 FROM player_id_bridge
                 WHERE nba_player_id IS NOT NULL AND nba_player_id <> ''
                   AND nba_player_id ~ '^[0-9]+$'
                 GROUP BY player_name
                 HAVING COUNT(DISTINCT nba_player_id) = 1
             ) b
-            WHERE b.bn = g.player AND g.player_id IS NULL AND %s
-        """ % OLD_SEASON_PRED,
+            WHERE b.bn = g.player AND g.player_id IS NULL
+              AND %s
+              %s
+        """ % (OLD_SEASON_PRED, ERA_TEAM_GATE.format(slug="b.bid_slug")),
         apply=apply,
     )
 

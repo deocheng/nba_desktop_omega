@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# UnifiedCrawler.app launcher — starts the unified crawler control panel
+# (metrics snapshot + FIBA + BR) on port 8793 and opens it in the browser.
+#
+# Runs from a Finder double-click (launchd context, minimal PATH). All paths
+# are absolute or derived portably (no readlink -f, which BSD readlink lacks).
+
+set -u
+
+# ---- portable real-path resolution (handles /Applications symlink) ----
+resolve_real() {
+  local p="$1"
+  while [ -L "$p" ]; do
+    local d
+    d="$(cd "$(dirname "$p")" && pwd)"
+    p="$(readlink "$p")"
+    case "$p" in
+      /*) ;;
+      *) p="$d/$p" ;;
+    esac
+  done
+  echo "$(cd "$(dirname "$p")" && pwd)/$(basename "$p")"
+}
+
+REAL="$(resolve_real "$0")"
+APP_DIR="$(dirname "$REAL")"                 # .../UnifiedCrawler.app/Contents/MacOS
+ROOT="$(cd "$APP_DIR/../../.." && pwd)"      # .../unified_crawler_app
+
+# Fallback if the relative derivation misses (e.g. app moved).
+if [ ! -d "$ROOT/unified_crawler_app" ] && [ -d "$ROOT/metrics_snapshot_app" ]; then
+  ROOT="$(cd "$ROOT" && pwd)"
+fi
+if [ ! -f "$ROOT/unified_crawler_app/server.py" ]; then
+  ROOT="/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
+fi
+
+APP_DIR_REAL="$ROOT/unified_crawler_app"
+PY="$ROOT/.venv/bin/python"
+SERVER="$APP_DIR_REAL/server.py"
+PORT=8793
+URL="http://127.0.0.1:$PORT"
+
+cd "$ROOT" || exit 1
+
+# Strip outbound proxy so local requests + scrapers behave.
+unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY
+
+# ---- if a server already answers on 8793, just open the browser ----
+if curl -s --noproxy '*' --max-time 2 "$URL/api/status" >/dev/null 2>&1; then
+  open "$URL"
+  exit 0
+fi
+
+# ---- start the server (detached, survives this script) ----
+LOG="$APP_DIR_REAL/panel.log"
+nohup "$PY" "$SERVER" >"$LOG" 2>&1 &
+echo $! > "$APP_DIR_REAL/panel.pid"
+
+# ---- wait until it answers, then open browser ----
+for i in $(seq 1 40); do
+  if curl -s --noproxy '*' --max-time 2 "$URL/api/status" >/dev/null 2>&1; then
+    sleep 0.5
+    open "$URL"
+    exit 0
+  fi
+  sleep 0.5
+done
+
+# Timed out — surface the log so the user can see why.
+open -a Console "$LOG" 2>/dev/null || true
+exit 1

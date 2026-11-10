@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NBA 视频 → 中文字幕/文稿</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#fff; --ink:#1d2433; --sub:#6b7280;
+    --accent:#e8602c; --accent2:#2563eb; --ok:#16a34a; --err:#dc2626;
+    --line:#e5e7eb; --code:#0f172a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+  .wrap{max-width:1080px;margin:0 auto;padding:24px 18px 60px;}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:18px;}
+  .logo{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#f59e0b);
+    display:flex;align-items:center;justify-content:center;font-size:22px;}
+  h1{font-size:20px;margin:0} .tag{font-size:12px;color:var(--sub);margin-top:2px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:16px 18px;margin-bottom:14px;box-shadow:0 1px 2px rgba(0,0,0,.03);}
+  .card h2{font-size:14px;margin:0 0 12px;color:var(--sub);font-weight:600;letter-spacing:.02em}
+  label{font-size:13px;color:var(--sub);display:block;margin:10px 0 5px}
+  input[type=text],select{width:100%;padding:10px 12px;border:1px solid var(--line);
+    border-radius:9px;font-size:14px;background:#fff;color:var(--ink);}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  .row>*{flex:1;min-width:160px}
+  button{cursor:pointer;border:none;border-radius:9px;font-size:14px;font-weight:600;
+    padding:10px 16px;transition:.15s}
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-primary:hover{filter:brightness(1.05)}
+  .btn-ghost{background:#eef2f7;color:var(--ink)}
+  .btn-ghost:hover{background:#e2e8f0}
+  .btn-run{background:var(--accent2);color:#fff;width:100%;padding:13px;font-size:15px;margin-top:6px}
+  .btn-run:disabled{opacity:.55;cursor:not-allowed}
+  .dropzone{border:2px dashed var(--line);border-radius:12px;padding:22px 16px;
+    text-align:center;background:#fafbfc;transition:.15s;cursor:pointer}
+  .dropzone.drag{border-color:var(--accent);background:#fff7f2}
+  .dz-icon{font-size:30px;line-height:1}
+  .dz-main{font-size:14px;font-weight:600;margin-top:6px}
+  .dz-sub{color:var(--sub);font-size:12px;margin:8px 0}
+  .chk{margin-top:10px;font-size:13px;font-weight:600;text-align:center}
+  .chk.ok{color:var(--ok)} .chk.err{color:var(--err)}
+  #videoPath{font-family:ui-monospace,Menlo,monospace;font-size:12.5px}
+  .badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:12px;font-weight:600}
+  .running{background:#fef3c7;color:#92400e} .done{background:#dcfce7;color:#166534}
+  .failed{background:#fee2e2;color:#991b1b}
+  .log{background:var(--code);color:#d1fae5;font-family:ui-monospace,Menlo,monospace;
+    font-size:12px;padding:12px;border-radius:9px;height:230px;overflow:auto;white-space:pre-wrap}
+  pre.out{background:#0f172a;color:#e2e8f0;font-family:ui-monospace,Menlo,monospace;
+    font-size:12px;padding:12px;border-radius:9px;max-height:300px;overflow:auto;white-space:pre-wrap}
+  .res-head{display:flex;justify-content:space-between;align-items:center;margin:6px 0}
+  .hint{font-size:12px;color:var(--sub);margin-top:4px;line-height:1.5}
+  a.dl{color:var(--accent2);font-size:13px;text-decoration:none;font-weight:600}
+  a.dl:hover{text-decoration:underline}
+  .empty{color:var(--sub);font-size:13px;padding:20px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">🏀</div>
+    <div><h1>NBA 视频 → 中文字幕 / 文稿</h1>
+      <div class="tag">本地识别 + 本地大模型翻译 · 离线 · 支持英/法夹杂 · 长视频分块</div>
+    </div>
+  </header>
+
+  <div class="card">
+    <h2>1 · 视频源</h2>
+    <div class="dropzone" id="dropzone">
+      <div class="dz-icon">⬇</div>
+      <div class="dz-main">把视频文件拖到这里</div>
+      <div class="dz-sub">或</div>
+      <button type="button" class="btn-ghost" id="pickBtn">选择文件</button>
+      <input type="file" id="filePicker"
+             accept="video/*,.mkv,.ts,.mov,.avi,.webm,.mp4" style="display:none">
+      <div class="chk" id="chkFile" style="display:none"></div>
+    </div>
+    <label>或直接填写本机绝对路径（适合已在磁盘上的大文件，免上传）</label>
+    <input type="text" id="videoPath" placeholder="/Volumes/12T/NBA/比赛录像/xxx.mp4">
+    <div class="hint">本地服务：拖入 / 选择文件会自动上传到本机处理；填写路径则直接读取磁盘，
+      适合 5 小时大视频（不占上传时间）。</div>
+  </div>
+
+  <div class="card">
+    <h2>2 · 参数</h2>
+    <div class="row">
+      <div>
+        <label>识别模型 (Whisper)</label>
+        <select id="whisperSel"></select>
+      </div>
+      <div>
+        <label>翻译模型 (Ollama)</label>
+        <select id="translatorSel"></select>
+      </div>
+      <div>
+        <label>识别后端</label>
+        <select id="backendSel">
+          <option value="fasterwhisper">faster-whisper（默认）</option>
+          <option value="whispercpp">whisper.cpp（需编译）</option>
+        </select>
+      </div>
+    </div>
+    <div class="hint">识别模型可选标准尺寸（首次自动下载）或「本地模型目录」（手动放到 models/ 下）。
+      英法夹杂多、追求质量选 large-v3；先验证用 small。</div>
+    <button class="btn-run" id="runBtn" onclick="runJob()">▶ 开始识别并翻译</button>
+  </div>
+
+  <div class="card">
+    <h2>3 · 进度 <span id="statusBadge" class="badge running" style="display:none"></span></h2>
+    <div class="log" id="log">等待开始…</div>
+  </div>
+
+  <div class="card" id="resultCard" style="display:none">
+    <h2>4 · 结果</h2>
+    <div class="res-head">
+      <strong>SRT 字幕</strong>
+      <a class="dl" id="dlSrt" href="#" download>⬇ 下载 .srt</a>
+    </div>
+    <pre class="out" id="srtOut" class="empty">—</pre>
+    <div class="res-head" style="margin-top:14px">
+      <strong>Markdown 文稿</strong>
+      <a class="dl" id="dlMd" href="#" download>⬇ 下载 .md</a>
+    </div>
+    <pre class="out" id="mdOut">—</pre>
+  </div>
+
+  <div class="card">
+    <h2>🛠 附加工具 · 字幕 / 文本转换（拖拽）</h2>
+
+    <div class="dropzone" id="dropzone2">
+      <div class="dz-icon">⬇</div>
+      <div class="dz-main">把字幕 / 文本文件拖到这里</div>
+      <div class="dz-sub">支持 .vtt .srt .txt .md · 或</div>
+      <button type="button" class="btn-ghost" id="pickBtn2">选择文件</button>
+      <input type="file" id="filePicker2"
+             accept=".vtt,.srt,.txt,.md,text/plain,text/vtt"
+             style="display:none">
+      <div class="chk" id="chkFile2" style="display:none"></div>
+    </div>
+    <label>或直接填写本机绝对路径（免上传，适合已存在的字幕文件）</label>
+    <input type="text" id="subPath" placeholder="/Volumes/12T/NBA/比赛录像/xxx.vtt">
+
+    <div class="row" style="margin-top:12px">
+      <div>
+        <label>转换模式</label>
+        <div style="display:flex;gap:14px;padding:8px 0;font-size:14px;flex-wrap:wrap">
+          <label style="margin:0;display:flex;gap:6px;align-items:center;font-weight:600">
+            <input type="radio" name="convMode" value="vtt2srt" checked> VTT → SRT
+          </label>
+          <label style="margin:0;display:flex;gap:6px;align-items:center;font-weight:600">
+            <input type="radio" name="convMode" value="en2zh"> 英文/法文 → 中文
+          </label>
+        </div>
+      </div>
+      <div>
+        <label>翻译模型（仅「英文→中文」用）</label>
+        <select id="translatorSel2"></select>
+      </div>
+    </div>
+    <div class="hint" id="convHint">VTT→SRT：纯格式转换，无需模型，秒出。
+      英文→中文：调本地大模型 + 篮球术语表，SRT/VTT 保留时间轴并附中文文稿。</div>
+
+    <button class="btn-run" id="convRunBtn" onclick="convertRun()">▶ 开始转换</button>
+  </div>
+
+  <div class="card">
+    <h2>工具进度 <span id="convBadge" class="badge running" style="display:none"></span></h2>
+    <div class="log" id="convLog">等待开始…</div>
+  </div>
+
+  <div class="card" id="convResult" style="display:none">
+    <h2>工具结果</h2>
+    <div class="res-head">
+      <strong>SRT 字幕</strong>
+      <a class="dl" id="dlSrt2" href="#" download>⬇ 下载 .srt</a>
+    </div>
+    <pre class="out" id="srtOut2">—</pre>
+    <div class="res-head" style="margin-top:14px">
+      <strong>中文文稿（Markdown）</strong>
+      <a class="dl" id="dlMd2" href="#" download>⬇ 下载 .md</a>
+    </div>
+    <pre class="out" id="mdOut2">—</pre>
+  </div>
+</div>
+
+<script>
+let timer = null;
+
+function fmtSize(b){
+  if(b==null) return "";
+  if(b>1e9) return (b/1e9).toFixed(1)+"GB";
+  if(b>1e6) return (b/1e6).toFixed(0)+"MB";
+  if(b>1e3) return (b/1e3).toFixed(0)+"KB";
+  return b+"B";
+}
+
+async function loadInfo(){
+  const r = await fetch("/api/info"); const info = await r.json();
+  const w = document.getElementById("whisperSel");
+  w.innerHTML = "";
+  (info.local_whisper||[]).forEach(m=>{
+    const o=document.createElement("option");o.value=m.path;o.textContent="本地："+m.name;w.appendChild(o);
+  });
+  ["large-v3","medium","small","base","tiny"].forEach(s=>{
+    const o=document.createElement("option");o.value=s;o.textContent=s+"（自动下载）";w.appendChild(o);
+  });
+  if(info.default_whisper) w.value = (info.local_whisper||[]).some(m=>m.path===info.default_whisper)?info.default_whisper:info.default_whisper;
+
+  const t = document.getElementById("translatorSel");
+  t.innerHTML="";
+  (info.ollama_models||[]).forEach(m=>{
+    const o=document.createElement("option");o.value=m;o.textContent=m;t.appendChild(o);
+  });
+  if(info.default_translator) t.value=info.default_translator;
+  document.getElementById("backendSel").value=info.default_backend||"fasterwhisper";
+
+  // 附加工具：翻译模型下拉
+  const t2 = document.getElementById("translatorSel2");
+  t2.innerHTML="";
+  (info.ollama_models||[]).forEach(m=>{
+    const o=document.createElement("option");o.value=m;o.textContent=m;t2.appendChild(o);
+  });
+  if(info.default_translator) t2.value=info.default_translator;
+}
+
+async function uploadFile(file){
+  const chip=document.getElementById("chkFile");
+  chip.style.display="block";chip.className="chk";
+  chip.textContent="⏳ 上传中… "+file.name;
+  const fd=new FormData();fd.append("file",file);
+  try{
+    const r=await fetch("/api/upload",{method:"POST",body:fd});
+    const j=await r.json();
+    if(j.error){chip.className="chk err";chip.textContent="❌ "+j.error;return;}
+    document.getElementById("videoPath").value=j.path;
+    chip.className="chk ok";
+    chip.textContent="✅ "+j.name+" ("+fmtSize(j.size)+")";
+  }catch(err){
+    chip.className="chk err";
+    chip.textContent="❌ 上传失败："+(err.message||err);
+  }
+}
+
+function wireDrop(){
+  const dz=document.getElementById("dropzone");
+  ["dragenter","dragover"].forEach(ev=>dz.addEventListener(ev,e=>{
+    e.preventDefault();e.stopPropagation();dz.classList.add("drag");}));
+  ["dragleave","dragend"].forEach(ev=>dz.addEventListener(ev,e=>{
+    e.preventDefault();e.stopPropagation();dz.classList.remove("drag");}));
+  dz.addEventListener("drop",e=>{
+    e.preventDefault();e.stopPropagation();dz.classList.remove("drag");
+    const f=e.dataTransfer.files && e.dataTransfer.files[0];
+    if(f) uploadFile(f);
+  });
+  document.getElementById("pickBtn").onclick=()=>document.getElementById("filePicker").click();
+  document.getElementById("filePicker").onchange=e=>{
+    const f=e.target.files && e.target.files[0];
+    if(f) uploadFile(f);
+    e.target.value="";  // 允许重复选择同一文件
+  };
+  // 阻止在页面其它位置误拖放导致浏览器跳转/打开文件
+  window.addEventListener("dragover",e=>e.preventDefault());
+  window.addEventListener("drop",e=>{if(!e.target.closest("#dropzone")&&!e.target.closest("#dropzone2"))e.preventDefault();});
+}
+
+async function uploadSubFile(file){
+  const chip=document.getElementById("chkFile2");
+  chip.style.display="block";chip.className="chk";
+  chip.textContent="⏳ 上传中… "+file.name;
+  const fd=new FormData();fd.append("file",file);
+  try{
+    const r=await fetch("/api/upload",{method:"POST",body:fd});
+    const j=await r.json();
+    if(j.error){chip.className="chk err";chip.textContent="❌ "+j.error;return;}
+    document.getElementById("subPath").value=j.path;
+    chip.className="chk ok";
+    chip.textContent="✅ "+j.name+" ("+fmtSize(j.size)+")";
+  }catch(err){
+    chip.className="chk err";
+    chip.textContent="❌ 上传失败："+(err.message||err);
+  }
+}
+
+function wireDrop2(){
+  const dz=document.getElementById("dropzone2");
+  ["dragenter","dragover"].forEach(ev=>dz.addEventListener(ev,e=>{
+    e.preventDefault();e.stopPropagation();dz.classList.add("drag");}));
+  ["dragleave","dragend"].forEach(ev=>dz.addEventListener(ev,e=>{
+    e.preventDefault();e.stopPropagation();dz.classList.remove("drag");}));
+  dz.addEventListener("drop",e=>{
+    e.preventDefault();e.stopPropagation();dz.classList.remove("drag");
+    const f=e.dataTransfer.files && e.dataTransfer.files[0];
+    if(f) uploadSubFile(f);
+  });
+  document.getElementById("pickBtn2").onclick=()=>document.getElementById("filePicker2").click();
+  document.getElementById("filePicker2").onchange=e=>{
+    const f=e.target.files && e.target.files[0];
+    if(f) uploadSubFile(f);
+    e.target.value="";
+  };
+}
+
+async function convertRun(){
+  const path=document.getElementById("subPath").value.trim();
+  if(!path){alert("请先选择/拖入字幕或文本文件，或填写路径");return;}
+  const mode=document.querySelector('input[name="convMode"]:checked').value;
+  const translator=document.getElementById("translatorSel2").value;
+  const btn=document.getElementById("convRunBtn");btn.disabled=true;btn.textContent="转换中…";
+  document.getElementById("convResult").style.display="none";
+  const fd=new FormData();
+  fd.append("path",path);fd.append("mode",mode);fd.append("translator",translator);
+  const r=await fetch("/api/convert",{method:"POST",body:fd});
+  const j=await r.json();
+  if(j.error){alert(j.error);btn.disabled=false;btn.textContent="▶ 开始转换";return;}
+  pollConvert(j.job_id);
+}
+
+function setConvBadge(s){
+  const b=document.getElementById("convBadge");b.style.display="inline-block";
+  b.className="badge "+(s==="done"?"done":s==="failed"?"failed":"running");
+  b.textContent=s==="done"?"完成":s==="failed"?"失败":"运行中";
+}
+
+async function pollConvert(jobId){
+  setConvBadge("running");
+  const timer=setInterval(async()=>{
+    const r=await fetch("/api/status/"+jobId);const j=await r.json();
+    document.getElementById("convLog").textContent=j.log||"";
+    document.getElementById("convLog").scrollTop=1e9;
+    if(j.status==="done"||j.status==="failed"){
+      clearInterval(timer);setConvBadge(j.status);
+      const btn=document.getElementById("convRunBtn");btn.disabled=false;btn.textContent="▶ 开始转换";
+      if(j.status==="done"){
+        document.getElementById("convResult").style.display="block";
+        const srt=document.getElementById("srtOut2"), md=document.getElementById("mdOut2");
+        srt.textContent=j.srt||"（无 SRT 输出）";
+        md.textContent=j.md||"（无文稿输出）";
+        const dlS=document.getElementById("dlSrt2"), dlM=document.getElementById("dlMd2");
+        if(j.srt_name){dlS.href="/api/file/"+jobId+"/srt";dlS.setAttribute("download",j.srt_name);dlS.style.display="inline";}
+        else dlS.style.display="none";
+        if(j.md_name){dlM.href="/api/file/"+jobId+"/md";dlM.setAttribute("download",j.md_name);dlM.style.display="inline";}
+        else dlM.style.display="none";
+      }else{
+        alert("转换失败，请看工具进度日志。常见原因：翻译模型未下载（en2zh 需要 Ollama 模型）/ 输入文件无法解析。");
+      }
+    }
+  },1500);
+}
+
+async function runJob(){
+  const video=document.getElementById("videoPath").value.trim();
+  if(!video){alert("请先选择或填写视频路径");return;}
+  const btn=document.getElementById("runBtn");btn.disabled=true;btn.textContent="处理中…";
+  document.getElementById("resultCard").style.display="none";
+  const r=await fetch("/api/run",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({video,whisper:document.getElementById("whisperSel").value,
+      translator:document.getElementById("translatorSel").value,
+      backend:document.getElementById("backendSel").value})});
+  const j=await r.json();
+  if(j.error){alert(j.error);btn.disabled=false;btn.textContent="▶ 开始识别并翻译";return;}
+  pollStatus(j.job_id);
+}
+
+function setBadge(s){
+  const b=document.getElementById("statusBadge");b.style.display="inline-block";
+  b.className="badge "+(s==="done"?"done":s==="failed"?"failed":"running");
+  b.textContent=s==="done"?"完成":s==="failed"?"失败":"运行中";
+}
+
+async function pollStatus(jobId){
+  setBadge("running");
+  timer=setInterval(async()=>{
+    const r=await fetch("/api/status/"+jobId);const j=await r.json();
+    document.getElementById("log").textContent=j.log||"";
+    document.getElementById("log").scrollTop=1e9;
+    if(j.status==="done"||j.status==="failed"){
+      clearInterval(timer);setBadge(j.status);
+      const btn=document.getElementById("runBtn");btn.disabled=false;btn.textContent="▶ 开始识别并翻译";
+      if(j.status==="done"){
+        document.getElementById("resultCard").style.display="block";
+        document.getElementById("srtOut").textContent=j.srt||"";
+        document.getElementById("mdOut").textContent=j.md||"";
+        document.getElementById("dlSrt").href="/api/file/"+jobId+"/srt";
+        document.getElementById("dlMd").href="/api/file/"+jobId+"/md";
+        document.getElementById("dlSrt").setAttribute("download",j.srt_name);
+        document.getElementById("dlMd").setAttribute("download",j.md_name);
+      }else{
+        alert("处理失败，请看进度日志。常见原因：识别模型未下载/网络受限。");
+      }
+    }
+  },1500);
+}
+
+loadInfo();
+wireDrop();
+wireDrop2();
+</script>
+</body>
+</html>

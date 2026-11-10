@@ -62,7 +62,8 @@ class Config:
     DB_PORT = 5433
     DB_NAME = 'nba'
     DB_USER = 'postgres'
-    DB_PASSWORD = 'postgres'
+    # 优先读取 PGPASSWORD 环境变量（任务约定从 .env 注入），回退到开发默认值
+    DB_PASSWORD = _os.environ.get('PGPASSWORD', 'postgres')
 
     # PostgreSQL服务名（Windows）
     PG_SERVICE_NAMES = [
@@ -444,6 +445,12 @@ class BrowserManager:
         # （googlechromelabs.com 在当前代理下不可达会直接导致启动崩）。
         # 仅当缓存目录存在匹配 version_main 的 driver 时才启用，否则回退默认行为。
         driver_path = None
+        # macOS 修复：优先读取 UC_CHROMEDRIVER_PATH（arm64 chromedriver），
+        # 避免 UC 在 Apple Silicon 上下载 x86_64 驱动导致 Bad CPU type 崩溃。
+        _uc_env_path = _os.environ.get('UC_CHROMEDRIVER_PATH')
+        if _uc_env_path and _os.path.exists(_uc_env_path):
+            driver_path = _uc_env_path
+            self.logger.info(f'[Browser] 使用 UC_CHROMEDRIVER_PATH: {driver_path}')
         try:
             _ver_main = Config.CHROME_VERSION_MAIN or 0
             _cache_root = _os.path.join(

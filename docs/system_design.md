@@ -1,7 +1,7 @@
 # player_shooting_backfill — 系统设计 + 任务分解
 
 > 作者：高见远（架构师） ｜ 范围：内部 Python 数据管线（无前端）
-> 仓库根：`/Users/deocheng/Downloads/nba_desktop_omega_mac_migrate_2026-07-13/`
+> 仓库根：`/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/`
 > 目标：B 先回填 6,099 行 Playoffs 孤儿 `player_id`；A 再建球员级 shooting 爬虫补齐 ~9,797 个 Regular 缺口，覆盖率 59.8% → ~100%。
 
 ---

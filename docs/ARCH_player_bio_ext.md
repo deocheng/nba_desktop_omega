@@ -3,7 +3,7 @@
 > 设计者：软件架构师 Bob（高见远）
 > 上游：用户 BR 球员页字段标注（Julius Erving 页，含 7 个 dim_players 缺口，含离世日期 died）
 > 性质：**增量设计 + 任务分解**（不写实现代码，仅定结构与爬取计划）
-> 项目根：`/Users/deocheng/Downloads/nba_desktop_omega_mac_migrate_2026-07-13`
+> 项目根：`/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13`
 > DB：`5433/nba/postgres`（口令走 `backend.core.config.db_dsn()`，不硬编码）
 > 配套图：`docs/player_bio_ext_class.mermaid`、`docs/player_bio_ext_sequence.mermaid`
 >

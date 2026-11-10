@@ -1,0 +1,34 @@
+[
+  {
+    "id": "season_20260826_212355_60ef",
+    "kind": "season",
+    "data_item": "season",
+    "season": 2026,
+    "dry_run": true,
+    "only_br_ids": null,
+    "status": "failed",
+    "pid": 25789,
+    "cmd": "/opt/anaconda3/bin/python3.12 -m daemon.runner --seasons-override 2026 --dry-run",
+    "log_file": "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/external_crawler/crawler_v2/app/logs/season_20260826_212355_60ef.log",
+    "started_at": "2026-08-26 21:23:55",
+    "finished_at": "2026-08-26 21:23:55",
+    "exit_code": 2,
+    "summary": "2026-08-26 21:23:55,146 ERROR !! Chrome(9223) 不可达 —— 请先启动 launch_chrome_cdp.sh 并保持窗口。停止。"
+  },
+  {
+    "id": "season_20260826_213518_62f2",
+    "kind": "season",
+    "data_item": "season",
+    "season": 2026,
+    "dry_run": false,
+    "only_br_ids": null,
+    "status": "running",
+    "pid": 27255,
+    "cmd": "/opt/anaconda3/bin/python3.12 -m daemon.runner --seasons-override 2026",
+    "log_file": "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/external_crawler/crawler_v2/app/logs/season_20260826_213518_62f2.log",
+    "started_at": "2026-08-26 21:35:18",
+    "finished_at": null,
+    "exit_code": null,
+    "summary": ""
+  }
+]

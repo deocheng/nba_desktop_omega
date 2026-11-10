@@ -1,5 +1,5 @@
 #!/bin/bash
-cd /Users/deocheng/Downloads/nba_desktop_omega_mac_migrate_2026-07-13
+cd /Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13
 # 注入 .env 中的 DB_PASSWORD 等机密到环境变量（供 Python 爬虫连接 PG）
 set -a; [ -f "$PWD/.env" ] && . "$PWD/.env"; set +a
 echo "[chain $(date +%H:%M:%S)] 等待旧批(br_fill_pbp 无--force)退出..."

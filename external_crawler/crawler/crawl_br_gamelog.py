@@ -9,6 +9,7 @@ BR 球员 gamelog 批量爬取 + 入库
   python crawl_br_gamelog.py --season 2026           # 爬 2025-26 赛季
   python crawl_br_gamelog.py --season 2026 --dry-run  # 测试模式
   python crawl_br_gamelog.py --season 2026 --limit 10 # 只爬10人
+  python crawl_br_gamelog.py --season 2027 --players-file /tmp/players_2027.tsv  # 新赛季旁路清单
 """
 import requests
 from bs4 import BeautifulSoup
@@ -18,6 +19,7 @@ import time
 import random
 import argparse
 import sys
+import subprocess
 from datetime import datetime
 from pathlib import Path
 import tempfile
@@ -35,6 +37,43 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 import common.player_page_cache as player_page_cache
 
 DB_CONFIG = dict(host='localhost', port=5433, dbname='nba', user='postgres', password=os.environ.get('DB_PASSWORD'))
+
+# ── 身份一致性 post-load 门禁（防御纵深，2026-10-29）──────────────────
+# 爬虫落库后调用 gate_gamelog_identity.py（只读）：校验 player_id==br_player_id
+# 不变量 + Tier1 回归基线（9 例 BR 阻塞）。爬虫自身只写 BR 源 slug，不会触发
+# FAIL；门禁是防御 backfill / 其他回填路径二次写入身份错位的二次防线。
+# 调 --no-gate 可关闭（默认开）。
+GATE_SCRIPT = "/Users/deocheng/WorkBuddy/2026-07-13-10-47-43/gate_gamelog_identity.py"
+GATE_VENV = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/.venv/bin/python"
+
+
+def run_post_load_gate() -> int:
+    """运行只读身份门禁作为 post-load 安全网，返回其退出码。
+
+    0=PASS/WARN（已知 BR 阻塞项，仅告警）；1=FAIL（不变量破坏/新增回归）；
+    2=门禁自身异常。调用方据此决定是否阻断整次爬取。门禁缺失/异常本身不阻断。
+    """
+    if not os.path.isfile(GATE_SCRIPT):
+        print("[GATE] 门禁脚本缺失，跳过（不阻断）: " + GATE_SCRIPT)
+        return 0
+    print(f"\n{'='*50}\n[GATE] 运行 player_gamelog 身份一致性门禁 (post-load)...")
+    try:
+        r = subprocess.run([GATE_VENV, GATE_SCRIPT], capture_output=True,
+                           text=True, timeout=900)
+    except Exception as e:  # noqa: BLE001 - 门禁故障绝不应拖垮爬取
+        print(f"[GATE] 门禁调用异常（不阻断）: {e}")
+        return 0
+    if r.stdout:
+        print(r.stdout, end="")
+    if r.stderr:
+        print(r.stderr, end="", file=sys.stderr)
+    if r.returncode == 1:
+        print("[GATE: ALERT] 身份回归 FAIL —— 见上方明细，需人工排查回填链路！")
+    elif r.returncode == 2:
+        print("[GATE: WARN] 门禁自身执行异常（不阻断）")
+    else:
+        print("[GATE] 通过 (PASS/WARN)")
+    return r.returncode
 
 # ── 缓存冷归档策略配置 (2026-08-11 用户要求：溢出归档不要删除，以防万一) ──
 # 冷归档根目录：项目根/raw_archive/gamelog (raw_archive 是 24G 持久归档区，永不清理)。
@@ -918,12 +957,16 @@ def delete_existing(cur, game_id: str, br_player_id: str, player_name: str) -> N
 
 def run_pipeline(season: int, limit: int = None, dry_run: bool = False,
                 resume: bool = False, cache_dir: str = None, only_br_ids=None,
-                bypass_file=None, force_fetch: bool = False):
+                bypass_file=None, force_fetch: bool = False,
+                players_override=None, run_gate: bool = True):
     """Main pipeline.
 
     cache_dir: 若设置，本季爬完将整季解析结果落盘为
     <cache_dir>/gamelog_<season>.json，供返工免重爬重放（--rework）。
     only_br_ids: 若设置（br_player_id 列表），只爬这些球员（智能补齐缺口）。
+    players_override: 若设置（(name, br_player_id) 列表），直接作为爬取清单，
+    跳过 player_per_game 查询（新赛季聚合表无数据时用；与 only_br_ids 可叠加，
+    此时 only_br_ids 在其范围内再过滤）。
     """
     conn = psycopg2.connect(**DB_CONFIG)
 
@@ -937,8 +980,15 @@ def run_pipeline(season: int, limit: int = None, dry_run: bool = False,
     CRAWL_LONG_SLEEP = float(os.environ.get('CRAWL_LONG_SLEEP', '30'))
 
     # Get players
+    # players_override 旁路：直接使用外部清单（新赛季无 player_per_game 聚合数据）
     # only_br_ids 模式：强制基于全量列表过滤（resume 会漏掉「有部分数据」的缺口球员）
-    players = get_players(conn, season, limit, resume and not only_br_ids)
+    if players_override is not None:
+        players = list(players_override)
+        if limit:
+            players = players[:limit]
+        print(f"共 {len(players)} 名球员需要爬取 (players_file 旁路)")
+    else:
+        players = get_players(conn, season, limit, resume and not only_br_ids)
     if only_br_ids:
         wanted = set(only_br_ids)
         players = [p for p in players if p[1] in wanted]
@@ -1116,10 +1166,18 @@ def run_pipeline(season: int, limit: int = None, dry_run: bool = False,
         archive_season_cold(season, cache_dir)
         enforce_overflow_policy(cache_dir)
 
+    # ── 身份一致性 post-load 门禁（防御纵深）──
+    # 只读、非阻断式（FAIL 仅告警并透传退出码，不在此杀掉整季）；
+    # 整次爬取的最终退出码由 __main__ 汇总门禁结果决定。
+    gate_rc = 0
+    if run_gate and not dry_run:
+        gate_rc = run_post_load_gate()
+
     conn.close()
+    return gate_rc
 
 
-def rework_season(season: int, cache_dir: str) -> None:
+def rework_season(season: int, cache_dir: str, run_gate: bool = True) -> int:
     """从本地双轨缓存重放本季 gamelog 到 DB（免重爬，用于返工/修正）。
 
     双轨优先策略：对每个球员，若 HTML 轨道存在且为有效 gamelog 页，则
@@ -1236,6 +1294,11 @@ def rework_season(season: int, cache_dir: str) -> None:
         print(f"[rework] !! 警告: {dropped} 场因 dim_games 缺 nba_api_id 未入库，"
               f"涉及 {len(dropped_keys)} 个 (date, team) 键 —— 先修 dim_games 再重放。")
 
+    gate_rc = 0
+    if run_gate:
+        gate_rc = run_post_load_gate()
+    return gate_rc
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='BR 球员 gamelog 爬取')
@@ -1247,6 +1310,10 @@ if __name__ == '__main__':
                         help='只爬该文件列出的 br_player_id（每行一个），用于智能补齐缺口')
     parser.add_argument('--cache-dir', type=str, default=None,
                         help='本季缓存目录，爬完落盘 JSON 供返工（--rework）')
+    parser.add_argument('--players-file', type=str, default=None,
+                        help='球员清单旁路：TSV 每行 name\\tbr_player_id[\\tteam]，'
+                             '直接作为爬取清单（新赛季 player_per_game 无数据时用，'
+                             '如 dump_br_league_players.py 的产出）')
     parser.add_argument('--rework', type=int, default=None,
                         help='从缓存重放某季（免爬），需配合 --cache-dir')
     parser.add_argument('--all-seasons', action='store_true',
@@ -1259,6 +1326,8 @@ if __name__ == '__main__':
                         help='500 绕开清单文件：BR 返回 500 的球员 br_id 记入此文件并后续跳过')
     parser.add_argument('--force-fetch', action='store_true',
                         help='跳过 HTML 轨道 cache-first 读取，强制重新抓取(实时赛季更新用)')
+    parser.add_argument('--no-gate', action='store_true',
+                        help='关闭 post-load 身份一致性门禁（默认开启防御纵深检查）')
     # ── 缓存冷归档策略 (2026-08-11) ──
     parser.add_argument('--raw-archive-dir', type=str, default=None,
                         help='冷归档根目录(默认 <项目根>/raw_archive/gamelog)')
@@ -1288,19 +1357,60 @@ if __name__ == '__main__':
             print(f"[only_br_ids] 无法读取文件 {args.only_br_ids}: {e}", file=sys.stderr)
             sys.exit(2)
 
+    # 读取 players_file（球员清单旁路，见 argparse 帮助）
+    players_override = None
+    if args.players_file:
+        try:
+            with open(args.players_file) as f:
+                players_override = []
+                seen_ids = set()
+                for line in f:
+                    parts = line.rstrip('\n').split('\t')
+                    if len(parts) < 2:
+                        continue
+                    pname, pid = parts[0].strip(), parts[1].strip()
+                    if not pid or pid in seen_ids:
+                        continue
+                    seen_ids.add(pid)
+                    players_override.append((pname, pid))
+            if not players_override:
+                print(f"[players_file] 文件无有效行: {args.players_file}",
+                      file=sys.stderr)
+                sys.exit(2)
+            print(f"[players_file] 从 {args.players_file} 读取 "
+                  f"{len(players_override)} 名球员（旁路 player_per_game 查询）")
+        except OSError as e:
+            print(f"[players_file] 无法读取文件 {args.players_file}: {e}",
+                  file=sys.stderr)
+            sys.exit(2)
+
     if args.rework is not None:
-        rework_season(args.rework, args.cache_dir or "gamelog_cache")
+        rc = rework_season(args.rework, args.cache_dir or "gamelog_cache",
+                           run_gate=not args.no_gate)
+        if rc == 1:
+            print("[main] 门禁 FAIL，进程以非 0 退出。")
+            sys.exit(1)
     elif args.all_seasons:
         # 【赛季优先级 2026-08-01】按 season_sort_key 逐季遍历：tier0(2010+) 先、pre-1980 最后。
         from common.season_priority import season_sort_key, tier_name
         seasons = sorted(range(args.start_season, args.end_season + 1), key=season_sort_key)
         print(f"--all-seasons：按赛季分层优先级遍历 {len(seasons)} 个赛季")
+        worst_gate = 0
         for s in seasons:
             print(f"===== season {s} [{tier_name(s)}] =====")
-            run_pipeline(s, args.limit, args.dry_run, True, args.cache_dir, only_ids,
-                         bypass_file=bypass_file, force_fetch=args.force_fetch)
+            rc = run_pipeline(s, args.limit, args.dry_run, True, args.cache_dir, only_ids,
+                              bypass_file=bypass_file, force_fetch=args.force_fetch,
+                              run_gate=not args.no_gate)
+            worst_gate = max(worst_gate, rc or 0)
+        if worst_gate == 1:
+            print("[main] 有赛季触发身份门禁 FAIL，进程以非 0 退出。")
+            sys.exit(1)
     elif args.season:
-        run_pipeline(args.season, args.limit, args.dry_run, args.resume, args.cache_dir, only_ids,
-                     bypass_file=bypass_file, force_fetch=args.force_fetch)
+        rc = run_pipeline(args.season, args.limit, args.dry_run, args.resume, args.cache_dir, only_ids,
+                          bypass_file=bypass_file, force_fetch=args.force_fetch,
+                          players_override=players_override, run_gate=not args.no_gate)
+        if rc == 1:
+            print("[main] 门禁 FAIL，进程以非 0 退出。")
+            sys.exit(1)
     else:
         print("需指定 --season <结束年> / --all-seasons / --rework <结束年>")

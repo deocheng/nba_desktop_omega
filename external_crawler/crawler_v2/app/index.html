@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>BR 爬虫套装 · 控制台</title>
+<style>
+  :root{
+    --bg:#0f141b; --panel:#161d27; --panel2:#1d2632; --border:#2a3543;
+    --txt:#d7e0ea; --muted:#8a98a8; --accent:#4aa3ff; --green:#46c98b;
+    --red:#ff6b6b; --amber:#f0b34a; --chip:#222d3a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+       font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft Yahei",sans-serif}
+  header{padding:16px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  h1{font-size:18px;margin:0;font-weight:600}
+  .sub{color:var(--muted);font-size:12px}
+  .wrap{max-width:1180px;margin:0 auto;padding:18px 22px 60px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:14px;margin:14px 0 26px}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px}
+  .card h3{margin:0 0 10px;font-size:14px;display:flex;align-items:center;justify-content:space-between}
+  .card .desc{color:var(--muted);font-size:11.5px;min-height:30px}
+  label{font-size:11px;color:var(--muted);display:block;margin:8px 0 3px}
+  input[type=number],input[type=text]{width:100%;background:var(--panel2);border:1px solid var(--border);
+        color:var(--txt);border-radius:6px;padding:7px 9px;font-size:13px}
+  .row{display:flex;gap:8px;align-items:center;margin-top:10px}
+  .chk{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin-top:8px}
+  button{background:var(--accent);color:#04121f;border:0;border-radius:6px;padding:8px 12px;
+         font-size:13px;font-weight:600;cursor:pointer}
+  button:hover{filter:brightness(1.08)}
+  button.ghost{background:var(--chip);color:var(--txt);border:1px solid var(--border)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600}
+  .b-ready{background:rgba(70,201,139,.16);color:var(--green)}
+  .b-scaffold{background:rgba(240,179,74,.16);color:var(--amber)}
+  .b-broken{background:rgba(255,107,107,.16);color:var(--red)}
+  .b-running{background:rgba(74,163,255,.18);color:var(--accent)}
+  .b-done{background:rgba(70,201,139,.16);color:var(--green)}
+  .b-failed{background:rgba(255,107,107,.16);color:var(--red)}
+  .b-queued,.b-superseded,.b-killed{background:var(--chip);color:var(--muted)}
+  .status-bar{display:flex;gap:18px;align-items:center;font-size:12px;color:var(--muted);flex-wrap:wrap}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}
+  .dot.on{background:var(--green)} .dot.off{background:var(--red)}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--border);vertical-align:top}
+  th{color:var(--muted);font-weight:500}
+  tr.clickable{cursor:pointer} tr.clickable:hover{background:var(--panel2)}
+  .logbox{background:#0a0e13;border:1px solid var(--border);border-radius:8px;padding:12px;
+          font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#bcd;
+          white-space:pre-wrap;word-break:break-word;max-height:320px;overflow:auto;margin-top:10px}
+  .section-title{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:24px 0 4px}
+  .full{grid-column:1/-1}
+  .toolbar{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🏀 BR 爬虫套装 · 控制台</h1>
+    <div class="sub">独立 App · 单数据项爬取 / 融合数据 / 赛季全量 / 工作日志 / 续爬</div>
+  </div>
+  <div class="status-bar" id="statusBar">
+    <span><span class="dot" id="dbDot"></span><span id="dbTxt">DB —</span></span>
+    <span id="runTxt">运行任务 0</span>
+    <button class="ghost" onclick="refreshStatus()">刷新状态</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="section-title">① 数据项 · 单独爬取</div>
+  <div class="grid" id="adapterGrid"></div>
+
+  <div class="section-title">② 融合数据 / 赛季全量 / 续爬</div>
+  <div class="grid">
+    <div class="card">
+      <h3>融合数据报告</h3>
+      <div class="desc">跨源覆盖度汇总（只读，不写库）。真正跨源回填待 ESPN/nba_api 适配器落地。</div>
+      <label>赛季（留空=全部）</label>
+      <input type="number" id="fuseSeason" min="1946" placeholder="如 2026" />
+      <div class="row"><button onclick="callFuse()">生成融合报告</button></div>
+    </div>
+    <div class="card">
+      <h3>赛季全量爬取</h3>
+      <div class="desc">走 daemon.runner：赛季倒序/定向，自带 STATE 续爬与 verify_gaps 门禁。</div>
+      <label>赛季（留空=全量 2026→1980）</label>
+      <input type="number" id="seasonYear" min="1946" placeholder="如 2022" />
+      <div class="chk"><input type="checkbox" id="seasonDry" checked /><span>dry-run（只验证不写库）</span></div>
+      <div class="row"><button onclick="callSeason()">赛季全量爬取</button></div>
+    </div>
+    <div class="card">
+      <h3>根据日志续爬</h3>
+      <div class="desc">扫描工作日志，重派所有未完成（失败/中断）的任务。脚手架类任务自动跳过。</div>
+      <div class="row"><button onclick="callResume()">根据日志续爬</button>
+        <button class="ghost" onclick="refreshJobs()">刷新日志</button></div>
+    </div>
+  </div>
+
+  <div class="section-title">③ 常驻服务 · 运行环境（由 App 托管，无需外部终端）</div>
+  <div class="grid">
+    <div class="card">
+      <h3>Chrome CDP (9223) <span class="dot off" id="chromeDot"></span></h3>
+      <div class="desc">BR 抓取走真实浏览器渲染（绕过 Cloudflare）。由 App 直接拉起/停止。启动后会弹出一个可见的 Chrome 窗口（CDP 所需）。</div>
+      <div class="status-bar"><span id="chromePid" class="sub">pid —</span></div>
+      <div class="row">
+        <button id="chromeStart" onclick="startChrome()">启动</button>
+        <button class="ghost" id="chromeStop" onclick="stopChrome()">停止</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>爬虫看门狗 <span class="dot off" id="wdDot"></span></h3>
+      <div class="desc">常驻守护：自动拉起 Chrome+driver、卡死/CF墙检测、续跑赛季。开启后进入无人值守爬取模式（会自行拉起 Chrome）。</div>
+      <div class="status-bar"><span id="wdPid" class="sub">pid —</span></div>
+      <div class="row">
+        <button id="wdStart" onclick="startWatchdog()">启动</button>
+        <button class="ghost" id="wdStop" onclick="stopWatchdog()">停止</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">④ 工作日志</div>
+  <div class="card full">
+    <table id="jobTable">
+      <thead><tr><th>任务ID</th><th>类型</th><th>数据项</th><th>赛季</th><th>状态</th>
+        <th>开始</th><th>结束</th><th>摘要</th></tr></thead>
+      <tbody id="jobBody"></tbody>
+    </table>
+    <div class="logbox" id="logView">点击上方任务行查看实时日志…</div>
+  </div>
+</div>
+
+<script>
+// file:// 加载时（原生 app 内）API 走绝对地址；http 访问（浏览器直连）时同域相对地址
+const API = (location.protocol === 'file:') ? 'http://127.0.0.1:5757' : '';
+const SEASON_FLOOR = 1946;  // NBA 首个赛季 1946-47；仅下界校验，不设上界（避免来年失效）
+function checkSeason(s){
+  // null / 空 = 全部（合法）；其余必须是不小于 FLOOR 的整数（拒绝负数与 <FLOOR）
+  if (s === null || s === undefined || s === '') return true;
+  const n = Number(s);
+  if (!Number.isInteger(n) || n < SEASON_FLOOR){
+    alert('赛季必须是不小于 '+SEASON_FLOOR+' 的整数（不支持负数或小于 '+SEASON_FLOOR+' 的年份）');
+    return false;
+  }
+  return true;
+}
+function badge(s){const m={ready:'b-ready',scaffold:'b-scaffold',broken:'b-broken',running:'b-running',
+  done:'b-done',failed:'b-failed',queued:'b-queued',superseded:'b-superseded',killed:'b-killed'};
+  return `<span class="badge ${m[s]||'b-queued'}">${s}</span>`;}
+
+async function refreshStatus(){
+  const r = await fetch(API+'/api/status').then(x=>x.json());
+  document.getElementById('dbDot').className = 'dot '+(r.db_online?'on':'off');
+  document.getElementById('dbTxt').textContent = 'DB '+(r.db_online?'在线':'离线');
+  document.getElementById('runTxt').textContent = '运行任务 '+r.running_jobs;
+  const grid = document.getElementById('adapterGrid');
+  grid.innerHTML = '';
+  for(const [name,info] of Object.entries(r.adapters)){
+    const lbl = {gamelog:'BR Gamelog（球员常规赛）',pbp:'BR PBP（逐回合）',
+                 espn:'ESPN（脚手架）',nba_api:'NBA_API（脚手架）'}[name];
+    grid.insertAdjacentHTML('beforeend', `
+      <div class="card">
+        <h3>${lbl} ${badge(info.status)}</h3>
+        <div class="desc">${info.note}</div>
+        <label>赛季</label>
+        <input type="number" id="season_${name}" min="1946" placeholder="如 2022" />
+        <div class="chk"><input type="checkbox" id="dry_${name}" checked /><span>dry-run（只验证不写库）</span></div>
+        <div class="row"><button onclick="callCrawl('${name}')">单独爬取</button></div>
+      </div>`);
+  }
+}
+
+async function callCrawl(name){
+  const season = document.getElementById('season_'+name).value || null;
+  if(!checkSeason(season)) return;
+  const dry = document.getElementById('dry_'+name).checked;
+  const r = await fetch(API+'/api/crawl',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({data_item:name,season:season?+season:null,dry_run:dry})}).then(x=>x.json());
+  if(r.error){alert(r.error);return;}
+  refreshJobs();
+}
+async function callFuse(){
+  const season = document.getElementById('fuseSeason').value || null;
+  if(!checkSeason(season)) return;
+  await fetch(API+'/api/fuse',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({season:season?+season:null,dry_run:true})}).then(x=>x.json());
+  refreshJobs();
+}
+async function callSeason(){
+  const season = document.getElementById('seasonYear').value || null;
+  if(!checkSeason(season)) return;
+  const dry = document.getElementById('seasonDry').checked;
+  await fetch(API+'/api/season',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({season:season?+season:null,dry_run:dry})}).then(x=>x.json());
+  refreshJobs();
+}
+async function callResume(){
+  const r = await fetch(API+'/api/resume',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:'{}'}).then(x=>x.json());
+  alert('已续爬 '+r.count+' 个未完成任务');
+  refreshJobs();
+}
+
+async function refreshJobs(){
+  const r = await fetch(API+'/api/jobs').then(x=>x.json());
+  const body = document.getElementById('jobBody');
+  body.innerHTML = '';
+  (r.jobs||[]).slice().reverse().forEach(j=>{
+    const tr = document.createElement('tr');
+    tr.className='clickable';
+    tr.innerHTML = `<td>${j.id}</td><td>${j.kind}</td><td>${j.data_item}</td>
+      <td>${j.season??''}</td><td>${badge(j.status)}</td>
+      <td>${j.started_at||''}</td><td>${j.finished_at||''}</td><td>${(j.summary||'').slice(0,80)}</td>`;
+    tr.onclick=()=>showLog(j.id);
+    body.appendChild(tr);
+  });
+}
+async function showLog(id){
+  const r = await fetch(API+'/api/job_log?id='+encodeURIComponent(id)).then(x=>x.json());
+  document.getElementById('logView').textContent = r.log || '(空)';
+}
+
+// ---- 常驻服务（Chrome / 看门狗）状态与控制 ----
+async function refreshInfra(){
+  try{
+    const c = await fetch(API+'/api/chrome/status').then(x=>x.json());
+    document.getElementById('chromeDot').className = 'dot '+(c.alive?'on':'off');
+    document.getElementById('chromePid').textContent = 'pid '+(c.pid||'—')+(c.alive?' · 9223 可达':' · 未启动');
+  }catch(e){}
+  try{
+    const w = await fetch(API+'/api/watchdog/status').then(x=>x.json());
+    document.getElementById('wdDot').className = 'dot '+(w.alive?'on':'off');
+    document.getElementById('wdPid').textContent = 'pid '+(w.pid||'—')+(w.alive?' · 运行中':' · 未启动');
+  }catch(e){}
+}
+async function startChrome(){ await fetch(API+'/api/chrome/start',{method:'POST'}); refreshInfra(); }
+async function stopChrome(){ await fetch(API+'/api/chrome/stop',{method:'POST'}); refreshInfra(); }
+async function startWatchdog(){ await fetch(API+'/api/watchdog/start',{method:'POST'}); refreshInfra(); }
+async function stopWatchdog(){ await fetch(API+'/api/watchdog/stop',{method:'POST'}); refreshInfra(); }
+
+// 自动刷新
+refreshStatus(); refreshJobs(); refreshInfra();
+setInterval(()=>{refreshStatus();refreshJobs();refreshInfra();}, 4000);
+</script>
+</body>
+</html>

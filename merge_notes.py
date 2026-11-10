@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import os, json, unicodedata
-BASE = "/Users/deocheng/Downloads/nba_desktop_omega_mac_migrate_2026-07-13"
+BASE = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
 PATH = os.path.join(BASE, "notes_work.json")
 
 NEW = {

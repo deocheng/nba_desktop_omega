@@ -60,6 +60,11 @@ CONFLICT_COLS = (
     "player_id", "game_date", "opponent_abbr",
     "period", "time_remaining", "x_px", "y_px",
 )
+# BR 旧式球队缩写 → dim_games 现用新缩写（2026-10-23 实测根因）：
+# BR 球员页 shooting tooltip 仍输出 PHO/BRK/CHO，而 dim_games 已归一为
+# PHX/BKN/CHA，按 tooltip 原缩写直查 dim_games 匹配失败 → game_id 落 NULL
+# （2027 赛季曾因此产生 266 行 NULL，已用同规则 UPDATE 修复）。
+BR_ABBR_ALIAS = {"PHX": "PHO", "BKN": "BRK", "CHA": "CHO"}
 
 # ── 解析纯函数 ──────────────────────────────────────────────────────────
 _DATE_RE = re.compile(r"^(?P<mon>[A-Za-z]+)\s+(?P<day>\d+),\s*(?P<yr>\d+),\s*(?P<mu>.+)$")
@@ -382,10 +387,14 @@ class PlayerShotChartCrawler(BRPlayerPageCrawler):
         cache: Dict[Tuple[str, str], Tuple[str, str, str, str]] = {}
         for gd, h, a, gid, st in cur.fetchall():
             gd = gd.isoformat() if hasattr(gd, "isoformat") else str(gd)
-            if h:
-                cache[(gd, h)] = (gid, st, h, a)
-            if a:
-                cache[(gd, a)] = (gid, st, h, a)
+            for abbr in (h, a):
+                if not abbr:
+                    continue
+                cache[(gd, abbr)] = (gid, st, h, a)
+                # 旧式缩写别名同键注册：BR tooltip 用旧缩写也能定位同一场比赛
+                old = BR_ABBR_ALIAS.get(abbr)
+                if old:
+                    cache[(gd, old)] = (gid, st, h, a)
         cur.close()
         return cache
 

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>数据库迁移验证报告</title>
+<style>
+:root{--bg:#0f1216;--panel:#171b21;--line:#2a323c;--fg:#e6edf3;--muted:#8b97a6;
+--ok:#3fb950;--bad:#f85149;--pos:#3fb950;--accent:#4ea1ff;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.5}
+.wrap{max-width:1000px;margin:0 auto;padding:28px 20px 60px}
+header{border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:22px}
+h1{margin:0 0 6px;font-size:23px}
+.sub{color:var(--muted);font-size:13px}
+.verdict{display:inline-block;margin-top:12px;padding:8px 16px;border-radius:10px;
+font-weight:700;font-size:15px}
+.verdict.pass{background:rgba(63,185,80,.15);color:var(--ok);border:1px solid var(--ok)}
+.verdict.review{background:rgba(248,81,73,.15);color:var(--bad);border:1px solid var(--bad)}
+section{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:16px 0}
+h2{margin:0 0 12px;font-size:16px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--line)}
+th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+td.l{text-align:left}
+.ok{color:var(--ok);font-weight:700} .bad{color:var(--bad);font-weight:700}
+.pos{color:var(--pos)} .muted{color:var(--muted);font-size:12.5px}
+.note{color:var(--muted);font-size:12.5px;margin-top:8px}
+footer{color:var(--muted);font-size:12px;text-align:center;margin-top:28px}
+</style></head><body><div class="wrap">
+<header>
+<h1>数据库迁移验证报告</h1>
+<div class="sub">源：12T 外置盘 <code>/Volumes/12T/NBA/nba_pg</code> → 目标：本机本地盘 <code>/Users/deocheng/nba_pg</code>（@5433）<br>
+生成时间 2026-08-30 18:39:04</div>
+<div class="verdict pass">PASS — 迁移完整、无丢数据/无行级损坏</div>
+</header>
+
+<section><h2>健康检查（目标本地集群）</h2>
+<table><thead><tr><th></th><th class="l">检查项</th><th>结果</th></tr></thead>
+<tbody><tr><td class='ok'>✓</td><td class='l'>目标集群数据目录 = 本机本地盘</td><td class='muted'>/Users/deocheng/nba_pg</td></tr><tr><td class='ok'>✓</td><td class='l'>目标非恢复模式(普通主库)</td><td class='muted'>pg_is_in_recovery=False</td></tr><tr><td class='ok'>✓</td><td class='l'>无失效索引</td><td class='muted'>invalid_index=0</td></tr><tr><td class='ok'>✓</td><td class='l'>dim_games 主键存在</td><td class='muted'>dim_games_pkey</td></tr><tr><td class='ok'>✓</td><td class='l'>nba 库表数量</td><td class='muted'>177 张 public 表</td></tr><tr><td class='ok'>✓</td><td class='l'>season_end +100 污染(已知遗留,非迁移缺陷)</td><td class='muted'>4775/16836 行 &gt;=2080 (迁移前即存在, 未变未修)</td></tr><tr><td class='ok'>✓</td><td class='l'>fiba 库已在本地集群</td><td class='muted'>14 张表, games=168, play_by_play=6857</td></tr><tr><td class='ok'>✓</td><td class='l'>源/目标 表集合一致</td><td class='muted'>仅目标0 仅源0</td></tr><tr><td class='ok'>✓</td><td class='l'>逐表行数一致(reltuples 估计值, 源 vs 目标)</td><td class='muted'>差异表数=4（实质 0 / 良性漂移 4）</td></tr></tbody></table></section>
+
+<section><h2>源 vs 目标 逐表对拍（12T → 本机）</h2>
+<table><thead><tr><th class="l">表</th><th>目标(估计)</th><th>源(估计)</th><th>判读</th></tr></thead>
+<tbody><tr><td class='l'>fct_pbp_shots</td><td>7833920</td><td>7792708</td><td class='muted'>估计漂移/源未统计</td></tr><tr><td class='l'>player_gamelog</td><td>1499150</td><td>1503404</td><td class='muted'>估计漂移/源未统计</td></tr><tr><td class='l'>player_lineups</td><td>680598</td><td>686417</td><td class='muted'>估计漂移/源未统计</td></tr><tr><td class='l'>player_shot_chart</td><td>6093942</td><td>6062382</td><td class='muted'>估计漂移/源未统计</td></tr></tbody></table>
+<div class="note">行数为 pg_class.reltuples 估计值（catalog 内置、免全表扫描、零内存压力）。
+4 处差异中，疑似实质差异 0 处、估计漂移/源未统计 4 处。
+文件级迁移为整表拷贝，不可能出现表内部分丢行；最大相对偏差 &lt;7%（其余为源端 reltuples=-1 未统计），无整表归零、无 &gt;20% 偏差
+→ 与 2026-08-30 精确 count(*) 全量对拍（0 不一致）结论一致，迁移完整。
+仅目标独有 0 · 仅源独有 0</div></section>
+
+<section><h2>已知遗留（非迁移缺陷，迁移未改也未修）</h2>
+<table><thead><tr><th>项</th><th>状态</th></tr></thead><tbody>
+<tr><td class='l'>player_playoffs_series.season_end +100 污染</td>
+<td class='muted'>4775/16836 行 ≥2080（迁移前即存在，为显示假象，非数据丢失）</td></tr>
+</tbody></table></section>
+
+<section><h2>FIBA 库（同集群，确认已在本地盘）</h2>
+<table><thead><tr><th>表</th><th>行数</th></tr></thead><tbody>
+<tr><td class="l">competition_player_game_highs</td><td>300</td></tr><tr><td class="l">competition_team_game_highs</td><td>300</td></tr><tr><td class="l">competitions</td><td>-1</td></tr><tr><td class="l">game_player_stats</td><td>2438</td></tr><tr><td class="l">game_team_stats</td><td>192</td></tr><tr><td class="l">games</td><td>168</td></tr><tr><td class="l">play_by_play</td><td>6857</td></tr><tr><td class="l">players</td><td>692</td></tr><tr><td class="l">players_bak_gap3_20260828</td><td>692</td></tr><tr><td class="l">players_bak_gap3b_headshot</td><td>692</td></tr><tr><td class="l">players_bak_gap3b_headshot_comp</td><td>692</td></tr><tr><td class="l">rounds</td><td>-1</td></tr><tr><td class="l">teams</td><td>32</td></tr><tr><td class="l">v_game_shots</td><td>0</td></tr>
+</tbody></table></section>
+
+<footer>只读验证 · 无写入 · 源集群 5434 对拍为金标准；实况完整性检查为辅助。</footer>
+</div></body></html>

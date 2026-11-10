@@ -1,0 +1,17 @@
+{
+  "action": "enrich_metrics_team_abbr",
+  "snapshot_date": "2026-08-29",
+  "table": "public.player_metrics_daily",
+  "stats": {
+    "empty_to_null": 0,
+    "multi_team_to_null": 0,
+    "br_to_modern": 0,
+    "crossfill": 0,
+    "library_fill": 0
+  },
+  "rows_touched": 0,
+  "rollback_sql": [
+    "UPDATE public.player_metrics_daily SET team_abbr = NULL WHERE snapshot_date = '2026-08-29';"
+  ],
+  "notes": "Every touched row started as '' or NULL, so setting the whole date back to NULL is a complete rollback. Re-running scripts/enrich_metrics_team_abbr.py restores the enriched state."
+}

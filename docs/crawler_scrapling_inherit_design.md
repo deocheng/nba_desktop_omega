@@ -2,7 +2,7 @@
 
 > 文档状态：v1 **设计稿**（仅方案，未执行任何代码改动 / 未启动爬取 / 未提交 git）
 > 触发指令：拉取 `https://github.com/D4Vinci/Scrapling` → 验证我方现有爬虫逻辑 → 取长补短 → 锁定现有爬虫代码 → 新爬虫机制继承现有爬虫
-> 项目根：`/Users/deocheng/Downloads/nba_desktop_omega_mac_migrate_2026-07-13/`
+> 项目根：`/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/`
 > Scrapling 已克隆至：`research/Scrapling/`（v0.4.11，只读研究，未并入业务代码）
 
 ---

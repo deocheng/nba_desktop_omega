@@ -1,0 +1,30 @@
+{
+  "action": "linear scale calibration of player_dpm_calc to real DARKO scale",
+  "date": "2026-08-29",
+  "table": "player_dpm_calc",
+  "rows_affected": 22455,
+  "seasons": [1974, 2026],
+  "backup_table": "player_dpm_calc_bak_20260829_precal",
+  "backup_rows": 22455,
+  "calibration": {
+    "method": "OLS of real DARKO (y) on formula DPM (x), fit on 2026 overlap via br_player_id",
+    "fit_n": 505,
+    "coef": {
+      "dpm":   {"a": 0.57859, "b": -0.43289},
+      "o_dpm": {"a": 0.61366, "b": -0.45805},
+      "d_dpm": {"a": 0.61996, "b":  0.03409}
+    },
+    "apply": "value_calibrated = a * value_formula + b"
+  },
+  "before_2026": {"min": -5.345, "max": 12.729, "std": 2.178, "n": 582},
+  "after_2026":  {"min": -3.525, "max": 6.932,  "std": 1.260, "n": 582},
+  "real_darko_2026": {"min": -4.776, "max": 6.760, "std": 1.603},
+  "pearson_vs_real_2026": 0.7951,
+  "notes": [
+    "correlation is UNCHANGED by design (linear transform); only scale/offset aligned to real DARKO",
+    "calibrated std (1.260) < real std (1.603) is expected OLS regression-to-mean: std_pred = r * std_real = 0.7951 * 1.603 = 1.274",
+    "coefficients fit ONLY on 2026 (the one season with real DARKO); applied uniformly to 1974-2025 as approximation",
+    "source column remains 'formula' -- DO NOT present these as official DARKO values"
+  ],
+  "rollback_sql": "UPDATE player_dpm_calc t SET dpm=b.dpm, o_dpm=b.o_dpm, d_dpm=b.d_dpm FROM player_dpm_calc_bak_20260829_precal b WHERE t.br_player_id=b.br_player_id AND t.season=b.season;"
+}
