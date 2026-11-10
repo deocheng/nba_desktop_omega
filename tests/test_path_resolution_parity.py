@@ -13,7 +13,7 @@
 🔴 实测过的两次真实分叉
 ----------------------
 1. **DATA_ROOT 兜底不同**：Python 侧兜底 = 仓库父目录；
-   shell 侧曾硬编码 ``/Volumes/12T/NBA`` → CI 上仓库在
+   shell 侧曾硬编码 ``<数据盘根>`` → CI 上仓库在
    ``/home/runner/work/...`` → 两侧指向不同位置（run 42876413458 失败）。
 2. **软链口径不同**：Python 用 ``Path(__file__).resolve()``（**物理**路径），
    shell 用 ``cd && pwd``（**逻辑**路径）→ macOS 的 ``/tmp`` → ``/private/tmp``
@@ -113,7 +113,7 @@ def test_parity_in_ci_like_layout(tmp_path):
     """模拟 CI 环境：仓库在临时目录、父目录无特征标记、路径含软链。
 
     这是 run 42876413458 失败的场景 —— 那里 Python 侧回退到仓库父目录，
-    而 shell 侧曾硬编码 /Volumes/12T/NBA。
+    而 shell 侧曾硬编码 <数据盘根>。
     """
     # 用 symlink 造一个带软链的路径（macOS 的 /tmp 就是这种形态）
     real_root = tmp_path / "real"

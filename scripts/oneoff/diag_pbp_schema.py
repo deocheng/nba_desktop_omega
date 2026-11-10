@@ -1,7 +1,9 @@
 """Inspect play_by_play schema + how event_type/subtype/description are used."""
 from __future__ import annotations
+
 import psycopg2
 from psycopg2.extras import RealDictCursor
+
 from backend.core import config
 
 conn = psycopg2.connect(**config.DB_CONFIG, cursor_factory=RealDictCursor)
