@@ -43,6 +43,7 @@ class TestSeasonLabel:
 
 
 class TestPlayerSeasons:
+    @pytest.mark.needs_data
     @needs_db
     def test_returns_descending_ints(self):
         seasons = load_player_seasons(_KNOWN_PLAYER)
@@ -59,6 +60,7 @@ class TestPlayerSeasons:
         assert load_player_seasons("") == []
 
 
+@pytest.mark.needs_data
 class TestTeamSeasons:
     @needs_db
     def test_returns_ints(self):
@@ -76,6 +78,7 @@ class TestTeamSeasons:
 
 
 class TestPlayerGamesAggregated:
+    @pytest.mark.needs_data
     @needs_db
     def test_month_grouping_structure(self):
         agg = load_player_games_aggregated(_KNOWN_PLAYER, 2026, "month")
@@ -87,6 +90,7 @@ class TestPlayerGamesAggregated:
             for gm in g["games"]:
                 assert set(gm.keys()) == {"game_id", "game_date", "opponent", "is_home", "result", "pts"}
 
+    @pytest.mark.needs_data
     @needs_db
     def test_week_grouping_non_empty(self):
         agg = load_player_games_aggregated(_KNOWN_PLAYER, 2026, "week")
@@ -103,6 +107,7 @@ class TestPlayerGamesAggregated:
 
 
 class TestTeamGamesAggregated:
+    @pytest.mark.needs_data
     @needs_db
     def test_month_grouping_structure(self):
         agg = load_team_games_aggregated(_KNOWN_TEAM, 2026, "month")

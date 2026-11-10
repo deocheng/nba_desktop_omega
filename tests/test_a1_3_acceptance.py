@@ -41,6 +41,7 @@ def _q(cur, sql, params=()):
 
 
 # ── 验收点 1：94 条 exists_match 无需改写 ──
+@pytest.mark.needs_data
 @pytest.mark.needs_db
 def test_corrections_table_has_exactly_94_exists_match(db_available):
     from tests.conftest import skip_without_db
@@ -64,6 +65,7 @@ def test_corrections_table_has_exactly_94_exists_match(db_available):
         conn.close()
 
 
+@pytest.mark.needs_data
 @pytest.mark.needs_db
 def test_exists_match_requires_no_rewrite(db_available):
     """94 条 exists_match：wrong_id==correct_id，且 correct_id 已是有效 player_id。"""
@@ -93,6 +95,7 @@ def test_exists_match_requires_no_rewrite(db_available):
 
 
 # ── 验收点 2：dim_draft_history 未变更（真·no-op）──
+@pytest.mark.needs_data
 @pytest.mark.needs_db
 def test_dim_draft_history_unchanged_vs_snapshot(db_available):
     from tests.conftest import skip_without_db
@@ -122,6 +125,7 @@ def test_dim_draft_history_unchanged_vs_snapshot(db_available):
         conn.close()
 
 
+@pytest.mark.needs_data
 @pytest.mark.needs_db
 def test_mismatch_player_ids_unchanged_vs_snapshot(db_available):
     """263 个 mismatch 的 player_id 当前值与快照一致（由 0 行变更保证）。"""
@@ -224,6 +228,7 @@ def test_apply_functions_bind_identifiers_via_sql():
 
 
 # ── 验收点 4：端到端 true no-op ──
+@pytest.mark.needs_data
 @pytest.mark.needs_db
 def test_apply_corrections_is_true_noop(db_available):
     """运行 apply_corrections：dry-run planned=0，execute updated=0，表仍 8446 未变。"""

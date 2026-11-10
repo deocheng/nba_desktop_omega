@@ -130,6 +130,7 @@ class TestMetricsEndpoints:
         resp = app_client.get("/metrics/evaluate/pts_per_game")
         assert resp.status_code == 422  # FastAPI validation error
 
+    @pytest.mark.needs_data
     @needs_db
     def test_evaluate_metric_returns_rankings(self, app_client):
         """GET /metrics/evaluate/{name}?season=2025 should return ranked list."""
@@ -156,6 +157,7 @@ class TestPlayersEndpoints:
         resp = app_client.get("/players?name=x")
         assert resp.status_code == 422
 
+    @pytest.mark.needs_data
     @needs_db
     def test_search_returns_results(self, app_client):
         """GET /players?name=lebron should find LeBron James."""
@@ -265,6 +267,7 @@ class TestBatchEndpoint:
         })
         assert resp.status_code == 400
 
+    @pytest.mark.needs_data
     @needs_db
     def test_batch_rank_and_compute(self, app_client):
         """POST /batch with rank + compute should return both results."""
@@ -409,6 +412,7 @@ class TestLayerIsolation:
 class TestRealEndpoints2025:
     """Real integration: hit live endpoints against 2025 season data."""
 
+    @pytest.mark.needs_data
     def test_metrics_evaluate_top10_ppg(self, app_client):
         """GET /metrics/evaluate/pts_per_game?season=2025&limit=10 should return top 10."""
         resp = app_client.get("/metrics/evaluate/pts_per_game?season=2025&limit=10")
@@ -467,6 +471,7 @@ class TestRealEndpoints2025:
         if "pts_per_game" in data["metrics"]:
             assert data["metrics"]["pts_per_game"] > 20.0
 
+    @pytest.mark.needs_data
     def test_batch_compute_many(self, app_client):
         """POST /batch with compute_many should return multi-metric dict."""
         resp = app_client.post("/batch", json={

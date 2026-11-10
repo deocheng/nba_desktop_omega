@@ -98,11 +98,16 @@ def test_det_available():
     assert "DET" in TEAM_ABBRS
 
 
+@pytest.mark.needs_data
 def test_check_against_db_alignment():
     """Abbr/slug alignment with dim_teams (skipped if no live DB).
 
     Uses the same connection path the crawlers use. Never compares English
     names to Chinese team_name.
+
+    ``needs_data``：断言要读 ``dim_teams`` 的**行**（队码行），
+    schema-only 的库里该表存在但为空 → 30 个规范队码会全部落进
+    ``missing_in_db``，属于「环境缺数据」而非「数据不一致」。
     """
     try:
         from hof_exec.config import get_conn

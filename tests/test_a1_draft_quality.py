@@ -21,6 +21,7 @@ def test_snapshot_rejects_bad_date():
         draft_quality.snapshot_draft_history("abcd")  # not digits
 
 
+@pytest.mark.needs_data
 @pytest.mark.needs_db
 def test_audit_returns_376(db_available):
     from tests.conftest import skip_without_db
@@ -70,6 +71,7 @@ def test_apply_and_rollback_dry_run_noop(db_available):
         draft_quality.close_pool()
 
 
+@pytest.mark.needs_data
 @pytest.mark.needs_db
 def test_audit_csv_exists_on_disk(db_available):
     from tests.conftest import skip_without_db

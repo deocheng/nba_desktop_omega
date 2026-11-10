@@ -207,6 +207,7 @@ class TestRawArchiver:
 # B) matcher.py —— 匹配函数（含真实库断言）
 # ===========================================================================
 class TestMatcher:
+    @pytest.mark.needs_data
     def test_real_dim_games_anchor_matched(self, conn):
         """真实 dim_games 锚点精确命中（双键齐全）→ dim_games / matched。"""
         row = sqlrow(conn, """
@@ -254,6 +255,7 @@ class TestMatcher:
 # ===========================================================================
 # C) game_id_bridge.py —— 幂等 + 视图可用性（核心功能）
 # ===========================================================================
+@pytest.mark.needs_data
 class TestGameIdBridge:
     def test_bridge_idempotent_and_playbyplay_untouched(self, conn):
         """重跑 --season 2026 --limit 20 行数不变（幂等），且 play_by_play 行数不变（铁律）。"""
@@ -307,6 +309,7 @@ class TestGameIdBridge:
 # D) espn_broad_crawler.py —— dry-run / parse 结构 / 极小真实落盘
 # ===========================================================================
 class TestEspnBroadCrawler:
+    @pytest.mark.needs_data
     @pytest.mark.needs_db
     def test_dry_run_small_limit(self):
         """--dry-run --limit 2 应正常退出并打印抓取计划（不落库/不落盘/不崩）。
@@ -411,6 +414,7 @@ class TestEspnBroadCrawler:
         # season_type
         assert parsed["season_type"] == 2
 
+    @pytest.mark.needs_data
     def test_real_fetch_small_best_effort(self, conn):
         """极小真实 --limit 1 落盘（若网络可达）：断言文件非空 + espn_boxscore 有 upsert；
         无论成功与否均清理，避免污染真实库/归档。"""

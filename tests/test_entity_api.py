@@ -31,6 +31,7 @@ class TestPlayerDetail:
         resp = app_client.get("/players/unknown99zz/detail?season=2026")
         assert resp.status_code == 404
 
+    @pytest.mark.needs_data
     @needs_db
     def test_ok_structure(self, app_client):
         resp = app_client.get(f"/players/{_KNOWN_PLAYER}/detail?season=2026")
@@ -47,6 +48,7 @@ class TestPlayerGames:
         resp = app_client.get(f"/players/{_KNOWN_PLAYER}/games?season=2026&granularity=bogus")
         assert resp.status_code == 422
 
+    @pytest.mark.needs_data
     @needs_db
     def test_month_ok(self, app_client):
         resp = app_client.get(f"/players/{_KNOWN_PLAYER}/games?season=2026&granularity=month")
@@ -65,6 +67,7 @@ class TestPlayerGames:
         assert len(d["groups"]) == d["totals"]["gp"]
 
 
+@pytest.mark.needs_data
 class TestTeamDetail:
     @needs_db
     def test_ok_structure(self, app_client):
@@ -81,6 +84,7 @@ class TestTeamGames:
         resp = app_client.get(f"/teams/{_KNOWN_TEAM}/games?season=2026&granularity=bogus")
         assert resp.status_code == 422
 
+    @pytest.mark.needs_data
     @needs_db
     def test_month_ok(self, app_client):
         resp = app_client.get(f"/teams/{_KNOWN_TEAM}/games?season=2026&granularity=month")

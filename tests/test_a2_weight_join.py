@@ -55,6 +55,7 @@ def test_select_weight_cols_aliased(db_available):
     assert "weight_lbs" in rendered and "weight_kg" in rendered
 
 
+@pytest.mark.needs_data
 @pytest.mark.needs_db
 def test_season_stats_with_bio_exposes_weight_kg(db_available):
     from tests.conftest import skip_without_db

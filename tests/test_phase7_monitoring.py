@@ -64,6 +64,7 @@ class TestContextEngine:
         )
         assert resp.status_code == 404
 
+    @pytest.mark.needs_data
     def test_role_evolution_basic(self, app_client, db_available):
         if not db_available:
             pytest.skip("DB not available")
@@ -79,6 +80,7 @@ class TestContextEngine:
             assert "metric" in mc
             assert "direction" in mc
 
+    @pytest.mark.needs_data
     def test_trend_analysis_basic(self, app_client, db_available):
         if not db_available:
             pytest.skip("DB not available")
@@ -124,6 +126,7 @@ class TestExportService:
         assert data["season"] == 2025
         assert len(data["rankings"]) <= 10
 
+    @pytest.mark.needs_data
     def test_export_rankings_csv(self, app_client, db_available):
         if not db_available:
             pytest.skip("DB not available")
@@ -184,6 +187,7 @@ class TestExportService:
         )
         assert resp.status_code == 400
 
+    @pytest.mark.needs_data
     def test_export_player_json(self, app_client, db_available):
         if not db_available:
             pytest.skip("DB not available")

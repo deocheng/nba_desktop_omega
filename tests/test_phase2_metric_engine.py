@@ -379,6 +379,7 @@ except Exception:
 class TestRealCompute2025:
     """Real integration: compute metrics against live 2025 season data."""
 
+    @pytest.mark.needs_data
     def test_ppg_top_scorers_sane(self):
         """Top PPG scorer in 2025 should be a known star (>25 PPG)."""
         s = me.compute("pts_per_game", 2025, use_cache=False)
@@ -394,12 +395,14 @@ class TestRealCompute2025:
         assert (valid >= 0).all()
         assert (valid <= 1.5).all(), f"max TS% = {valid.max()} (suspicious)"
 
+    @pytest.mark.needs_data
     def test_fantasy_points_positive_for_most(self):
         """Fantasy points should be positive for >95% of players."""
         s = me.compute("fantasy_points", 2025, use_cache=False)
         positive_ratio = (s > 0).sum() / len(s)
         assert positive_ratio > 0.95, f"positive ratio = {positive_ratio}"
 
+    @pytest.mark.needs_data
     def test_rank_returns_sorted_rankings(self):
         """rank() should return list[Ranking] with monotonically increasing rank."""
         rankings = me.rank("pts_per_game", 2025, use_cache=False)
@@ -430,6 +433,7 @@ class TestRealCompute2025:
             f"cache hit ({cache_time:.3f}s) not faster than compute ({compute_time:.3f}s)"
         )
 
+    @pytest.mark.needs_data
     def test_compute_many_multiple_metrics(self):
         """compute_many returns DataFrame with all requested metrics."""
         df = me.compute_many(

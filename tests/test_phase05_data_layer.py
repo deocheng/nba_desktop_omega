@@ -142,6 +142,7 @@ class TestNoPerPlayerLoop:
 
 # ── §4 Phase 0.5: real batch query (DB required) ──
 
+@pytest.mark.needs_data
 class TestRealBatchQuery:
 
     def test_load_seasons_available(self, db_available):

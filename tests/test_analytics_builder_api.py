@@ -68,6 +68,7 @@ class TestRunEndpoint:
         assert resp.status_code == 400
 
 
+@pytest.mark.needs_data
 @needs_db
 class TestRunEndpointLive:
     def test_run_real_source(self, app_client):
@@ -84,6 +85,7 @@ class TestRunEndpointLive:
         assert body["data"]["viz_results"]
 
 
+@pytest.mark.needs_data
 @needs_db
 class TestWorkspaceFlowCRUD:
     def _make_workspace(self, app_client):

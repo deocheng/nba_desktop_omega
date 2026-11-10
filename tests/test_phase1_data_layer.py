@@ -136,6 +136,7 @@ class TestJoinLoaders:
         with pytest.raises(ValueError, match="Invalid season"):
             load_player_season_stats_with_bio("2025")  # type: ignore[arg-type]
 
+    @pytest.mark.needs_data
     def test_load_player_gamelog_with_game_context(self, db_available):
         """Real batch query: gamelog + game context join."""
         if not db_available:
@@ -148,6 +149,7 @@ class TestJoinLoaders:
         assert "game_date" in sample or sample.get("game_date") is None  # LEFT JOIN
         assert "home_team_abbr" in sample or sample.get("home_team_abbr") is None
 
+    @pytest.mark.needs_data
     def test_load_player_season_stats_with_bio(self, db_available):
         """Real batch query: season stats + player bio join."""
         if not db_available:
@@ -163,6 +165,7 @@ class TestJoinLoaders:
 
 # ── §4 Phase 1: temp table real query ──
 
+@pytest.mark.needs_data
 class TestTempTableRealQuery:
 
     def test_temp_table_gamelog_load(self, db_available):

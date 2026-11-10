@@ -300,6 +300,7 @@ class TestV81LayerIsolation:
 
 @needs_db
 class TestV81RealCompute2025:
+    @pytest.mark.needs_data
     def test_orbit_drb_sane(self):
         orb = me.compute("orb_per_game", 2025, use_cache=False)
         drb = me.compute("drb_per_game", 2025, use_cache=False)
@@ -321,6 +322,7 @@ class TestV81RealCompute2025:
         # Players with 0 STL+BLK legitimately yield 0 (not negative).
         assert (s >= 0).all(), "DAE must be non-negative (pf guarded)"
 
+    @pytest.mark.needs_data
     def test_team_scoring_share_range(self):
         s = me.compute("team_scoring_share", 2025, use_cache=False).dropna()
         # Player cannot score more than the team; share in [0, 1]
@@ -329,6 +331,7 @@ class TestV81RealCompute2025:
         # After the playoffs-filter fix, the vast majority of players have data
         assert len(s) > 500, f"only {len(s)} players have team_scoring_share (expected >500)"
 
+    @pytest.mark.needs_data
     def test_player_detail_includes_v81_metrics(self):
         from backend.api.routers import players as players_router
         resp = players_router.get_player_detail("jamesle01", season=2025)

@@ -72,6 +72,7 @@ class TestRoleClassification:
         }
         assert seen == set(ROLE_TYPES)
 
+    @pytest.mark.needs_data
     def test_role_lebron_db(self, db_available):
         skip_without_db(db_available)
         rows = load_player_intel(2025, "Regular", ["jamesle01"])
@@ -90,6 +91,7 @@ class TestPlayerDNA:
         dna = compute_dna(_m(g=0, pts=0, ast=0), availability_score=0.0)
         assert all(0.0 <= v <= 100.0 for v in dna.values())
 
+    @pytest.mark.needs_data
     def test_dna_lebron_db(self, db_available):
         skip_without_db(db_available)
         rows = load_player_intel(2025, "Regular", ["jamesle01"])
@@ -104,6 +106,7 @@ class TestPlayerDNA:
 
 # ── §10 Scoring Profile (DB) ──
 
+@pytest.mark.needs_data
 class TestScoringProfile:
     def test_scoring_profile_lebron(self, db_available):
         skip_without_db(db_available)
@@ -119,6 +122,7 @@ class TestScoringProfile:
 # ── §19 Intelligence API ──
 
 class TestIntelligenceAPI:
+    @pytest.mark.needs_data
     def test_endpoint_200_structure(self, app_client, db_available):
         skip_without_db(db_available)
         r = app_client.get("/players/jamesle01/intelligence", params={"season": 2025})
@@ -135,6 +139,7 @@ class TestIntelligenceAPI:
         r = app_client.get("/players/nonexistent01/intelligence", params={"season": 2025})
         assert r.status_code == 404
 
+    @pytest.mark.needs_data
     def test_endpoint_defaults_to_latest_season(self, app_client, db_available):
         skip_without_db(db_available)
         r = app_client.get("/players/jamesle01/intelligence")

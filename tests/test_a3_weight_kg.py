@@ -30,6 +30,7 @@ def test_derive_weight_kg_idempotent_and_complete(db_available):
         weight_writer.close_pool()
 
 
+@pytest.mark.needs_data
 @pytest.mark.needs_db
 def test_dim_players_weight_complete(db_available):
     from tests.conftest import skip_without_db

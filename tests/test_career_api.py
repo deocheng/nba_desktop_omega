@@ -63,6 +63,7 @@ class TestCareerIntegration:
             return None
         return s["players"][0]["player_id"]
 
+    @pytest.mark.needs_data
     def test_peak_real_descending(self, app_client):
         resp = app_client.get("/api/career/peak?metric=pts_per_game&limit=5")
         assert resp.status_code == 200
@@ -75,6 +76,7 @@ class TestCareerIntegration:
         for d in data:
             assert d["player_id"] and d["peak_value"] is not None
 
+    @pytest.mark.needs_data
     def test_age_curve_real_sorted(self, app_client):
         pid = self._find_player(app_client, "lebron")
         if not pid:
