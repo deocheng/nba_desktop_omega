@@ -19,6 +19,7 @@ import argparse
 import os
 import sys
 from datetime import date
+from typing import Optional
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 if HERE not in sys.path:

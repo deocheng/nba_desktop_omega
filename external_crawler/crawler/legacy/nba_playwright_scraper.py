@@ -1202,7 +1202,7 @@ class NBAPlaywrightScraper:
         Returns:
             { "DataSetName": [{"COL1": val1, ...}, ...], ... }
         """
-        result_sets = data.get('resultSets', data.get('resultSet', []))
+        result_sets = data.get('resultSets', data.get('resultSet', []))  # noqa: F821 - legacy 归档脚本：该方法在历史重构中被拆散，全仓无调用方
         if isinstance(result_sets, dict):
             result_sets = [result_sets]
 

@@ -18,6 +18,7 @@ from backend.api.schemas import (
     PlayerBio,
     PlayerDetailResponse,
     PlayerEntityDetail,
+    PlayerHonor,
     PlayerHonorsResponse,
     PlayerSearchResponse,
     SeasonCoverage,

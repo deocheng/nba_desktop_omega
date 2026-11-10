@@ -22,6 +22,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+from typing import Union
 
 from common.bridge_constants import (
     ARCHIVE_BASE,

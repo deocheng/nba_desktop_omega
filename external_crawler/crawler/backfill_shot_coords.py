@@ -23,7 +23,7 @@
 """
 from __future__ import annotations
 import os
-import argparse, csv, os, re, sys, time, random
+import argparse, csv, re, sys, time, random
 from datetime import datetime
 from pathlib import Path
 

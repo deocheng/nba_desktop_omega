@@ -5,7 +5,7 @@
 """
 import os, re, html, unicodedata, json
 
-BASE = "/Users/deocheng/Downloads/nba_desktop_omega_mac_migrate_2026-07-13"
+BASE = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
 OUT_MD  = os.path.join(BASE, "analysis_nicknames_bz.md")
 OUT_JSON = os.path.join(BASE, "notes_enriched.json")
 
@@ -59,13 +59,15 @@ def nick_text(nk):
     return "、".join(p.strip() for p in (nk or "").replace(";", ",").split(",") if p.strip())
 
 # ---------- 2b. 提取 BASE_NOTES（~94 条手写小注）----------
+# BASE_NOTES 由下面的 exec() 在运行时注入 —— 静态分析看不见 exec 的副作用，
+# 故下方两处引用需显式 noqa: F821（不是 bug，是 exec 的固有盲区）。
 src = open(os.path.join(BASE, 'build_nicknames_bz.py'), encoding='utf-8').read()
 i = src.index('NOTES = {')
 j = src.index('\nblocks = []', i)
 exec('BASE_NOTES = ' + src[i+len('NOTES = '):j])
 
 # ---------- 3. 合并 NOTES ----------
-NOTES = dict(BASE_NOTES)
+NOTES = dict(BASE_NOTES)  # noqa: F821 - 由上方 exec() 注入
 batch_files = ['notes_batch_BD.json','notes_batch_EH.json','notes_batch_IL.json',
                'notes_batch_MP.json','notes_batch_QZ.json']
 for f in batch_files:
@@ -137,5 +139,5 @@ with open(OUT_JSON, "w", encoding="utf-8") as f:
 print(f"OK -> {OUT_MD}")
 print(f"OK -> {OUT_JSON}")
 print(f"球员数(B-Z)={total}  含小注={matched_notes}  NOTES总数={len(NOTES)}")
-print(f"BASE_NOTES={len(BASE_NOTES)}  批次合计={sum(len(json.load(open(os.path.join(BASE,f),encoding='utf-8'))) for f in batch_files)}")
+print(f"BASE_NOTES={len(BASE_NOTES)}  批次合计={sum(len(json.load(open(os.path.join(BASE,f),encoding='utf-8'))) for f in batch_files)}")  # noqa: F821 - 由 exec() 注入
 print(f"文档字节≈{len(doc.encode('utf-8'))}")

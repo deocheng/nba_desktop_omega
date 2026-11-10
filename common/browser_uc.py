@@ -43,6 +43,7 @@ import atexit
 import logging
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 import threading

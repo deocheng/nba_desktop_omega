@@ -167,15 +167,24 @@ def test_parse_minutes_helper():
 # 3) parse_player_lineups_html — 真实 fixture 结构校验
 # ═════════════════════════════════════════════════════════════════════════
 def test_parse_real_fixture_structure():
-    """真实 fixture（lineups-5-man）应解析出 ≥1 行，每行 5 人、Regular、size=5。"""
+    """真实 fixture（lineups_2014_sample）应解析出全部行，每行 players 长度
+    == lineup_size，season_type 统一归一为 Regular Season。
+
+    口径说明：该夹具含 **5/4/3/2-man 四张表**（不是只含 5-man），
+    因此结构契约是「行内人数自洽 + 覆盖四档」，而非「每行都 5 人」。
+    """
     html = _load_html()
     rows = parse_player_lineups_html(html)
     assert len(rows) > 0, "真实 HTML 应解析出至少 1 行"
     for r in rows:
-        assert len(r["players"]) == 5, "每行 players 长度须为 5"
-        assert r["lineup_size"] == 5, "5-man 表解析出的行 size 须为 5"
-        assert r["season_type"] == "Regular", \
-            "本样本无 Playoffs 表，season_type 应为 Regular"
+        assert len(r["players"]) == r["lineup_size"], \
+            f"行内人数 {len(r['players'])} != lineup_size {r['lineup_size']}"
+        assert r["season_type"] == "Regular Season", \
+            "本样本无 Playoffs 表，season_type 应为 Regular Season"
+        assert r["players"], "每行必须有球员"
+    # 2014 样本覆盖 5/4/3/2 四种阵容人数
+    assert {r["lineup_size"] for r in rows} == {2, 3, 4, 5}, \
+        f"应覆盖 2/3/4/5-man，实际 {sorted({r['lineup_size'] for r in rows})}"
 
 
 def test_parse_real_fixture_all_four_sizes():
@@ -190,7 +199,7 @@ def test_parse_real_fixture_all_four_sizes():
         by_size[r["lineup_size"]] += 1
         assert len(r["players"]) == r["lineup_size"], \
             f"人数 {len(r['players'])} != size {r['lineup_size']}"
-        assert r["season_type"] == "Regular"
+        assert r["season_type"] == "Regular Season"
     # 期望：5/4/3/2-man 各 10 行（共 40）
     assert set(by_size.keys()) == {2, 3, 4, 5}, \
         f"应覆盖 2/3/4/5-man，实际 {sorted(by_size)}"
@@ -285,7 +294,7 @@ def test_build_rows_injects_player_id_and_season():
                              season_type="Regular", rec=rec)
     assert row["player_id"] == "antetgi01"
     assert row["season"] == 2014
-    assert row["season_type"] == "Regular"
+    assert row["season_type"] == "Regular Season"
 
 
 def test_build_rows_expands_5_br_player_ids_and_names():

@@ -20,7 +20,10 @@ test = ["pytest>=8.0", "httpx>=0.27"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-addopts = "-v --tb=short"
+# --basetemp 固定到仓库内：系统 TMPDIR 下的 pytest-of-<user> 目录可能由
+# 其他用户创建且不可写，导致 tmp_path fixture 集体 FileExistsError
+# （实测沙箱环境下 60+ 用例因此报错，与业务逻辑无关）。
+addopts = "-v --tb=short --basetemp=.pytest_tmp"
 markers = [
     "phase0: Phase 0 Environment Bootstrap tests",
     "needs_db: requires live PostgreSQL connection",

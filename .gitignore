@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .pytest_cache/
+.pytest_tmp/
 .venv/
 venv/
 
@@ -107,3 +108,10 @@ analyze_*.py
 gen_*.py
 debug_*
 diag_*.py
+
+# ── 2026-09-28 整合进来的子项目：大体积运行时数据不入库 ──
+# fiba_scraper/raw_archive 已由上方 raw_archive/ 规则覆盖
+nba_subtitle_tool/work/
+nba_subtitle_tool/models/
+nba_subtitle_tool/output/
+fiba_scraper/backups/

@@ -40,6 +40,7 @@ from common.br_player_page import (  # noqa: E402
 )
 from external_crawler.crawler.crawl_br_player_shooting import (  # noqa: E402
     PlayerShootingCrawler,
+    TransientFetchError,
 )
 
 FIXTURE_404 = ROOT / "raw_archive" / "br_players" / "alexaga01" / "shooting.html"
@@ -144,43 +145,74 @@ def test_fetch_team_page_real_page_not_flagged():
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Fix 2 — 404 隔离（_crawl_player）
+# Fix 2 — 404 / CF 处理（逐季管线 _crawl_pair）
+#
+# 口径沿革：原用例打的是父类「生涯页」管线 _crawl_player(conn, driver, slug)，
+# 但 PlayerShootingCrawler 在 commit 78faa41 已改为**逐季页**口径
+# （build_url/save_raw_html/build_rows 均需 season 参数），父类的单页管线
+# 对本子类签名不兼容、也不再产出数据（BR 生涯页 shooting 汇总已 404）。
+# 逐季管线 _crawl_pair 完整保留并细化了根因处理，故用例改为打**活路径**：
+#   404            → 登记 crawl_failures（token 含 slug|season），不存档不解析
+#   CF 挑战 / 空响应 → 抛 TransientFetchError（瞬态，可重试，不写失败登记）
+#   页面正常但无 #shooting 表 → 登记 crawl_failures（真无数据，不重试）
 # ═══════════════════════════════════════════════════════════════════════════
-def test_crawl_player_quarantines_404_skips_save_and_parse():
+def test_crawl_pair_registers_failure_on_404_skips_save_and_parse():
     inserts: list = []
     conn = _MockConn(_make_router(inserts))
     crawler = PlayerShootingCrawler()
-    # 若 404 路径错误地调用了 save_raw_html/_consume_html，直接炸，证明被跳过。
+    # 若 404 路径错误地调用了 save_raw_html，直接炸，证明被跳过。
     crawler.save_raw_html = lambda *a, **k: (_ for _ in ()).throw(
         AssertionError("404 不应写 raw_archive"))
-    crawler._consume_html = lambda *a, **k: (_ for _ in ()).throw(
-        AssertionError("404 不应解析"))
 
-    n = crawler._crawl_player(conn, FakeDriver(_load_404()), "alexaga01")
+    n = crawler._crawl_pair(conn, FakeDriver(_load_404()), "alexaga01", 2004, "ATL")
 
     assert n == 0, "404 页应返回 0 行"
     assert crawler._last_fetch_404 is True
-    q = [p for (t, p) in inserts if t == "player_shooting_404"]
-    assert q, "必须把 404 slug 隔离进 player_shooting_404"
-    assert ("alexaga01", "http_404") in q, "隔离 note 应为 http_404"
-    assert not any(t == "crawl_failures" for (t, _) in inserts), \
-        "404 不应污染 crawl_failures"
+    f = [p for (t, p) in inserts if t == "crawl_failures"]
+    assert f, "404 必须登记 crawl_failures"
+    assert any("alexaga01" in str(p) and "2004" in str(p) for p in f), \
+        f"登记 token 应含 slug 与 season，实际 {f}"
+    assert not any(t == "player_shooting_404" for (t, _) in inserts), \
+        "逐季口径不写 404 隔离表"
 
 
-def test_crawl_player_registers_failure_on_cf_not_quarantine():
+def test_crawl_pair_raises_transient_on_cf():
     inserts: list = []
     conn = _MockConn(_make_router(inserts))
     crawler = PlayerShootingCrawler()
     cf_html = "<html><head><title>Just a moment</title></head><body>Checking your browser</body></html>"
-    n = crawler._crawl_player(conn, FakeDriver(cf_html), "somecfslug")
 
-    assert n == 0, "CF 挑战页应返回 0 行"
+    with pytest.raises(TransientFetchError):
+        crawler._crawl_pair(conn, FakeDriver(cf_html), "somecfslug", 2004, "ATL")
+
     assert crawler._last_fetch_cf is True
     assert crawler._last_fetch_404 is False
-    assert any(t == "crawl_failures" for (t, _) in inserts), \
-        "CF 页应有 crawl_failures 登记"
+    assert not any(t == "crawl_failures" for (t, _) in inserts), \
+        "CF 属瞬态，不应写失败登记（应由重试机制处理）"
     assert not any(t == "player_shooting_404" for (t, _) in inserts), \
         "CF 页不应进 404 隔离表"
+
+
+def test_crawl_pair_registers_no_data_when_no_shooting_table():
+    """页面正常但无 #shooting 表（史前赛季）→ 登记失败、不重试。
+
+    注意：原始 HTML **仍需落盘**（ARCH §8 铁律：原始产物必存档），
+    存档发生在解析之前，因此「无数据」不等于「不存档」。
+    """
+    inserts: list = []
+    conn = _MockConn(_make_router(inserts))
+    crawler = PlayerShootingCrawler()
+    no_table = "<html><body><table id='per_game'><tr><td>x</td></tr></table></body></html>"
+    saved: list = []
+    crawler.save_raw_html = lambda *a, **k: saved.append(a)
+
+    n = crawler._crawl_pair(conn, FakeDriver(no_table), "oldschool01", 1997, "SAS")
+
+    assert n == 0, "无 #shooting 表应返回 0 行"
+    assert saved, "原始 HTML 必须落盘（ARCH §8）"
+    f = [p for (t, p) in inserts if t == "crawl_failures"]
+    assert f, "真无数据必须登记（免得无限重试）"
+    assert any("oldschool01" in str(p) and "1997" in str(p) for p in f), f
 
 
 # ═══════════════════════════════════════════════════════════════════════════

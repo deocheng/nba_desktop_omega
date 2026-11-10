@@ -33,15 +33,6 @@ class _FakePage:
     def content(self):
         return "<html><body>Just a moment</body></html>"
 
-    def goto(self, url, **k):
-        pass
-
-    def reload(self, **k):
-        pass
-
-    def evaluate(self, expr):
-        return "Checking your browser"
-
 
 class _FakeDriver:
     """模仿 _PWDriver 的最小接口（get / page_source / _is_challenged）。"""
