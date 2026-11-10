@@ -393,9 +393,22 @@ if __name__ == "__main__":
         "team_colors": dict(_theme.TEAM_COLORS),
     }
     tokens_path = Path(__file__).with_name("theme_tokens.json")
-    tokens_path.write_text(json.dumps(tokens, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(f"Wrote {tokens_path} ({len(tokens['css_vars_dark_keys'])} css vars, "
-          f"{tokens['team_colors_count']} teams)")
+    # 🔴 幂等写入：generated_at 是运行时间戳，无条件重写会让**每次跑门禁**
+    #    都给这个受版本控制的文件制造一条无意义 diff（门禁第 2 节会执行
+    #    本 demo）。只有令牌实质内容变化时才落盘，并顺带刷新时间戳。
+    try:
+        prev = json.loads(tokens_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        prev = None
+    def substantive(d: dict) -> dict:
+        return {k: v for k, v in d.items() if k != "generated_at"}
+
+    if prev is not None and substantive(prev) == substantive(tokens):
+        print(f"Unchanged {tokens_path} (skip rewrite)")
+    else:
+        tokens_path.write_text(json.dumps(tokens, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(f"Wrote {tokens_path} ({len(tokens['css_vars_dark_keys'])} css vars, "
+              f"{tokens['team_colors_count']} teams)")
 
 
 __all__ = [
