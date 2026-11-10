@@ -2,9 +2,74 @@
 
 All changes to LOCKED phases must be recorded here (v8 §1 Change Request mechanism).
 
+## 2026-11-10 — 路径治理：消除硬编码绝对路径（语义等价 85/85，门禁 37 → 39 项）
+
+**Status**: R 仓已跟踪 `.py` 中 `/Users/deocheng` **零命中**；`/Volumes/12T` 仅剩门禁脚本自身
+2 行（刻意保留作为检测模式）；语义等价性校验 **85/85 完全等价**；质量门禁 **39/39 PASS**；
+全量回归 **783 passed / 1 skipped / 0 failed**
+
+**背景**：
+本仓库横跨三处文件系统 —— 仓库根 R（外置盘）、数据盘根 D（`/Volumes/12T/NBA`）、
+会话工作区 W（`~/WorkBuddy/<会话>`）。历史脚本把 `/Users/deocheng` 与 `/Volumes/12T/...`
+直接写进源码字面量，共 **91 个已跟踪 `.py` 命中**。
+
+硬编码路径的代价不是「不好看」，而是**会静默失效**。实证一例：源码里写的 node 路径是
+`.../node/versions/22.22.2/bin/node`，机器上真实存在的是 `.../22.22.2-6/bin/node`
+→ 换一次 node 版本，所有调用它的脚本一起断。另一例：`headshots_crawl.log` 曾被写成
+`HEADSHOTS_ROOT + '_crawl.log'` —— 字符串恰好拼回同一路径，但**语义已错**
+（日志文件 ≠ 目录），一旦目录改名日志路径就跟着漂。
+
+**做法**：
+1. `common/nba_paths.py` 扩展为**跨盘路径唯一来源**，覆盖 R / D / W 三处根目录 +
+   PG 数据目录 + raw_archive + headshots + venv + watchdog 脚本 + node。
+2. 一次性迁移器 `tools/migrate_hardcoded_paths.py` 做 AST + tokenize 定位的批量改写。
+3. 语义等价性校验器 `tools/verify_path_migration_equivalence.py` 做**语句级还原比对**，
+   证明改写只动路径字面量、不动语义。
+4. 两项检查接入门禁 `tools/verify_quality_gate.py`（第 11 节），成为持续门禁。
+
+**🔴 关键工程决策：等价性校验的「旧版」必须锚定固定基线**
+
+校验器最初取 `git show HEAD:<file>` 作旧版、用 `git diff --name-only` 取文件列表。
+这对一次性迁移够用，但**一旦迁移被提交就退化为空转**：HEAD 变成迁移后版本、diff 变空
+→ 校验器「0 文件受检、0 差异」= **假绿**，而门禁会据此给出「什么都没验证的通过结论」。
+
+修法：旧版锚定到 `tools/path_baseline.txt` 记录的**迁移前基线 ref**（`afd7d26`），
+文件列表取「基线 → 工作区」的**全量差异集**（含已提交部分）。实测提交后重跑仍覆盖
+85 个文件、零差异 —— 校验真实有效，而非自证。
+
+**🔴 两套列号口径不可混用**（本次踩坑）
+`ast` 的 `col_offset` 是 **UTF-8 字节**列，`tokenize` 的 `col_offset` 是 **字符**列。
+含中文的路径（如 `NBA_BR_爬虫`）会让两者差出数个字节，用错表就会把表达式后面的内容
+一起吞掉。迁移器与校验器因此分别维护 `_char_offset_table` / `_byte_offset_table`。
+
+**🔴 路径边界必须加负向前瞻**
+`/Volumes/12T/NBA/headshots` 是 `/Volumes/12T/NBA/headshots_crawl.log` 的**前缀**。
+不做边界约束会误判成「headshots 目录 + `_crawl.log` 后缀」—— 结果虽然拼回同一字符串，
+但语义已错。故统一用 `(?![A-Za-z0-9_])` 约束。
+
+**验证证据**：
+
+| 口径 | 结果 |
+|------|------|
+| 语义等价性（语句级还原比对） | 受检 85 / 等价 85 / 差异 0 |
+| 已跟踪 `.py` 中 `/Users/deocheng` | **0 命中** |
+| 已跟踪 `.py` 中 `/Volumes/12T` | 仅门禁脚本自身 2 行（刻意保留） |
+| ruff check 全仓 | 0 违规 |
+| 质量门禁 | PASS=39 FAIL=0 SKIP=0 TOTAL=39 |
+| 全量回归（真库） | 783 passed / 1 skipped / 0 failed |
+
+**遗留（未治理，已登记）**：
+- 会话工作区 W 的 60 个 `.py` 仍含硬编码路径（W 有自己的 `nba_boot.py` 引导机制，
+  与 R 的 `common.nba_paths` 尚未打通）→ 下一批
+- R 仓 37 个 `.sh` 仍含硬编码路径 → 下一批
+- `nba_paths.py` 自身与 2 个已失效 node 候选列入 `EXPLAINED_SKIP`（逐条登记理由）
+
+---
+
 ## 2026-11-10 — 数据层收口：本地真库 29 个失败清零（7 类根因，含 2 处生产代码缺陷 + 1 次真实补爬）
 
-**Status**: 本地真库全绿（783 passed / 1 skipped / 0 failed）；CI 复核待推送后进行
+**Status**: 本地真库全绿（783 passed / 1 skipped / 0 failed）；CI 复核 **run 42828756158 = success**
+（test job 实测 687 passed / 97 skipped / 0 failed）
 
 **背景**：
 上一轮 CI 工程化把「DB 依赖三层门控 + schema-only postgres」落地后，CI 全绿，但本地真实库
@@ -238,6 +303,28 @@ docstring（"the 3 known NULL rows (mitchmu01/wertira01/leedi01)"）完全一致
   仓库内 `backups/` 只有 CSV 与日志。
 - **`dim_teams.current_code` 语义不一致**（CHH/NOH/SEA/VAN 指向自己、PHX 指向 PHO）——
   涉及 6+ 行，需先定标准，本轮仍有意未动。
+
+---
+
+### CI 复核（run 42828756158 = success）
+
+lint / test / secret-scan / frontend-test 全绿（quality-gate、docker-build 按 `if: main/master` 跳过）。
+test job 实测 **687 passed / 97 skipped / 0 failed**（179.90s）。
+
+**与本地模拟（688 passed / 96 skipped）差 1 个 —— 已定位，非缺陷**：
+
+| 项 | 本地 | CI | 用例 |
+|----|------|-----|------|
+| `test_archive_fixture_parses_or_empty` | **pass** | **skip** | `tests/test_br_player_page.py:188` |
+
+该用例 `skipif(not ARCHIVE_FIXTURES)`，依赖仓库内 `raw_archive/br_players_shooting/` 归档夹具。
+本地有（`chandke01` / `chrisjo01` / `dialde01` …），CI checkout 无此目录（24GB 归档不可能入 CI）
+→ 按设计 skip。**这是 CI 与本地的已知固有差异，不是回归。**
+
+> 登记意义：避免后续每次复核都要重新追查这 1 个差值。CI 与本地模拟器的 pass/skip 数
+> **不要求严格相等**，只需差值可逐条归因到具体 skip 条件。
+
+**远端 HEAD**：`afd7d26`（4 个 commit：`cacd68b` / `41c259c` / `b59456e` / `afd7d26`）。
 
 ---
 
