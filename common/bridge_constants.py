@@ -10,6 +10,8 @@ from typing import Optional, Union
 
 from dotenv import load_dotenv
 
+from common.nba_paths import ARCHIVE_ROOT as _NBA_ARCHIVE_ROOT
+
 load_dotenv()  # 导入本模块即加载 .env（DB_PASSWORD / PGPASSWORD），确保所有调用方拿到口令
 
 # 锚点字段名（与 dim_games 列名一致，所有匹配/回填逻辑引用 ANCHOR_COLS）
@@ -18,9 +20,9 @@ ANCHOR_COLS = ("game_date", "home_team_abbr", "away_team_abbr",
 
 # 归档根目录与模板（照 OQ-a：严格用此路径布局）
 # 归档根改为绝对路径，可经环境变量 NBA_ARCHIVE_ROOT 重定向到外置 12T 盘，
-# 默认 /Volumes/12T/NBA/raw_archive。所有写入/读取均指向此绝对根。
-ARCHIVE_ROOT = os.environ.get("NBA_ARCHIVE_ROOT", "/Volumes/12T/NBA/raw_archive")
-# ARCHIVE_BASE = ARCHIVE_ROOT 的父目录（=/Volumes/12T/NBA），与模板 "raw_archive/..."
+# 默认 <数据盘根>/raw_archive。所有写入/读取均指向此绝对根。
+ARCHIVE_ROOT = os.environ.get("NBA_ARCHIVE_ROOT", str(_NBA_ARCHIVE_ROOT))
+# ARCHIVE_BASE = ARCHIVE_ROOT 的父目录（=<数据盘根>），与模板 "raw_archive/..."
 # 拼接即得完整归档路径 —— 保留原相对子结构，仅把根切换到外置盘。
 ARCHIVE_BASE = os.path.dirname(ARCHIVE_ROOT)
 BR_ARCHIVE_TMPL = "raw_archive/br/{season}/{gid}.html"
