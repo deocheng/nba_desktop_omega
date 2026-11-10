@@ -10,9 +10,15 @@
 #   ./run_team_pbp.sh --season 2026 --resume                  # 先单季验证（推荐首跑）
 #   ./run_team_pbp.sh --all-seasons --resume --caffeinate     # 全量无人值守（防休眠）
 # 若 Chrome 远程调试端口是 9223：  CHROME_CDP_URL=http://127.0.0.1:9223 ./run_team_pbp.sh ...
+
+# source 统一路径解析（与 Python 侧 common/nba_paths.py 对齐）
+if [ -f "common/paths.sh" ]; then
+  . "common/paths.sh"
+fi
+
 set -euo pipefail
 cd "$(dirname "$0")"
 export BROWSER_BACKEND=cdp
 export CHROME_CDP_URL="${CHROME_CDP_URL:-http://127.0.0.1:9222}"
 exec .venv/bin/python external_crawler/crawler/crawl_br_team_pbp.py \
-    --cache-dir /Volumes/12T/NBA/br_team_pbp_cache "$@"
+    --cache-dir $DATA_ROOT/br_team_pbp_cache "$@"

@@ -4,9 +4,15 @@
 # This script's own process is "bash run_crawl_all.sh", which does NOT
 # contain the substring "crawl_team_pages", so `pgrep -f crawl_team_pages`
 # only ever matches the actual python crawler children (no self-match deadlock).
+
+# source 统一路径解析（与 Python 侧 common/nba_paths.py 对齐）
+if [ -f "common/paths.sh" ]; then
+  . "common/paths.sh"
+fi
+
 set -u
 
-ROOT=/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13
+ROOT=$PROJ_ROOT
 cd "$ROOT" || exit 1
 
 ts() { date '+%Y-%m-%d %H:%M:%S'; }

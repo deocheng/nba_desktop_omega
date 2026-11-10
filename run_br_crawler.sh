@@ -10,14 +10,20 @@
 #   python br_crawler.py --datasets player --seasons 2023 2024 2025 2026
 # 用法(脱离终端):
 #   nohup bash run_br_crawler.sh > br_crawler.out 2>&1 &
+
+# source 统一路径解析（与 Python 侧 common/nba_paths.py 对齐）
+if [ -f "common/paths.sh" ]; then
+  . "common/paths.sh"
+fi
+
 set -u
-cd /Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13
+cd $PROJ_ROOT
 # 注入 .env 中的 DB_PASSWORD 等机密到环境变量（供 Python 爬虫连接 PG）
 set -a; [ -f "$PWD/.env" ] && . "$PWD/.env"; set +a
 PY="$PWD/.venv/bin/python"
 LOG="$PWD/br_crawler.log"
 PGCTL=/opt/homebrew/opt/postgresql@18/bin/pg_ctl
-PGDATA=/Users/deocheng/nba_pg
+PGDATA=$PG_DATA_DIR
 PGLOG=/tmp/nba_pg.log
 INTERVAL=21600   # 6h
 

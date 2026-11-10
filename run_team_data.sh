@@ -28,11 +28,17 @@
 #      CHROME_CDP_URL=http://127.0.0.1:9223 ./run_team_data.sh）。
 #
 # 运行：  ./run_team_data.sh
-# 日志：  /Volumes/12T/NBA/team_data_crawl_<时间戳>.log
+# 日志：  $DATA_ROOT/team_data_crawl_<时间戳>.log
+
+# source 统一路径解析（与 Python 侧 common/nba_paths.py 对齐）
+if [ -f "common/paths.sh" ]; then
+  . "common/paths.sh"
+fi
+
 set -u
 cd "$(dirname "$0")"   # 切到项目根
 PY=.venv/bin/python
-CACHE=/Volumes/12T/NBA
+CACHE=$DATA_ROOT
 export BROWSER_BACKEND=cdp
 export CHROME_CDP_URL="${CHROME_CDP_URL:-http://127.0.0.1:9222}"
 # ── DB 口令：只从项目根 .env 取，脚本内不落明文 ──

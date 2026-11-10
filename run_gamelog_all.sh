@@ -4,15 +4,21 @@
 # 全部带 --resume：已抓球员自动跳过，可断点重跑。
 #
 # 路径与解释器全部走环境变量（默认值 = 本机生产路径，行为不变）：
-#   REPO_ROOT     项目根（默认 /Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13）
+#   REPO_ROOT     项目根（默认 $PROJ_ROOT）
 #   LOG           gamelog 主日志        HEADSHOT_LOG  接力日志
 #   PY            python 解释器         GUARD_PATTERN 并行守卫的 pgrep 模式
 # → 脚本可搬到任意目录运行；测试能在沙箱里跑而**不碰真实仓库**。
 #
 # ⚠️ 变量后紧跟全角标点时必须写 ${VAR}：bash 会把非 ASCII 字节并入变量名，
 #    导致变量值被吞、输出残留非法字节（macOS 实测，见 tests/test_gamelog_relay_realparse.py）。
+
+# source 统一路径解析（与 Python 侧 common/nba_paths.py 对齐）
+if [ -f "common/paths.sh" ]; then
+  . "common/paths.sh"
+fi
+
 set -a
-REPO_ROOT="${REPO_ROOT:-/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13}"
+REPO_ROOT="${REPO_ROOT:-$PROJ_ROOT}"
 [ -f "${REPO_ROOT}/.env" ] && . "${REPO_ROOT}/.env"
 set +a
 cd "${REPO_ROOT}"

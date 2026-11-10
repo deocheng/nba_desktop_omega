@@ -6,7 +6,13 @@
 # 幂等：爬虫每场先 delete_existing(gameid, br_player_id) 再 INSERT；唯一索引兜底防重复。
 # 注：本脚本不启用 set -u —— 此前 watcher 因 set -u 在「中文日志串 + 反斜杠续行」组合下
 # 变量展开失效而崩溃（SRC_PROFILE unbound）。保持简单，未定义变量当空串更安全。
-ROOT=/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13
+
+# source 统一路径解析（与 Python 侧 common/nba_paths.py 对齐）
+if [ -f "../../common/paths.sh" ]; then
+  . "../../common/paths.sh"
+fi
+
+ROOT=$PROJ_ROOT
 CRAWLER=$ROOT/external_crawler/crawler
 PY=$ROOT/.venv/bin/python
 LOGDIR=$ROOT/logs

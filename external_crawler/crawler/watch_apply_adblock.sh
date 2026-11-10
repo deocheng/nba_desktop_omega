@@ -20,7 +20,7 @@
 # profile 迁移说明（2026-08-06 用户要求）：
 #   /tmp/chrome_cdp_profile 位于系统数据卷 disk3s5，长期爬取堆到 4.5G，
 #   且 /tmp 有被系统清理的风险（一旦清掉 cf_clearance 就要人工重过 CF）。
-#   迁到 /Volumes/12T/NBA/chrome_cdp_profile（与 nba_pg / raw_archive 同级，
+#   迁到 $DATA_ROOT/chrome_cdp_profile（与 nba_pg / raw_archive 同级，
 #   不放进 git 仓库避免污染）。其中 4.0G 的 OptGuideOnDeviceModel 是 Chrome
 #   端侧 AI 模型（Gemini Nano），与爬取无关，不搬直接清掉；新启动参数已用
 #   --disable-features 阻止它重新下载。实际搬运量约 500M。
@@ -29,13 +29,19 @@
 #   env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy \
 #     python3 detach_launch.py <logfile> bash watch_apply_adblock.sh
 
-ROOT=/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13
+# source 统一路径解析（与 Python 侧 common/nba_paths.py 对齐）
+if [ -f "../../common/paths.sh" ]; then
+  . "../../common/paths.sh"
+fi
+
+
+ROOT=$PROJ_ROOT
 CRAWLER=$ROOT/external_crawler/crawler
 LOGDIR=$ROOT/logs
 STATE=$LOGDIR/recrawl_done_2004_2026.txt
 WLOG=$LOGDIR/watch_apply_adblock.log
 OLD_PROFILE=/tmp/chrome_cdp_profile
-PROFILE=/Volumes/12T/NBA/chrome_cdp_profile
+PROFILE=$DATA_ROOT/chrome_cdp_profile
 CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 CDP=http://127.0.0.1:9223
 
@@ -56,9 +62,9 @@ sleep 5
 log "重爬进程已停止。"
 
 # ── 3. 备份 cookie（迁移前，profile 此刻仍在 OLD_PROFILE）──────────────────
-mkdir -p /Volumes/12T/NBA/cdp_cookie_backup
+mkdir -p $DATA_ROOT/cdp_cookie_backup
 cp "$OLD_PROFILE/Default/Cookies" \
-   "/Volumes/12T/NBA/cdp_cookie_backup/Cookies_$(date +%Y%m%d_%H%M)_premigrate.bak" 2>/dev/null \
+   "$DATA_ROOT/cdp_cookie_backup/Cookies_$(date +%Y%m%d_%H%M)_premigrate.bak" 2>/dev/null \
    && log "cookie 已备份（源：${OLD_PROFILE}）。"
 
 # ── 3b. 停 Chrome → 清 4G AI 模型 → 迁移 profile 到数据盘 ──────────────────
@@ -66,7 +72,7 @@ pkill -f "remote-debugging-port=9223" 2>/dev/null
 sleep 6
 log "Chrome 已停止，开始清理与迁移。"
 
-if [ ! -d /Volumes/12T/NBA ]; then
+if [ ! -d $DATA_ROOT ]; then
   log "!! 数据盘未挂载，放弃迁移，保持 $OLD_PROFILE 原地运行。"
   PROFILE="$OLD_PROFILE"
 else

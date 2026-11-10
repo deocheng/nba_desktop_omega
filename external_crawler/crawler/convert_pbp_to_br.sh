@@ -17,9 +17,15 @@
 #   - 逐区单语句 UPDATE, 避开 sandbox PG 的 OOM。
 #   - 仅转换“数字键”行 (gameid !~ '[A-Za-z]'); 已 BR 格式的行原样保留。
 #   - 孤儿(数字键但 dim_games.nba_api_id 查无)保持数字, 不强行改, 仅报告。
+
+# source 统一路径解析（与 Python 侧 common/nba_paths.py 对齐）
+if [ -f "../../common/paths.sh" ]; then
+  . "../../common/paths.sh"
+fi
+
 set -o pipefail
 
-ROOT=/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13
+ROOT=$PROJ_ROOT
 DBPASS=$(grep '^DB_PASSWORD=' "$ROOT/.env" | head -1 | cut -d= -f2-)
 export PGPASSWORD="$DBPASS"
 PSQL=/opt/homebrew/opt/postgresql@18/bin/psql

@@ -5,8 +5,14 @@
 # ③ 坐标回填 espn_backfill_shot_coords.py --apply(写入 play_by_play 真实坐标, 现也落盘原始 JSON);
 # ④ 归档校验钩子 verify_archive.py。
 # 幂等: 已抓的场自动跳过(espn_have=true / 坐标已补), 可随时重跑。
+
+# source 统一路径解析（与 Python 侧 common/nba_paths.py 对齐）
+if [ -f "common/paths.sh" ]; then
+  . "common/paths.sh"
+fi
+
 set -u
-cd /Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13
+cd $PROJ_ROOT
 # 注入 .env 中的 DB_PASSWORD 等机密到环境变量（供 Python 爬虫连接 PG）
 set -a; [ -f "$PWD/.env" ] && . "$PWD/.env"; set +a
 PY="$PWD/.venv/bin/python"
@@ -15,7 +21,7 @@ COORD=external_crawler/crawler/espn_backfill_shot_coords.py
 LOG="$PWD/espn_full.log"
 PGLOG=/tmp/nba_pg.log
 PGCTL=/opt/homebrew/opt/postgresql@18/bin/pg_ctl
-PGDATA=/Users/deocheng/nba_pg
+PGDATA=$PG_DATA_DIR
 
 log(){ echo "[$(date '+%F %T')] $*" | tee -a "$LOG"; }
 

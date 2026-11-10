@@ -34,12 +34,18 @@
 #   bash crawler_control.sh stop             # 退出爬虫栈（保留 Chrome）
 #   bash crawler_control.sh stop --kill-chrome
 # =============================================================================
+
+# source 统一路径解析（与 Python 侧 common/nba_paths.py 对齐）
+if [ -f "../../common/paths.sh" ]; then
+  . "../../common/paths.sh"
+fi
+
 set -o pipefail
 
-ROOT=/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13
+ROOT=$PROJ_ROOT
 CRAWLER="$ROOT/external_crawler/crawler"
 PY="$ROOT/.venv/bin/python"
-PY_BIN="/Users/deocheng/.workbuddy/binaries/python/versions/3.13.12/bin/python3"
+PY_BIN="$WB_PYTHON"
 PSQL="/opt/homebrew/opt/postgresql@18/bin/psql"
 LAUNCH_CHROME="$ROOT/launch_chrome_cdp.sh"
 WATCHDOG="$CRAWLER/crawler_watchdog.sh"
@@ -53,8 +59,8 @@ STATE="$LOGDIR/recrawl_done_2004_2026.txt"
 BYPASS_FILE="$LOGDIR/gamelog_500_bypass.txt"
 CACHE_DIR="$CRAWLER/gamelog_cache"
 PG_CTL="/opt/homebrew/opt/postgresql@18/bin/pg_ctl"
-PG_DATA="/Volumes/12T/NBA/nba_pg"
-PG_LOG="/Volumes/12T/NBA/nba_pg/pg.log"
+PG_DATA="$DATA_ROOT/nba_pg"
+PG_LOG="$DATA_ROOT/nba_pg/pg.log"
 
 # --- DB_PASSWORD 安全解析（密码含 = 必须用 -f2-）---
 DBPASS=$(grep '^DB_PASSWORD=' "$ROOT/.env" 2>/dev/null | head -1 | cut -d= -f2-)
@@ -139,7 +145,7 @@ ensure_chrome(){
   fi
   log "[cdp] Chrome 缺失/旗标不全，重启中..."
   kill_tree "remote-debugging-port=$CDP_PORT"
-  rm -f /Volumes/12T/NBA/chrome_cdp_profile/SingletonLock 2>/dev/null
+  rm -f $DATA_ROOT/chrome_cdp_profile/SingletonLock 2>/dev/null
   # 用 python os.setsid 把 Chrome 拉进独立会话（抗回收）
   "$PY_BIN" -c "import os,sys; os.setsid(); os.execvp(sys.argv[1], sys.argv[1:])" \
     env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy \

@@ -14,7 +14,13 @@
 # 不自动重启 Chrome（低内存下重启反而越重启越胖：会话恢复 + target 泄漏双重累积）。
 # 若 9223 不可达 → 直接报错停止，等人工恢复。
 
-ROOT=/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13
+# source 统一路径解析（与 Python 侧 common/nba_paths.py 对齐）
+if [ -f "../../common/paths.sh" ]; then
+  . "../../common/paths.sh"
+fi
+
+
+ROOT=$PROJ_ROOT
 CRAWLER=$ROOT/external_crawler/crawler
 PY=$ROOT/.venv/bin/python
 LOGDIR=$ROOT/logs

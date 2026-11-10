@@ -19,9 +19,15 @@
 #   查看状态:   bash crawler_watchdog_v2.sh status
 #   停止:       bash crawler_watchdog_v2.sh stop
 # =============================================================================
+
+# source 统一路径解析（与 Python 侧 common/nba_paths.py 对齐）
+if [ -f "../../common/paths.sh" ]; then
+  . "../../common/paths.sh"
+fi
+
 set -u
 
-PROJECT="/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
+PROJECT="$PROJ_ROOT"
 CRAWLER="$PROJECT/external_crawler/crawler"
 DRIVER="$CRAWLER/recrawl_2004_2026_autofill.sh"
 LAUNCH_CHROME="$PROJECT/launch_chrome_cdp.sh"
@@ -54,7 +60,7 @@ KILL_KILL_WAIT=15   # KILL 后确认消失的秒数
 log(){ echo "$(date '+%Y-%m-%d %H:%M:%S') $*" | tee -a "$WATCHLOG"; }
 set_status(){ echo "$1" > "$STATUS"; date '+%Y-%m-%d %H:%M:%S' > "$HEARTBEAT"; echo "  $1" >> "$HEARTBEAT"; }
 
-PY_BIN="/Users/deocheng/.workbuddy/binaries/python/versions/3.13.12/bin/python3"
+PY_BIN="$WB_PYTHON"
 detach(){ "$PY_BIN" -c "import os,sys; os.setsid(); os.execvp(sys.argv[1], sys.argv[1:])" "$@"; }
 
 cdp_alive(){

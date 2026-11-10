@@ -22,12 +22,18 @@
 #    "sandbox initialization failed" → GPU FATAL 直接退出。
 # ─────────────────────────────────────────────────────────────────────────
 
+# source 统一路径解析（与 Python 侧 common/nba_paths.py 对齐）
+if [ -f "common/paths.sh" ]; then
+  . "common/paths.sh"
+fi
+
+
 CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 PORT=9223   # 避开 agent 沙箱可能残留占用 9222 的 Chrome 僵尸（无 GUI，无法手动过 CF）
 
 # profile 落在数据盘（2026-08-06 迁移）：原 /tmp/chrome_cdp_profile 在系统数据卷
 # disk3s5 上，长期爬取会堆到数 GB；且 /tmp 有被系统清理的风险（丢 cf_clearance）。
-PROFILE="/Volumes/12T/NBA/chrome_cdp_profile"
+PROFILE="$DATA_ROOT/chrome_cdp_profile"
 OLD_PROFILE="/tmp/chrome_cdp_profile"
 
 if [ ! -x "$CHROME" ]; then
@@ -38,7 +44,7 @@ fi
 
 # 数据盘未挂载时果断退出：否则 Chrome 会在挂载点建空 profile → cf_clearance 丢失
 # → 必须人工重过 CF，还会把空目录挡在挂载点上。
-if [ ! -d /Volumes/12T/NBA ]; then
+if [ ! -d $DATA_ROOT ]; then
   echo "数据盘 /Volumes/12T 未挂载，拒绝启动（避免创建空 profile 丢失 cf_clearance）。"
   exit 1
 fi
@@ -58,7 +64,7 @@ fi
 # 放在启动前，无论 profile 是否已迁移都清一次；路径白名单防止误删。
 AIDIR="$PROFILE/OptGuideOnDeviceModel"
 case "$AIDIR" in
-  /Volumes/12T/NBA/chrome_cdp_profile/OptGuideOnDeviceModel)
+  $DATA_ROOT/chrome_cdp_profile/OptGuideOnDeviceModel)
     if [ -d "$AIDIR" ]; then
       SZ=$(du -sh "$AIDIR" 2>/dev/null | cut -f1)
       rm -rf "$AIDIR" && echo "已清除端侧 AI 模型（${SZ}）。"

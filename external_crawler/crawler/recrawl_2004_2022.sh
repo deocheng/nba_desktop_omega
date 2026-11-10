@@ -3,8 +3,14 @@
 # 背景：07-04 批次用错误的 gameid 编码写入、且只有身份无数据；已整体清空 2004–2022
 # (备份在 player_gamelog_recrawl_bak_20260805)，此处用修正后的爬虫按当前 gameid 重新入库。
 # 幂等：爬虫每场先 delete_existing(gameid, br_player_id) 再 INSERT；唯一索引兜底防重复。
+
+# source 统一路径解析（与 Python 侧 common/nba_paths.py 对齐）
+if [ -f "../../common/paths.sh" ]; then
+  . "../../common/paths.sh"
+fi
+
 set -u
-ROOT=/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13
+ROOT=$PROJ_ROOT
 CRAWLER=$ROOT/external_crawler/crawler
 PY=$ROOT/.venv/bin/python
 LOGDIR=$ROOT/logs

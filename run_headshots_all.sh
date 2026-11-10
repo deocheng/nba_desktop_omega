@@ -7,11 +7,17 @@
 # 任意一锁命中立即 exit 1，绝不并行。
 #
 # 路径与解释器走环境变量（默认 = 本机生产路径，行为不变）：
-#   REPO_ROOT（项目根，默认 /Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13）
+#   REPO_ROOT（项目根，默认 $PROJ_ROOT）
 #   LOG（日志）  PY（解释器）
 # → 脚本可搬到任意 checkout 路径运行；测试也能在沙箱里跑而不依赖本机绝对路径。
+
+# source 统一路径解析（与 Python 侧 common/nba_paths.py 对齐）
+if [ -f "common/paths.sh" ]; then
+  . "common/paths.sh"
+fi
+
 set -a
-REPO_ROOT="${REPO_ROOT:-/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13}"
+REPO_ROOT="${REPO_ROOT:-$PROJ_ROOT}"
 [ -f "${REPO_ROOT}/.env" ] && . "${REPO_ROOT}/.env"
 set +a
 cd "${REPO_ROOT}"

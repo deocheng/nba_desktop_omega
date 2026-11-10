@@ -2,9 +2,15 @@
 # 启动本机 Chrome CDP（端口 9223），供 BR 抓取走真实浏览器渲染（绕过 Cloudflare 挑战）。
 # profile 位于数据盘，已含有效 cf_clearance，重启后仍然有效（绝不 clearBrowserCookies）。
 # 注意：剥离代理环境变量，避免把 127.0.0.1 请求错发到代理。
+
+# source 统一路径解析（与 Python 侧 common/nba_paths.py 对齐）
+if [ -f "../../common/paths.sh" ]; then
+  . "../../common/paths.sh"
+fi
+
 set -u
 CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-PROFILE="/Volumes/12T/NBA/chrome_cdp_profile"
+PROFILE="$DATA_ROOT/chrome_cdp_profile"
 PORT=9223
 
 rm -f "$PROFILE/SingletonLock" 2>/dev/null

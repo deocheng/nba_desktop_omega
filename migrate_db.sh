@@ -2,6 +2,12 @@
 # NBACore v8 — 数据到位后一键建库/灌结构/灌数据 (macOS)
 # 前置: nba_csv/ 已拷到本目录同级 (与 _import_csv_to_db.py 同级)
 # 用法: bash migrate_db.sh
+
+# source 统一路径解析（与 Python 侧 common/nba_paths.py 对齐）
+if [ -f "common/paths.sh" ]; then
+  . "common/paths.sh"
+fi
+
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -11,7 +17,7 @@ PGDATA="$HOME/nba_pg"
 PGPORT=5433
 PGUSER=postgres
 PGDB=nba
-CSV_DIR="/Users/deocheng/Downloads/nba_csv"
+CSV_DIR="$HOME/Downloads/nba_csv"
 
 echo "===== [0] 检查 nba_csv ====="
 if [ ! -d "$CSV_DIR" ]; then

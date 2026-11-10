@@ -17,11 +17,17 @@
 # UC 无头自愈为日更爬虫 10-20/21 实证可用通道）。CDP 作为备案（需用户 Chrome 在线）。
 #
 # 单实例铁律：已有 crawl_br_gamelog.py 在跑则拒绝再起。
+
+# source 统一路径解析（与 Python 侧 common/nba_paths.py 对齐）
+if [ -f "common/paths.sh" ]; then
+  . "common/paths.sh"
+fi
+
 set -a
-[ -f /Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/.env ] && . /Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/.env
+[ -f $PROJ_ROOT/.env ] && . $PROJ_ROOT/.env
 set +a
 
-PROJECT=/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13
+PROJECT=$PROJ_ROOT
 cd "$PROJECT"
 
 # 后台长跑 Python 任务必清 PYTHONPATH（WorkBuddy 注入的 broker shim 会拦截
@@ -33,7 +39,7 @@ unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy
 export BROWSER_BACKEND=uc
 # Apple Silicon：UC 默认下载 x86_64 驱动（无 Rosetta → Bad CPU type 起不来）。
 # 指向本机 arm64 驱动（155.0.8059.85，与已装 Chrome 精确匹配，2026-10-22 日更爬虫同款）。
-export UC_CHROMEDRIVER_PATH="/Users/deocheng/Library/Application Support/undetected_chromedriver/chromedriver_mac_arm64"
+export UC_CHROMEDRIVER_PATH="$HOME/Library/Application Support/undetected_chromedriver/chromedriver_mac_arm64"
 PY=.venv/bin/python
 PLAYERS=/tmp/br_players_2027.tsv
 LOG="$PROJECT/logs/gamelog_2027_crawl.log"

@@ -20,9 +20,15 @@
 #   查看状态:   bash crawler_watchdog.sh status
 #   停止:       bash crawler_watchdog.sh stop     (写 stop 标志，看门狗下一轮退出)
 # =============================================================================
+
+# source 统一路径解析（与 Python 侧 common/nba_paths.py 对齐）
+if [ -f "../../common/paths.sh" ]; then
+  . "../../common/paths.sh"
+fi
+
 set -u
 
-PROJECT="/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
+PROJECT="$PROJ_ROOT"
 CRAWLER="$PROJECT/external_crawler/crawler"
 DRIVER="$CRAWLER/recrawl_2004_2026_autofill.sh"
 LAUNCH_CHROME="$PROJECT/launch_chrome_cdp.sh"
@@ -59,7 +65,7 @@ set_status(){ echo "$1" > "$STATUS"; date '+%Y-%m-%d %H:%M:%S' > "$HEARTBEAT"; e
 # ---- 进程脱离：用 python os.setsid 创建新会话/进程组（macOS 无 setsid 命令）----
 # 用途：Chrome / driver 与看门狗分属不同会话，平台回收后台任务(killpg)只杀看门狗、
 #       不杀爬虫树；新看门狗可 re-attach 续跑（cdp_alive 探 9223 + pgrep 查 driver）。
-PY_BIN="/Users/deocheng/.workbuddy/binaries/python/versions/3.13.12/bin/python3"
+PY_BIN="$WB_PYTHON"
 detach(){ "$PY_BIN" -c "import os,sys; os.setsid(); os.execvp(sys.argv[1], sys.argv[1:])" "$@"; }
 
 # ---- CDP(9223) 健康检查：端口活着即可（用 GET /json/version，绝不新建 tab）----

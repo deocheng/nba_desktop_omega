@@ -14,11 +14,17 @@
 #   或本机终端常驻：        nohup bash start_crawler_standalone.sh >/dev/null 2>&1 &
 # =============================================================================
 
-ROOT=/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13
+# source 统一路径解析（与 Python 侧 common/nba_paths.py 对齐）
+if [ -f "../../common/paths.sh" ]; then
+  . "../../common/paths.sh"
+fi
+
+
+ROOT=$PROJ_ROOT
 CRAWLER="$ROOT/external_crawler/crawler"
 DRIVER="$CRAWLER/recrawl_2004_2026_autofill.sh"
 LOG="$ROOT/logs/standalone_crawler.out"
-PY_BIN="/Users/deocheng/.workbuddy/binaries/python/versions/3.13.12/bin/python3"
+PY_BIN="$WB_PYTHON"
 
 SCRIPT_ABS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
 ts() { date '+%Y-%m-%d %H:%M:%S'; }

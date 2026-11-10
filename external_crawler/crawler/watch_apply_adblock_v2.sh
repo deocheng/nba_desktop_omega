@@ -16,13 +16,19 @@
 #
 # 其余流程（等 2026 完成 → 备份 cookie → 清 AI 模型 → 迁 profile →
 # 重启 Chrome(adblock|safe) → 冒烟 → 回滚）与原版一致。
-ROOT=/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13
+
+# source 统一路径解析（与 Python 侧 common/nba_paths.py 对齐）
+if [ -f "../../common/paths.sh" ]; then
+  . "../../common/paths.sh"
+fi
+
+ROOT=$PROJ_ROOT
 CRAWLER=$ROOT/external_crawler/crawler
 LOGDIR=$ROOT/logs
 STATE=$LOGDIR/recrawl_done_2004_2026.txt
 WLOG=$LOGDIR/watch_apply_adblock_v2.log
 OLD_PROFILE=/tmp/chrome_cdp_profile
-PROFILE=/Volumes/12T/NBA/chrome_cdp_profile
+PROFILE=$DATA_ROOT/chrome_cdp_profile
 CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 CDP=http://127.0.0.1:9223
 DRIVER=recrawl_2004_2026_autofill.sh     # 现役 driver（原版写死旧 .sh 已退役）
@@ -67,9 +73,9 @@ log "season 2026 已完成（STATE 落盘）。开始切换。"
 kill_crawler_tree "phase2" || log "!! 爬虫未死透，继续切换（脚本幂等，残留进程稍后由看门狗处理）"
 
 # ── 3. 备份 cookie ─────────────────────────────────────────────────────────
-mkdir -p /Volumes/12T/NBA/cdp_cookie_backup
+mkdir -p $DATA_ROOT/cdp_cookie_backup
 cp "$OLD_PROFILE/Default/Cookies" \
-   "/Volumes/12T/NBA/cdp_cookie_backup/Cookies_$(date +%Y%m%d_%H%M)_premigrate.bak" 2>/dev/null \
+   "$DATA_ROOT/cdp_cookie_backup/Cookies_$(date +%Y%m%d_%H%M)_premigrate.bak" 2>/dev/null \
    && log "cookie 已备份（源：${OLD_PROFILE}）。"
 
 # ── 3b. 停 Chrome → 清 AI 模型 → 迁 profile ────────────────────────────────
@@ -77,7 +83,7 @@ pkill -f "remote-debugging-port=9223" 2>/dev/null
 sleep 6
 log "Chrome 已停止，开始清理与迁移。"
 
-if [ ! -d /Volumes/12T/NBA ]; then
+if [ ! -d $DATA_ROOT ]; then
   log "!! 数据盘未挂载，放弃迁移，保持 $OLD_PROFILE 原地运行。"
   PROFILE="$OLD_PROFILE"
 else

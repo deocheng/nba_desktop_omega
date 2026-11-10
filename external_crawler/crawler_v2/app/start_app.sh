@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 # BR 爬虫套装独立 App 启动器（macOS）。
 # 用法: bash start_app.sh   (自动开浏览器到 http://127.0.0.1:5757)
+
+# source 统一路径解析（与 Python 侧 common/nba_paths.py 对齐）
+if [ -f "../../../common/paths.sh" ]; then
+  . "../../../common/paths.sh"
+fi
+
 set -e
-ROOT=/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13
+ROOT=$PROJ_ROOT
 APP="$ROOT/external_crawler/crawler_v2/app"
 VENV_PY="$ROOT/.venv/bin/python"
 

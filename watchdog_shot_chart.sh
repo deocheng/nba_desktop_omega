@@ -9,7 +9,13 @@
 #   3) 完成守卫：已完成对 == 宇宙对 才算真完成，才放行 Phase1（防接力误触发）。
 #   4) 卡死检测：进程在但日志 N 分钟无更新 → 视为卡死，重启。
 #
-# 运行：nohup bash ./watchdog_shot_chart.sh >> /Volumes/12T/NBA/watchdog.log 2>&1 &
+# 运行：nohup bash ./watchdog_shot_chart.sh >> $DATA_ROOT/watchdog.log 2>&1 &
+
+# source 统一路径解析（与 Python 侧 common/nba_paths.py 对齐）
+if [ -f "common/paths.sh" ]; then
+  . "common/paths.sh"
+fi
+
 set -u
 # 修复 bash `set -u` + 多字节 UTF-8（中文日志）的兼容性崩溃：
 # 在 C.UTF-8 / en_US.UTF-8 等 locale 下，含中文的双引号字符串中嵌入 $var
@@ -25,9 +31,9 @@ HANG_LOG_STALE=1200      # 日志多久无更新判为"冻死"（秒），默认
 CDP_URL="http://127.0.0.1:9223/json/version"
 PATTERN="crawl_br_player_shot_chart.py"     # shot chart 爬虫
 TEAM_PATTERN="run_team_data.sh"              # Phase1 爬虫
-PHASE1_FLAG="/Volumes/12T/NBA/.phase1_launched.flag"
-WATCHDOG_LOG="/Volumes/12T/NBA/watchdog.log"
-CRAWLER_LOG="/Volumes/12T/NBA/shot_chart_crawl.log"
+PHASE1_FLAG="$DATA_ROOT/.phase1_launched.flag"
+WATCHDOG_LOG="$DATA_ROOT/watchdog.log"
+CRAWLER_LOG="$DATA_ROOT/shot_chart_crawl.log"
 
 # ── DB 口令：只从项目根 .env 取，脚本内不落明文 ──
 _ENV_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/.env"
@@ -93,7 +99,7 @@ ensure_chrome(){
 
 start_team_data(){
   if ! cdp_ok; then log "⚠ Phase1 前 CDP 不可达，暂缓启动。"; return 1; fi
-  pid=$(detach /Volumes/12T/NBA/team_data_watchdog.log bash ./run_team_data.sh)
+  pid=$(detach $DATA_ROOT/team_data_watchdog.log bash ./run_team_data.sh)
   log "🚀 交接启动 Phase1 (Team PBP + logo) PID $pid"
 }
 
@@ -103,9 +109,9 @@ start_team_data(){
 ensure_postgres(){
   if /opt/homebrew/bin/pg_isready -h 127.0.0.1 -p 5433 >/dev/null 2>&1; then return 0; fi
   log "⚠ PG 5433 不可达 → 先拉起业务库 (pg_ctl start)"
-  rm -f /Volumes/12T/NBA/nba_pg/postmaster.pid 2>/dev/null
-  /opt/homebrew/bin/pg_ctl start -D /Volumes/12T/NBA/nba_pg -o "-p 5433" \
-    -l /Volumes/12T/NBA/nba_pg/startup.log >/dev/null 2>&1
+  rm -f $DATA_ROOT/nba_pg/postmaster.pid 2>/dev/null
+  /opt/homebrew/bin/pg_ctl start -D $DATA_ROOT/nba_pg -o "-p 5433" \
+    -l $DATA_ROOT/nba_pg/startup.log >/dev/null 2>&1
   local i
   for i in $(seq 1 12); do      # 12×2s = 24s 轮询
     sleep 2

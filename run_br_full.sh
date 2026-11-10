@@ -10,14 +10,20 @@
 #   g5_boxscore 已废弃(分歧功能, 误建为 25-26 总决赛 G5 盒式), 不再构建。
 # 用法(脱离终端):
 #   nohup bash run_br_full.sh > br_full.out 2>&1 &
+
+# source 统一路径解析（与 Python 侧 common/nba_paths.py 对齐）
+if [ -f "common/paths.sh" ]; then
+  . "common/paths.sh"
+fi
+
 set -u
-cd /Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13
+cd $PROJ_ROOT
 # 注入 .env 中的 DB_PASSWORD 等机密到环境变量（供 Python 爬虫连接 PG）
 set -a; [ -f "$PWD/.env" ] && . "$PWD/.env"; set +a
 PY="$PWD/.venv/bin/python"
 LOG="$PWD/br_full.log"
 PGCTL=/opt/homebrew/opt/postgresql@18/bin/pg_ctl
-PGDATA=/Users/deocheng/nba_pg
+PGDATA=$PG_DATA_DIR
 PGLOG=/tmp/nba_pg.log
 
 log(){ echo "[$(date '+%F %T')] $*" | tee -a "$LOG"; }

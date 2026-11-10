@@ -1,5 +1,11 @@
 #!/bin/bash
-cd /Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13
+
+# source 统一路径解析（与 Python 侧 common/nba_paths.py 对齐）
+if [ -f "common/paths.sh" ]; then
+  . "common/paths.sh"
+fi
+
+cd $PROJ_ROOT
 # 注入 .env 中的 DB_PASSWORD 等机密到环境变量（供 Python 爬虫连接 PG）
 set -a; [ -f "$PWD/.env" ] && . "$PWD/.env"; set +a
 echo "[chain $(date +%H:%M:%S)] 等待旧批(br_fill_pbp 无--force)退出..."

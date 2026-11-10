@@ -12,7 +12,13 @@
 #
 # 运行（脱离会话，防 WorkBuddy 崩溃中断）：
 #   脱离会话启动（zsh 安全写法，避免 python -c 嵌套括号被 zsh 误判；nohup+disown 已足够忽略 SIGHUP）：
-#   nohup bash resume_shooting_shotchart.sh >> /Volumes/12T/NBA/resume_launcher.log 2>&1 & disown
+#   nohup bash resume_shooting_shotchart.sh >> $DATA_ROOT/resume_launcher.log 2>&1 & disown
+
+# source 统一路径解析（与 Python 侧 common/nba_paths.py 对齐）
+if [ -f "common/paths.sh" ]; then
+  . "common/paths.sh"
+fi
+
 set -u
 export LC_ALL=C
 cd "$(dirname "$0")"
@@ -33,9 +39,9 @@ export NO_PROXY="127.0.0.1,localhost"
 export no_proxy="127.0.0.1,localhost"
 
 PY=".venv/bin/python"
-SHOOTING_LOG="/Volumes/12T/NBA/shooting_crawl.log"
-SHOTCHART_LOG="/Volumes/12T/NBA/shot_chart_crawl.log"
-PROGRESS_LOG="/Volumes/12T/NBA/resume_shooting_shotchart.log"
+SHOOTING_LOG="$DATA_ROOT/shooting_crawl.log"
+SHOTCHART_LOG="$DATA_ROOT/shot_chart_crawl.log"
+PROGRESS_LOG="$DATA_ROOT/resume_shooting_shotchart.log"
 PSQL="/opt/homebrew/bin/psql -h localhost -p 5433 -U postgres -d nba -t -A"
 
 log(){ echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$PROGRESS_LOG"; }
@@ -45,9 +51,9 @@ pg_ok(){ /opt/homebrew/bin/pg_isready -h 127.0.0.1 -p 5433 >/dev/null 2>&1; }
 ensure_postgres(){
   if pg_ok; then return 0; fi
   log "⚠ PG 5433 不可达，尝试拉起"
-  rm -f /Volumes/12T/NBA/nba_pg/postmaster.pid 2>/dev/null
-  /opt/homebrew/bin/pg_ctl start -D /Volumes/12T/NBA/nba_pg -o "-p 5433" \
-    -l /Volumes/12T/NBA/nba_pg/startup.log >/dev/null 2>&1
+  rm -f $DATA_ROOT/nba_pg/postmaster.pid 2>/dev/null
+  /opt/homebrew/bin/pg_ctl start -D $DATA_ROOT/nba_pg -o "-p 5433" \
+    -l $DATA_ROOT/nba_pg/startup.log >/dev/null 2>&1
   for i in $(seq 1 12); do sleep 2; pg_ok && { log "✅ PG 已起"; return 0; }; done
   log "❌ PG 拉起失败"; return 1
 }

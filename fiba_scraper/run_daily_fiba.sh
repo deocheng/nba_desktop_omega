@@ -17,14 +17,20 @@
 #    already archived. FIBA's live feed expires (~17h) so that data can never be
 #    re-fetched — recover_pbp_from_archive.py replays it from the archive.
 
+# source 统一路径解析（与 Python 侧 common/nba_paths.py 对齐）
+if [ -f "../common/paths.sh" ]; then
+  . "../common/paths.sh"
+fi
+
+
 set -uo pipefail
 
-PY="/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/.venv/bin/python"
-DIR="/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/fiba_scraper"
+PY="$PROJ_ROOT/.venv/bin/python"
+DIR="$PROJ_ROOT/fiba_scraper"
 PGCTL="/opt/homebrew/opt/postgresql@18/bin/pg_ctl"
 PGREADY="/opt/homebrew/opt/postgresql@18/bin/pg_isready"
-PGDATA="/Volumes/12T/NBA/nba_pg"
-PGLOG="/Volumes/12T/NBA/nba_pg/pg.log"
+PGDATA="$DATA_ROOT/nba_pg"
+PGLOG="$DATA_ROOT/nba_pg/pg.log"
 HOST="127.0.0.1"
 PORT="5433"
 

@@ -4,7 +4,13 @@
 #       自动拉起 run_team_data.sh（Phase 1: Team PBP + logo 回填）。
 # 目的：避免两个 BR 爬虫共用 CDP 9222 并行抓取导致请求频率翻倍触发屏蔽
 #       （防屏蔽铁律，2026-07-27 屏蔽事故教训）。
-# 运行：nohup ./run_after_shot_chart.sh > /Volumes/12T/NBA/relay_scheduler.log 2>&1 &
+# 运行：nohup ./run_after_shot_chart.sh > $DATA_ROOT/relay_scheduler.log 2>&1 &
+
+# source 统一路径解析（与 Python 侧 common/nba_paths.py 对齐）
+if [ -f "common/paths.sh" ]; then
+  . "common/paths.sh"
+fi
+
 set -u
 cd "$(dirname "$0")"
 

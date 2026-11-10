@@ -13,6 +13,12 @@
 #
 # 用法（WorkBuddy 环境）：用 Bash 工具 run_in_background 执行本脚本即可。
 # =============================================================================
-PY_BIN="/Users/deocheng/.workbuddy/binaries/python/versions/3.13.12/bin/python3"
-WD="/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/external_crawler/crawler/crawler_watchdog.sh"
+
+# source 统一路径解析（与 Python 侧 common/nba_paths.py 对齐）
+if [ -f "../../common/paths.sh" ]; then
+  . "../../common/paths.sh"
+fi
+
+PY_BIN="$WB_PYTHON"
+WD="$PROJ_ROOT/external_crawler/crawler/crawler_watchdog.sh"
 exec "$PY_BIN" -c "import os,sys; os.setsid(); os.execv('/bin/bash', ['bash', '$WD'])"
