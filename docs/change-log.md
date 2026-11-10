@@ -2,6 +2,94 @@
 
 All changes to LOCKED phases must be recorded here (v8 §1 Change Request mechanism).
 
+## 2026-11-11 — 跨语言路径一致性 + 根目录脚本收敛（Task #13/#14 收官）
+
+**Status**: 质量门禁 **42/42 PASS**；全仓 ruff **0 违规**；路径迁移语义等价
+Python **69/69**、Shell **37/37**；根目录 `.py` **144 → 88**（56 个归档）；
+收敛后运行时验证 56 脚本 **39 OK / 17 DATA / FAIL=0**
+
+### 一、跨语言一致性契约（shell ↔ Python）
+
+`common/paths.sh` 与 `common/nba_paths.py` 是**两份实现**，必须给出同一答案。
+不一致的后果不是报错，而是**静默指向不同位置**（shell 启的 PG 在 A、Python 连 B）。
+本轮实测并修掉三处分叉：
+
+| # | 分叉 | 根因 | 修法 |
+|---|------|------|------|
+| 1 | DATA_ROOT | shell 硬编码 `<数据盘根>`，Python 兜底=仓库父目录 → CI 上两侧不同（run 42876413458 失败） | shell 改同规则：env → 仓库父目录（带 `nba_pg`/`raw_archive`/`headshots` 特征标记校验）→ 仓库父目录兜底 |
+| 2 | 物理 vs 逻辑路径 | Python `Path.resolve()` 给物理路径，shell `cd && pwd` 给逻辑路径 → macOS `/tmp` → `/private/tmp` 分叉 | shell 全面改 `pwd -P` |
+| 3 | PROJ_ROOT | shell 采纳外部预设，Python 恒指代码自身所在仓库 | shell 始终从 `paths.sh` 自身位置推导，外部覆盖统一走 `NBA_REPO_ROOT`（与 Python 同名同义） |
+
+新增 `tests/test_path_resolution_parity.py` 把一致性变成**可执行断言**，并在临时目录
+模拟 CI 环境（仓库不在 12T 上、父目录无特征标记、路径含软链）—— 本地全绿不代表
+CI 也绿，只有模拟过才算。
+
+**🔴 测试自身也会撒谎**：该测试第一版 `_shell_resolve()` source 的是**全局真实仓库**的
+`paths.sh`，而 `_python_resolve()` 用的是模拟目录里复制的 `nba_paths.py` → 两侧测的不是
+同一份代码，报出「shell 给真实仓库路径 / Python 给模拟目录路径」的假分叉。
+修法：source 该目录内的 `paths.sh`，且两侧用同一套清空环境变量。
+
+**🔴 校验器第二次踩「滑动 HEAD」**：`verify_shell_path_migration.py` 曾与 Python 侧一样
+用 `git diff HEAD` + `git show HEAD:`，提交后即空转假绿 → 一并改为锚定
+`tools/path_baseline.txt` 的固定基线 ref。
+
+### 二、根目录一次性脚本收敛
+
+56 个一次性脚本从仓库根迁入 `scripts/oneoff/`，附 `README.md` 完整映射表。
+根目录 `.py` 144 → 88。迁移要点：`REPO_DIR` 上溯**三层**（`scripts/oneoff/x.py`
+→ oneoff → scripts → 仓库根）、用 `Path` 而非 `os.path`、定义必须落在**首次使用之前**
+且模块级作用域（AST 定位 `FunctionDef`/`ClassDef` 边界，避开多行 import 括号内）。
+
+**🔴 本轮最隐蔽的陷阱：`.gitignore` 会让已跟踪脚本从仓库消失**
+
+`.gitignore` 的「一次性脚本不入库」规则组（`diag_*.py`/`build_*.py`/`analyze_*.py`/
+`gen_*.py`/`debug_*`/`_dbg_*.py`/`_split_*.py`）命中了**已跟踪**脚本的新位置。
+gitignore 对已跟踪文件无效 → 旧位置的删除会入库、新位置的副本不入库
+→ 提交后 6 个 `diag_*.py` 从版本库彻底消失。修法：`!scripts/oneoff/*.py` 例外
+（置于文件末尾，利用「最后匹配生效」，不影响同目录 `*.html` 产物忽略）。
+提交后实查 `git ls-files scripts/oneoff/` = 57（56 `.py` + README）确认零丢失。
+
+**🔴 提交后才暴露的两处门禁 FAIL（提交前全绿属检测盲区）**
+
+1. `tests/test_path_resolution_parity.py` 从未跟踪变已跟踪 → docstring 里记录 CI 根因的
+   `/Volumes/12T` 命中门禁 11a。改用项目既有 `<数据盘根>` 脱敏写法，**不给门禁开新豁免**
+   （豁免越多检测越弱）。
+2. ruff 遵循 `.gitignore`：`diag_*.py` 在根目录时被忽略 → ruff 根本没检查；收敛并加例外后
+   开始受检，暴露 5 处存量 I001。按铁律逐文件复验 `py_compile rc=0`。
+
+这两条印证一条通用规则：**「文件从 ignore 区进入受检区」是一次独立的验证事件**，
+必须在提交后重跑全量门禁，不能沿用提交前的绿灯。
+
+**仓库卫生**：
+- `verify_user_version.html` / `verify_v3.html` 是一次性脚本的运行输出（内容随参数变化，
+  SAS 2026 vs BOS 2025），从版本控制移除、**磁盘副本保留**。
+- 补 `.gitignore` 通配 `.uc_*profile*/`（原为精确名，漏网变体名）+ 根锚定的
+  `/bz_*.json`、`/nba_csv_*.zip`、`/*_preview.png`（不误伤子目录同名 legit 文件）。
+- `viz/base.py` 的 demo 会无条件重写 `theme_tokens.json` 的 `generated_at` 时间戳，
+  而门禁每次都执行该 demo → 工作区永远脏。改**幂等写入**（剥离时间戳比对实质内容，
+  未变则跳过落盘），门禁验证语义不变。
+
+### 验证证据
+
+| 口径 | 结果 |
+|------|------|
+| 质量门禁 | PASS=42 FAIL=0 SKIP=0 |
+| ruff check 全仓 | 0 违规 |
+| 已跟踪 `.py` 零硬编码绝对路径 | 665 个全绿 |
+| 路径迁移语义等价（Python / Shell） | 69/69 · 37/37 |
+| shell / Python 路径解析一致 | PG=True, ROOT=True, DATA=True |
+| 跨语言一致性测试（含 CI 模拟） | 3/3 |
+| `test_bridge_qa.py`（收敛后路径适配） | 21/21 |
+| 收敛后运行时验证 56 脚本 | 39 OK / 17 DATA / **FAIL=0** |
+| 版本库内 `scripts/oneoff/` | 57 条，零丢失 |
+
+### 遗留（诚实边界）
+
+- 根目录仍有 **27 个从未入库**的一次性脚本（被上述 `.gitignore` 规则组命中，
+  收敛器基于 `git ls-files` 选文件故未覆盖）。其中 `build_fct_pbp_shots.py` 是
+  fct_pbp_shots 派生 ETL 的重建脚本，长期不入库属隐患，待独立一轮处理。
+- `nba_subtitle_tool/srt2ass.py` 是无关未跟踪文件，不纳入任何提交。
+
 ## 2026-11-10 — 路径治理：消除硬编码绝对路径（语义等价 85/85，门禁 37 → 39 项）
 
 **Status**: R 仓已跟踪 `.py` 中 `/Users/deocheng` **零命中**；`/Volumes/12T` 仅剩门禁脚本自身
