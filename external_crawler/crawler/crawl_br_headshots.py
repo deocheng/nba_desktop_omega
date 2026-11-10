@@ -149,7 +149,9 @@ def scrape_player(player_id: str, player_name, driver) -> "tuple[str, str | None
         if data:
             ext = magic_ext(data) or "jpg"
             path = HEADSHOT_ROOT / f"{player_id}.{ext}"
-            ensure_root()
+            # 显式传本模块的根：调用方可把根指向别处（测试 tmp_path），
+            # 无参 ensure_root() 会去建全局根（CI 上 /Volumes 不可写）。
+            ensure_root(HEADSHOT_ROOT)
             path.write_bytes(data)
             logger.debug("Tier-2 落盘成功: %s", path)
 
@@ -200,7 +202,7 @@ def run_pipeline(limit=None, dry_run=False, resume=False) -> None:
             if driver is None:
                 from common.browser import get_driver
                 driver = get_driver()
-                ensure_root()
+                ensure_root(HEADSHOT_ROOT)
 
             try:
                 status, url = scrape_player(player_id, player_name, driver)

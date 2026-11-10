@@ -134,13 +134,21 @@ def test_script_exports_required_env_and_sources_dotenv():
 
 
 def test_env_block_actually_exports(tmp_path):
-    """复制脚本 env 段到独立脚本并在运行时确认变量确实导出。"""
+    """复制脚本 env 段到独立脚本并在运行时确认变量确实导出。
+
+    自带 ``.env`` 与 ``REPO_ROOT``：不依赖本机 /Volumes 绝对路径，也不依赖
+    仓库根的 .env（**.env 不入库** → CI 上根本不存在，「DB_PASSWORD 被
+    source 进来」无从验证 → 断言必须自带夹具）。
+    """
     src = SCRIPT.read_text(encoding="utf-8")
     # 截取 source .env 到三个 export 之间的 env 设置段
     start = src.index("set -a")
     end_marker = "export CHROME_CDP_URL=http://127.0.0.1:9222"
     end = src.index(end_marker) + len(end_marker)
     env_block = src[start:end]
+    sandbox = tmp_path / "sandbox"
+    sandbox.mkdir()
+    (sandbox / ".env").write_text("DB_PASSWORD=dummy\n", encoding="utf-8")
     checker = tmp_path / "env_check.sh"
     checker.write_text(
         textwrap.dedent(f"""\
@@ -154,7 +162,9 @@ def test_env_block_actually_exports(tmp_path):
         encoding="utf-8",
     )
     checker.chmod(0o755)
-    proc = subprocess.run(["bash", str(checker)], cwd=str(ROOT),
+    env = dict(os.environ)
+    env["REPO_ROOT"] = str(sandbox)
+    proc = subprocess.run(["bash", str(checker)], cwd=str(sandbox), env=env,
                           capture_output=True, text=True)
     assert proc.returncode == 0, proc.stderr
     assert "BROWSER_BACKEND=cdp" in proc.stdout

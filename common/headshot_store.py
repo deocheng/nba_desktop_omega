@@ -2,6 +2,8 @@
 
 职责：
   * 计算本地落盘路径（HEADSHOT_ROOT 下，按 player_id 命名，避免按姓名建目录的歧义）
+    —— 落盘根可用 ``NBA_HEADSHOT_ROOT`` 覆盖（默认 /Volumes/12T/NBA/headshots），
+    与归档根 ``NBA_ARCHIVE_ROOT`` 同一套口径
   * 从 BR 球员页 HTML 抽取头像 ``<img>`` 的 src（已实测选择器 ``#info .media-item img``）
   * 两级稳健下载：
       - Tier-1：requests / curl_cffi(impersonate=chrome124) + Referer + 桌面 UA + CF cookie 直连 GET
@@ -26,7 +28,11 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 # ── 常量 ──────────────────────────────────────────────────────────────────
-HEADSHOT_ROOT = Path("/Volumes/12T/NBA/headshots")
+# 落盘根：默认外置盘；可用 NBA_HEADSHOT_ROOT 覆盖（与归档根 NBA_ARCHIVE_ROOT
+# 同一套口径）。可覆盖的必要性：CI runner 上 /Volumes 不可写，硬编码绝对路径
+# 会让「落盘」类用例在 CI 上直接 PermissionError。
+DEFAULT_HEADSHOT_ROOT = "/Volumes/12T/NBA/headshots"
+HEADSHOT_ROOT = Path(os.environ.get("NBA_HEADSHOT_ROOT", DEFAULT_HEADSHOT_ROOT))
 SELECTOR = "#info .media-item img"                 # 已实测验证（Architect 实测 LeBron James 命中 1 个 <img>）
 BR_HEADSHOT_HOST = "https://www.basketball-reference.com"
 DESKTOP_UA = (
@@ -42,9 +48,15 @@ _WEBP_WEBP = b"WEBP"
 
 
 # ── 路径 / 落盘 ────────────────────────────────────────────────────────────
-def ensure_root() -> None:
-    """确保本地落盘根目录存在（等价于 mkdir -p）。"""
-    HEADSHOT_ROOT.mkdir(parents=True, exist_ok=True)
+def ensure_root(root: "Path | None" = None) -> None:
+    """确保本地落盘根目录存在（等价于 mkdir -p）。
+
+    ``root`` 缺省用模块级 ``HEADSHOT_ROOT``；**显式传入实际写入目录**更准确
+    —— 调用方（爬虫）可能把根指向别处（如测试的 tmp_path），此时创建全局
+    根只会误建无关目录。
+    """
+    target = Path(root) if root is not None else HEADSHOT_ROOT
+    target.mkdir(parents=True, exist_ok=True)
 
 
 def magic_ext(data: bytes) -> str | None:
@@ -190,7 +202,7 @@ def download_image(url: str, dest: Path, referer: str,
     # 按 magic 字节修正扩展名（极少数 png/webp 情形）
     ext = magic_ext(content) or "jpg"
     final = dest.parent / f"{dest.stem}.{ext}"
-    ensure_root()
+    ensure_root(final.parent)
     final.write_bytes(content)
     # 若预期 dest 与修正后的 final 不同名，清理可能残留的空文件
     if final != dest and dest.exists() and dest.stat().st_size == 0:
