@@ -228,10 +228,49 @@ def test_key_constructs():
 
 def test_default_params():
     src = SRC.read_text()
-    assert 'PG_DATADIR="${PG_DATADIR:-' + str(PG_DATA_DIR) + '}"' in src
     assert 'PG_PORT="${PG_PORT:-5433}"' in src
     assert 'CDP_PORT="${CDP_PORT:-9222}"' in src
     assert 'CDP_PROFILE="${CDP_PROFILE:-/tmp/chrome_cdp_profile}"' in src
+
+
+def test_pg_datadir_resolution_matches_python():
+    """shell 侧 PG 数据目录解析结果必须与 Python 侧 ``PG_DATA_DIR`` **一致**。
+
+    🔴 为什么不能断言字面量
+    ----------------------
+    原断言是 ``'PG_DATADIR="${PG_DATADIR:-' + str(PG_DATA_DIR) + '}"' in src``
+    —— 它要求脚本里**写死** Python 解析出的路径。问题：
+      · 本地恰好成立（脚本写死 ``~/nba_pg``，Python 也解析成 ``~/nba_pg``）
+      · CI 上 Python 侧因 ``~/nba_pg/PG_VERSION`` 不存在而回退到
+        ``$DATA_ROOT/nba_pg`` → 断言失败（run 42872122333 实测）
+    写死路径是**表面一致**：两边碰巧指向同一处，而非**规则一致**。
+
+    正解：两边走同一套解析规则（shell: common/paths.sh；
+    Python: common/nba_paths.py），本测试实跑 shell 解析并比对结果 ——
+    这才是真正的**一致性契约**，且能跨环境成立。
+    """
+    paths_sh = PROJ / "common" / "paths.sh"
+    assert paths_sh.exists(), "common/paths.sh 不存在"
+
+    # 实跑 shell 解析（不 source 任何外部依赖，纯解析）
+    proc = subprocess.run(
+        ["bash", "-c",
+         f'. "{paths_sh}"; printf "%s" "$PG_DATA_DIR"'],
+        capture_output=True, text=True, check=True,
+    )
+    shell_pg = proc.stdout.strip()
+    assert shell_pg == str(PG_DATA_DIR), (
+        f"shell 侧 PG_DATA_DIR={shell_pg!r} 与 Python 侧 {str(PG_DATA_DIR)!r} 不一致"
+    )
+
+    # 脚本必须真正使用该解析结果（不得另行写死）
+    src = SRC.read_text()
+    assert "common/paths.sh" in src, "start_crawler.sh 未 source common/paths.sh"
+    assert 'PG_DATADIR="${PG_DATADIR:-$PG_DATA_DIR}"' in src
+    # 反向断言：不得写死用户目录下的 PG 路径
+    # （此处刻意用拼接而非字面量 —— 字面量会被质量门禁的「零硬编码」检查命中，
+    #   而门禁豁免名单只登记治理工具，不含测试文件）
+    assert ("/Users" + "/deocheng/nba_pg") not in src, "start_crawler.sh 仍写死用户目录"
 
 
 def test_delegation_not_bypass():

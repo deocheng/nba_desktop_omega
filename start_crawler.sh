@@ -37,6 +37,13 @@ set -o pipefail
 PROJ_ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$PROJ_ROOT" || { echo "[fatal] 无法 cd 到脚本目录 $PROJ_ROOT"; exit 1; }
 
+# source 统一路径解析（与 Python 侧 common/nba_paths.py 对齐）
+# 🔴 PG 数据目录的解析顺序必须两侧一致 —— 否则 shell 启动的 PG 与 Python
+#    读到的 PG 会指向不同目录（本地恰好相同，CI 上就分叉）。
+if [ -f "$PROJ_ROOT/common/paths.sh" ]; then
+  . "$PROJ_ROOT/common/paths.sh"
+fi
+
 # source 项目 .env（设置 DB_PASSWORD 等），失败不致命。
 set -a
 if [ -f "$PROJ_ROOT/.env" ]; then
@@ -44,13 +51,15 @@ if [ -f "$PROJ_ROOT/.env" ]; then
 fi
 set +a
 
-PY="${PY:-.venv/bin/python}"
+PY="${PY:-$VENV_PYTHON}"
 export BROWSER_BACKEND="${BROWSER_BACKEND:-cdp}"
 export CHROME_CDP_URL="${CHROME_CDP_URL:-http://127.0.0.1:9222}"
 export BR_COOKIE_FILE="${BR_COOKIE_FILE:-/tmp/br_cf_cookies.json}"
 
 # 可覆盖的基础路径（测试/迁移时用）
-PG_DATADIR="${PG_DATADIR:-/Users/deocheng/nba_pg}"
+# 🔴 PG_DATADIR 默认值来自 common/paths.sh（与 Python 侧同一解析规则），
+#    不可在此写死 —— 写死会让本地偶然相等、CI 上分叉。
+PG_DATADIR="${PG_DATADIR:-$PG_DATA_DIR}"
 PG_PORT="${PG_PORT:-5433}"
 CDP_PORT="${CDP_PORT:-9222}"
 CDP_PROFILE="${CDP_PROFILE:-/tmp/chrome_cdp_profile}"
