@@ -123,6 +123,7 @@ backups/
 external_crawler/crawler/cache/
 # 改造过程中的临时备份（内容已在正式文件中验证通过）
 *.bak
+*.bak_*
 # crawler_v2 子项目里的二进制产物与回滚旧版
 external_crawler/crawler_v2/**/*.png
 external_crawler/crawler_v2/**/*.old
