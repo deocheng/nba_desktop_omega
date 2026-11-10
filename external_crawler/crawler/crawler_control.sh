@@ -169,7 +169,7 @@ cmd_start(){
     log "[start] 目标=全 23 季（近季优先，逐季 verify_gaps 门禁）"
   else
     printf '%s' "$target" > "$STOP_AFTER_FLAG"
-    log "[start] 目标季=$target（跑完即停，写 STOP_AFTER 标志）"
+    log "[start] 目标季=${target}（跑完即停，写 STOP_AFTER 标志）"
   fi
   ensure_pg || { log "[start] PG 未就绪，中止"; return 1; }
   ensure_chrome || { log "[start] Chrome 未就绪，中止"; return 1; }

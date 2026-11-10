@@ -72,7 +72,7 @@ POST=$($PSQL -c "SELECT count(*)||'/'||count(DISTINCT game_id) FROM fct_pbp_shot
 log "派生后: season=${SEASON} 行数/场次 = ${POST} (rc=$RC)"
 
 if [ "$RC" -ne 0 ]; then
-  log "❌ fct 派生失败 rc=$RC，详见 $LOGFILE"
+  log "❌ fct 派生失败 rc=${RC}，详见 $LOGFILE"
   exit "$RC"
 fi
 log "✅ fct_pbp_shots 已同步至最新 (season=${SEASON})"

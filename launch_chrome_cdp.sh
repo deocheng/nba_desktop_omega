@@ -46,7 +46,7 @@ fi
 # 自动迁移保护：若新路径还没有 profile 而旧路径存在，先搬过来再启动。
 # 防止「脚本已改路径但迁移还没执行」时启动出一个空 profile。
 if [ ! -d "$PROFILE/Default" ] && [ -d "$OLD_PROFILE/Default" ]; then
-  echo "检测到 profile 仍在 $OLD_PROFILE，先迁移到 $PROFILE …"
+  echo "检测到 profile 仍在 ${OLD_PROFILE}，先迁移到 $PROFILE …"
   pkill -f "remote-debugging-port=$PORT" 2>/dev/null
   sleep 5
   mkdir -p "$(dirname "$PROFILE")"
@@ -61,7 +61,7 @@ case "$AIDIR" in
   /Volumes/12T/NBA/chrome_cdp_profile/OptGuideOnDeviceModel)
     if [ -d "$AIDIR" ]; then
       SZ=$(du -sh "$AIDIR" 2>/dev/null | cut -f1)
-      rm -rf "$AIDIR" && echo "已清除端侧 AI 模型（$SZ）。"
+      rm -rf "$AIDIR" && echo "已清除端侧 AI 模型（${SZ}）。"
     fi ;;
 esac
 
@@ -121,7 +121,7 @@ nohup "$CHROME" \
 # 按进程树回收）。停止后台任务即关闭 Chrome。
 wait
 
-echo "已启动独立 Chrome（PID $!），远程调试端口 $PORT。"
+echo "已启动独立 Chrome（PID $!），远程调试端口 ${PORT}。"
 echo "广告域名已黑洞化；磁盘缓存上限 100MB；端侧 AI 模型下载已关闭。"
 echo "若窗口出现 Cloudflare 验证，请手动点一次 \"Verify you are human\" 后保持窗口打开。"
 echo

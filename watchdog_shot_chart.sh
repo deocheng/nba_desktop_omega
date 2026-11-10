@@ -179,7 +179,7 @@ while true; do
         sleep 3
         start_crawler
       else
-        log "✅ 爬虫存活中（日志 ${stale}s 前更新；当前 URL=$cur_url；同URL计数=$last_cnt）"
+        log "✅ 爬虫存活中（日志 ${stale}s 前更新；当前 URL=${cur_url}；同URL计数=${last_cnt}）"
       fi
     else
       log "❌ 爬虫进程不在（意外停止），尝试重启"

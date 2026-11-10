@@ -55,7 +55,7 @@ while true; do
     echo "$(ts) [standalone] driver 正常退出(rc=0)，判定全部季完成 → 监督器停止。"
     break
   fi
-  echo "$(ts) [standalone] driver 异常退出 rc=$rc，cooldown 30s 后重启"
+  echo "$(ts) [standalone] driver 异常退出 rc=${rc}，cooldown 30s 后重启"
   sleep 30
 done
 

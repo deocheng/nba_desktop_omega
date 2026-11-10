@@ -180,7 +180,7 @@ esac
 if [ -f "$PIDFILE" ]; then
   OLD=$(cat "$PIDFILE" 2>/dev/null)
   if [ -n "$OLD" ] && kill -0 "$OLD" 2>/dev/null; then
-    log "看门狗已在运行 (pid $OLD，可能是原版或 v2)，退出。"
+    log "看门狗已在运行 (pid ${OLD}，可能是原版或 v2)，退出。"
     exit 0
   fi
 fi

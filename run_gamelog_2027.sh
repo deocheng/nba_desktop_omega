@@ -44,7 +44,7 @@ if pgrep -f "crawl_br_gamelog.py" >/dev/null 2>&1; then
   exit 1
 fi
 if [ ! -s "$PLAYERS" ]; then
-  echo "[guard] 球员清单缺失或为空: $PLAYERS（先跑 dump_br_league_players.py）。退出。" | tee -a "$LOG"
+  echo "[guard] 球员清单缺失或为空: ${PLAYERS}（先跑 dump_br_league_players.py）。退出。" | tee -a "$LOG"
   exit 1
 fi
 PLAYER_N=$(wc -l < "$PLAYERS" | tr -d ' ')

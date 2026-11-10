@@ -116,7 +116,7 @@ ensure_postgres() {
       echo "[infra] 发现已死的 postmaster.pid (pid=$oldpid)，清理后启动。"
       rm -f "$pmpid"
     else
-      echo "[infra][WARN] postmaster.pid 指向活跃进程 $oldpid，不清理（可能有实例在跑，跳过启动）。"
+      echo "[infra][WARN] postmaster.pid 指向活跃进程 ${oldpid}，不清理（可能有实例在跑，跳过启动）。"
       return 1
     fi
   fi
@@ -282,8 +282,8 @@ main() {
   echo "===== $(date) LAUNCH $CRAWL_SCRIPT =====" >> "$LOG_FILE"
   nohup bash "$CRAWL_SCRIPT" >> "$LOG_FILE" 2>&1 &
   local CRAWL_PID=$!
-  echo "已启动 pid=$CRAWL_PID，日志 $CRAWL_SCRIPT -> $(basename "$LOG_FILE")"
-  echo "（Ctrl+C 仅停止日志跟随，爬虫在后台继续运行 pid=$CRAWL_PID）"
+  echo "已启动 pid=${CRAWL_PID}，日志 $CRAWL_SCRIPT -> $(basename "$LOG_FILE")"
+  echo "（Ctrl+C 仅停止日志跟随，爬虫在后台继续运行 pid=${CRAWL_PID}）"
   echo "---------------------------------------------------------------"
   tail -f "$LOG_FILE"
 }

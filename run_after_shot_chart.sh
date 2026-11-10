@@ -33,7 +33,7 @@ sleep 60
 DONE=$(/opt/homebrew/bin/psql -h localhost -p 5433 -U postgres -d nba -t -A -c "SELECT COUNT(DISTINCT (player_id,season)) FROM player_shot_chart;" 2>/dev/null | tail -1 | tr -d ' ')
 UNIV=$(/opt/homebrew/bin/psql -h localhost -p 5433 -U postgres -d nba -t -A -c "SELECT COUNT(DISTINCT (player_id,season)) FROM player_shooting;" 2>/dev/null | tail -1 | tr -d ' ')
 if [ -n "$UNIV" ] && [ "$DONE" != "$UNIV" ]; then
-    echo "!! [$(date)] 未完成（完成 $DONE / 宇宙 $UNIV），疑似爬虫提前退出。不启动 Phase1。"
+    echo "!! [$(date)] 未完成（完成 $DONE / 宇宙 ${UNIV}），疑似爬虫提前退出。不启动 Phase1。"
     echo "!! 请排查 shot chart 爬虫停止原因并修复后重跑，勿让 Phase1 抢跑。"
     exit 1
 fi

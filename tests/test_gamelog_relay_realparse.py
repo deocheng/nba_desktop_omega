@@ -50,7 +50,15 @@ def _write(path: Path, content: str) -> None:
 
 
 def _build_sandbox(root: Path) -> Path:
-    """拷脚本到临时目录并改写沙箱专属路径/PY，返回脚本路径。"""
+    """拷脚本到临时目录并放入桩爬虫，返回脚本路径。
+
+    ⚠️ 不做**文本改写**（旧实现靠 str(REPO_ROOT) 字面量替换脚本里的硬编码路径）：
+       脚本里的路径是本机生产路径 /Volumes/12T/...，在 CI（checkout 到别处）
+       替换**不会命中** → 脚本仍会 cd 回真实仓库并跑**真爬虫**（实测：真爬虫
+       被启动、日志被追加到真实仓库）。现改为脚本自身支持环境变量
+       （REPO_ROOT / LOG / HEADSHOT_LOG / PY / GUARD_PATTERN），测试只注入 env，
+       天然与路径无关。
+    """
     assert SCRIPT.exists(), f"missing {SCRIPT}"
     crawler_dir = root / "external_crawler" / "crawler"
     crawler_dir.mkdir(parents=True, exist_ok=True)
@@ -66,23 +74,23 @@ def _build_sandbox(root: Path) -> Path:
     # 假 .env（桩爬虫不真连库）
     _write(root / ".env", "DB_PASSWORD=dummy\n")
 
-    # 拷脚本并改写沙箱专属路径 / PY
     script = root / "run_gamelog_all.sh"
     shutil.copy(SCRIPT, script)
-    text = script.read_text(encoding="utf-8")
-    text = text.replace("cd " + str(REPO_ROOT), "cd " + str(root))
-    text = text.replace(
-        str(REPO_ROOT) + "/gamelog_crawl.log", str(root / "gamelog_crawl.log")
-    )
-    text = text.replace(
-        str(REPO_ROOT) + "/headshots_relay.log", str(root / "headshots_relay.log")
-    )
-    text = text.replace(
-        ". " + str(REPO_ROOT) + "/.env", ". " + str(root / ".env")
-    )
-    text = text.replace("PY=.venv/bin/python", "PY=python3")
-    script.write_text(text, encoding="utf-8")
     return script
+
+
+def _sandbox_env(root: Path) -> dict:
+    """把脚本的路径/解释器全部指向沙箱，使其**绝无可能**触碰真实仓库。"""
+    env = dict(os.environ)
+    env.update({
+        "REPO_ROOT": str(root),
+        "LOG": str(root / "gamelog_crawl.log"),
+        "HEADSHOT_LOG": str(root / "headshots_relay.log"),
+        "PY": sys.executable,
+        # 并行守卫：沙箱里永远不该命中（真实爬虫在跑也不该让本用例失败）
+        "GUARD_PATTERN": "relay_sandbox_guard_never_matches_9f3a",
+    })
+    return env
 
 
 def _assert_clean(log_text: str) -> None:
@@ -104,6 +112,7 @@ def test_real_script_relay_fires(tmp_path: Path) -> None:
     proc = subprocess.run(
         ["bash", str(script)],
         cwd=str(root),
+        env=_sandbox_env(root),
         capture_output=True,
         text=True,
         timeout=120,

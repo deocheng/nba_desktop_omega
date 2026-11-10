@@ -59,7 +59,7 @@ log "重爬进程已停止。"
 mkdir -p /Volumes/12T/NBA/cdp_cookie_backup
 cp "$OLD_PROFILE/Default/Cookies" \
    "/Volumes/12T/NBA/cdp_cookie_backup/Cookies_$(date +%Y%m%d_%H%M)_premigrate.bak" 2>/dev/null \
-   && log "cookie 已备份（源：$OLD_PROFILE）。"
+   && log "cookie 已备份（源：${OLD_PROFILE}）。"
 
 # ── 3b. 停 Chrome → 清 4G AI 模型 → 迁移 profile 到数据盘 ──────────────────
 pkill -f "remote-debugging-port=9223" 2>/dev/null
@@ -77,13 +77,13 @@ else
     /tmp/chrome_cdp_profile/OptGuideOnDeviceModel)
       if [ -d "$AIDIR" ]; then
         SZ=$(du -sh "$AIDIR" 2>/dev/null | cut -f1)
-        rm -rf "$AIDIR" && log "已清除端侧 AI 模型（$SZ）。"
+        rm -rf "$AIDIR" && log "已清除端侧 AI 模型（${SZ}）。"
       fi ;;
     *) log "!! AI 模型路径校验未通过，跳过清理：$AIDIR" ;;
   esac
 
   if [ -d "$OLD_PROFILE/Default" ] && [ ! -d "$PROFILE/Default" ]; then
-    log "迁移 $OLD_PROFILE -> $PROFILE（约 $(du -sh "$OLD_PROFILE" 2>/dev/null | cut -f1)）…"
+    log "迁移 $OLD_PROFILE -> ${PROFILE}（约 $(du -sh "$OLD_PROFILE" 2>/dev/null | cut -f1)）…"
     if mv "$OLD_PROFILE" "$PROFILE" 2>>"$WLOG"; then
       log "迁移完成。"
     else
@@ -93,7 +93,7 @@ else
         rm -rf "$OLD_PROFILE"
         log "cp -a 迁移完成，源目录已清理。"
       else
-        log "!! 迁移失败，回退使用 $OLD_PROFILE。"
+        log "!! 迁移失败，回退使用 ${OLD_PROFILE}。"
         PROFILE="$OLD_PROFILE"
       fi
     fi
