@@ -1,0 +1,35 @@
+2025-07-07	The Detroit Pistons signed Paul Reed to a multi-year contract.
+2025-07-07	The Detroit Pistons signed Caris LeVert to a multi-year contract.
+2025-07-07	The Detroit Pistons signed Dennis Schroder to a multi-year contract.
+2025-07-07	The Detroit Pistons signed Chaz Lanier to a multi-year contract.
+2025-07-07	The Detroit Pistons traded Simone Fontecchio to the Miami Heat for Duncan Robinson .  Miami also received a trade exception
+2025-07-07	The Detroit Pistons traded Dennis Schroder and a 2029 2nd round draft pick to the Sacramento Kings for a 2026 2nd round draft pick ( NULL was later selected). 2026 2nd-rd pick (CHO own) was protected 31-55, did not convey. Detroit also received a trade exception  2029 2nd-rd pick is least favorable
+2025-07-24	The Detroit Pistons waived Ron Harper .
+2025-07-28	The Detroit Pistons signed Colby Jones to a two-way contract.
+2025-08-02	The Detroit Pistons signed Daniss Jenkins to a two-way contract.
+2025-08-14	The Detroit Pistons signed Javonte Green .
+2025-09-18	The Detroit Pistons signed John Ukomadu to an Exhibit 10 contract.
+2025-09-18	The Detroit Pistons signed Brice Williams to an Exhibit 10 contract.
+2025-09-18	The Detroit Pistons signed Dawson Garcia to an Exhibit 10 contract.
+2025-09-18	The Detroit Pistons signed Charles Bediako to an Exhibit 10 contract.
+2025-09-18	The Detroit Pistons waived John Ukomadu .
+2025-09-23	The Detroit Pistons signed Quincy Olivari to an Exhibit 10 contract.
+2025-09-24	The Detroit Pistons waived Quincy Olivari .
+2025-10-07	The Detroit Pistons signed Feron Hunt to an Exhibit 10 contract.
+2025-10-08	The Detroit Pistons waived Feron Hunt .
+2025-10-10	The Detroit Pistons signed Jaden Akins to an Exhibit 10 contract.
+2025-10-11	The Detroit Pistons waived Jaden Akins .
+2025-10-17	The Detroit Pistons waived Charles Bediako .
+2025-10-17	The Detroit Pistons waived Dawson Garcia .
+2025-10-17	The Detroit Pistons waived Brice Williams .
+2025-11-06	The Detroit Pistons claimed Isaac Jones on waivers from the Sacramento Kings .
+2025-11-10	The Detroit Pistons signed Wendell Moore Jr. to a two-way contract.
+2025-11-10	The Detroit Pistons waived Colby Jones .
+2026-02-03	The Detroit Pistons waived Isaac Jones .
+2026-02-08	The Detroit Pistons converted Daniss Jenkins from a two-way contract to a regular contract.
+2026-02-08	The Detroit Pistons waived Dario Saric .
+2026-02-09	The Detroit Pistons signed Isaac Jones to a two-way contract.
+2026-04-07	The Detroit Pistons converted Tolu Smith from a two-way contract to a regular contract.
+2026-04-07	The Detroit Pistons waived Bobi Klintman .
+2026-06-23	The Detroit Pistons traded Karim Lopez to the Memphis Grizzlies for Ebuka Okorie .
+2026-06-24	The Detroit Pistons traded cash to the New York Knicks for Ugonna Onyenso .

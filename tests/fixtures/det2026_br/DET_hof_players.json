@@ -1,0 +1,504 @@
+{
+  "count": 23,
+  "players": [
+    "Walt Bellamy",
+    "Chauncey Billups",
+    "Dave Bing",
+    "Nathaniel Clifton",
+    "Charles \"Chuck\" Cooper",
+    "Adrian Dantley",
+    "Dave DeBusschere",
+    "Joe Dumars",
+    "Harry Gallatin",
+    "Grant Hill",
+    "Bob Houbregs",
+    "Bailey Howell",
+    "Allen Iverson",
+    "Bob Lanier",
+    "Bob McAdoo",
+    "Tracy McGrady",
+    "Dick McGuire",
+    "Andy Phillip",
+    "Dennis Rodman",
+    "Isiah Thomas",
+    "Ben Wallace",
+    "Chris Webber",
+    "George Yardley"
+  ],
+  "season_entries": [
+    [
+      "2013-14",
+      "Chauncey Billups"
+    ],
+    [
+      "2011-12",
+      "Ben Wallace"
+    ],
+    [
+      "2010-11",
+      "Tracy McGrady"
+    ],
+    [
+      "2010-11",
+      "Ben Wallace"
+    ],
+    [
+      "2009-10",
+      "Ben Wallace"
+    ],
+    [
+      "2008-09",
+      "Chauncey Billups"
+    ],
+    [
+      "2008-09",
+      "Allen Iverson"
+    ],
+    [
+      "2007-08",
+      "Chauncey Billups"
+    ],
+    [
+      "2006-07",
+      "Chauncey Billups"
+    ],
+    [
+      "2006-07",
+      "Chris Webber"
+    ],
+    [
+      "2005-06",
+      "Chauncey Billups"
+    ],
+    [
+      "2005-06",
+      "Ben Wallace"
+    ],
+    [
+      "2004-05",
+      "Chauncey Billups"
+    ],
+    [
+      "2004-05",
+      "Ben Wallace"
+    ],
+    [
+      "2003-04",
+      "Chauncey Billups"
+    ],
+    [
+      "2003-04",
+      "Ben Wallace"
+    ],
+    [
+      "2002-03",
+      "Chauncey Billups"
+    ],
+    [
+      "2002-03",
+      "Ben Wallace"
+    ],
+    [
+      "2001-02",
+      "Ben Wallace"
+    ],
+    [
+      "2000-01",
+      "Ben Wallace"
+    ],
+    [
+      "1999-00",
+      "Grant Hill"
+    ],
+    [
+      "1998-99",
+      "Joe Dumars"
+    ],
+    [
+      "1998-99",
+      "Grant Hill"
+    ],
+    [
+      "1997-98",
+      "Joe Dumars"
+    ],
+    [
+      "1997-98",
+      "Grant Hill"
+    ],
+    [
+      "1996-97",
+      "Joe Dumars"
+    ],
+    [
+      "1996-97",
+      "Grant Hill"
+    ],
+    [
+      "1995-96",
+      "Joe Dumars"
+    ],
+    [
+      "1995-96",
+      "Grant Hill"
+    ],
+    [
+      "1994-95",
+      "Joe Dumars"
+    ],
+    [
+      "1994-95",
+      "Grant Hill"
+    ],
+    [
+      "1993-94",
+      "Joe Dumars"
+    ],
+    [
+      "1993-94",
+      "Isiah Thomas"
+    ],
+    [
+      "1992-93",
+      "Joe Dumars"
+    ],
+    [
+      "1992-93",
+      "Dennis Rodman"
+    ],
+    [
+      "1992-93",
+      "Isiah Thomas"
+    ],
+    [
+      "1991-92",
+      "Joe Dumars"
+    ],
+    [
+      "1991-92",
+      "Dennis Rodman"
+    ],
+    [
+      "1991-92",
+      "Isiah Thomas"
+    ],
+    [
+      "1990-91",
+      "Joe Dumars"
+    ],
+    [
+      "1990-91",
+      "Dennis Rodman"
+    ],
+    [
+      "1990-91",
+      "Isiah Thomas"
+    ],
+    [
+      "1989-90",
+      "Joe Dumars"
+    ],
+    [
+      "1989-90",
+      "Dennis Rodman"
+    ],
+    [
+      "1989-90",
+      "Isiah Thomas"
+    ],
+    [
+      "1988-89",
+      "Adrian Dantley"
+    ],
+    [
+      "1988-89",
+      "Joe Dumars"
+    ],
+    [
+      "1988-89",
+      "Dennis Rodman"
+    ],
+    [
+      "1988-89",
+      "Isiah Thomas"
+    ],
+    [
+      "1987-88",
+      "Adrian Dantley"
+    ],
+    [
+      "1987-88",
+      "Joe Dumars"
+    ],
+    [
+      "1987-88",
+      "Dennis Rodman"
+    ],
+    [
+      "1987-88",
+      "Isiah Thomas"
+    ],
+    [
+      "1986-87",
+      "Adrian Dantley"
+    ],
+    [
+      "1986-87",
+      "Joe Dumars"
+    ],
+    [
+      "1986-87",
+      "Dennis Rodman"
+    ],
+    [
+      "1986-87",
+      "Isiah Thomas"
+    ],
+    [
+      "1985-86",
+      "Joe Dumars"
+    ],
+    [
+      "1985-86",
+      "Isiah Thomas"
+    ],
+    [
+      "1984-85",
+      "Isiah Thomas"
+    ],
+    [
+      "1983-84",
+      "Isiah Thomas"
+    ],
+    [
+      "1982-83",
+      "Isiah Thomas"
+    ],
+    [
+      "1981-82",
+      "Isiah Thomas"
+    ],
+    [
+      "1980-81",
+      "Bob McAdoo"
+    ],
+    [
+      "1979-80",
+      "Bob Lanier"
+    ],
+    [
+      "1979-80",
+      "Bob McAdoo"
+    ],
+    [
+      "1978-79",
+      "Bob Lanier"
+    ],
+    [
+      "1977-78",
+      "Bob Lanier"
+    ],
+    [
+      "1976-77",
+      "Bob Lanier"
+    ],
+    [
+      "1975-76",
+      "Bob Lanier"
+    ],
+    [
+      "1974-75",
+      "Dave Bing"
+    ],
+    [
+      "1974-75",
+      "Bob Lanier"
+    ],
+    [
+      "1973-74",
+      "Dave Bing"
+    ],
+    [
+      "1973-74",
+      "Bob Lanier"
+    ],
+    [
+      "1972-73",
+      "Dave Bing"
+    ],
+    [
+      "1972-73",
+      "Bob Lanier"
+    ],
+    [
+      "1971-72",
+      "Dave Bing"
+    ],
+    [
+      "1971-72",
+      "Bob Lanier"
+    ],
+    [
+      "1970-71",
+      "Dave Bing"
+    ],
+    [
+      "1970-71",
+      "Bob Lanier"
+    ],
+    [
+      "1969-70",
+      "Walt Bellamy"
+    ],
+    [
+      "1969-70",
+      "Dave Bing"
+    ],
+    [
+      "1968-69",
+      "Walt Bellamy"
+    ],
+    [
+      "1968-69",
+      "Dave Bing"
+    ],
+    [
+      "1968-69",
+      "Dave DeBusschere"
+    ],
+    [
+      "1967-68",
+      "Dave Bing"
+    ],
+    [
+      "1967-68",
+      "Dave DeBusschere"
+    ],
+    [
+      "1966-67",
+      "Dave Bing"
+    ],
+    [
+      "1966-67",
+      "Dave DeBusschere"
+    ],
+    [
+      "1965-66",
+      "Dave DeBusschere"
+    ],
+    [
+      "1964-65",
+      "Dave DeBusschere"
+    ],
+    [
+      "1963-64",
+      "Dave DeBusschere"
+    ],
+    [
+      "1963-64",
+      "Bailey Howell"
+    ],
+    [
+      "1962-63",
+      "Dave DeBusschere"
+    ],
+    [
+      "1962-63",
+      "Bailey Howell"
+    ],
+    [
+      "1961-62",
+      "Bailey Howell"
+    ],
+    [
+      "1960-61",
+      "Bailey Howell"
+    ],
+    [
+      "1959-60",
+      "Bailey Howell"
+    ],
+    [
+      "1959-60",
+      "Dick McGuire"
+    ],
+    [
+      "1958-59",
+      "Dick McGuire"
+    ],
+    [
+      "1958-59",
+      "George Yardley"
+    ],
+    [
+      "1957-58",
+      "Nathaniel Clifton"
+    ],
+    [
+      "1957-58",
+      "Harry Gallatin"
+    ],
+    [
+      "1957-58",
+      "Bob Houbregs"
+    ],
+    [
+      "1957-58",
+      "Dick McGuire"
+    ],
+    [
+      "1957-58",
+      "George Yardley"
+    ],
+    [
+      "1956-57",
+      "Bob Houbregs"
+    ],
+    [
+      "1956-57",
+      "George Yardley"
+    ],
+    [
+      "1955-56",
+      "Charles \"Chuck\" Cooper"
+    ],
+    [
+      "1955-56",
+      "Bob Houbregs"
+    ],
+    [
+      "1955-56",
+      "Andy Phillip"
+    ],
+    [
+      "1955-56",
+      "George Yardley"
+    ],
+    [
+      "1954-55",
+      "Bob Houbregs"
+    ],
+    [
+      "1954-55",
+      "Andy Phillip"
+    ],
+    [
+      "1954-55",
+      "George Yardley"
+    ],
+    [
+      "1953-54",
+      "Andy Phillip"
+    ],
+    [
+      "1953-54",
+      "George Yardley"
+    ],
+    [
+      "1952-53",
+      "Andy Phillip"
+    ]
+  ],
+  "source": "user-pasted BR DET hof page (gold; bypassed CF block)",
+  "note": "23 distinct HOFers inducted as players. season_entries = (season, player) roster mapping. Reversed-name + missing-player bugs from prior CF-blocked scrape fully fixed."
+}

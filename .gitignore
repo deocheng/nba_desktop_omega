@@ -96,7 +96,10 @@ crawler_watch_*.md
 candidates.json
 notes*.json
 research_list.json
-det2026_br
+# det2026_br = 仓库根的 BR 抓取缓存（实为符号链接 → /Volumes/12T/NBA/det2026_br，2400+ 文件）。
+# 必须**锚定到仓库根**（前导 /）：不加锚定时该规则会匹配任意层级的同名目录，
+# 连 tests/fixtures/det2026_br/（入库的 DET 金标快照）也会被误忽略 → CI 缺夹具。
+/det2026_br
 raw_archive
 research/
 
@@ -147,3 +150,9 @@ external_crawler/nba_tracking/probe_raw/
 # 看门狗运行时状态（心跳/状态快照，每轮刷新）
 logs/crawler_watchdog.heartbeat
 logs/crawler_watchdog.status
+
+# ── 测试金标夹具（入库）────────────────────────────────────────────────────
+# tests/fixtures/ 下是「解析器回归」的唯一输入（DET 名人堂/高管/交易金标快照），
+# 必须入库，否则 CI 上夹具缺失 → 用例在 collection 期就 FileNotFoundError。
+# 这是对上方 *.csv / *.parquet 等「数据文件不入库」规则的**唯一例外**（限定目录）。
+!tests/fixtures/**

@@ -26,7 +26,9 @@ import json
 import os
 import sys
 
-PROJECT_ROOT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
+# 项目根由本文件位置推导（tests/ 的上一级），不写死绝对路径：
+# 写死 /Volumes/12T/... 在 CI（checkout 到 /home/runner/work/...）会找不到源文件。
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 

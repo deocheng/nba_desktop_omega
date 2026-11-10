@@ -3,10 +3,13 @@
 Three layers of proof, all offline (the live 30-team run is T05, on the Mac):
 
 1. **Data-driven gold check** — for every ``*_transactions_raw.html`` captured
-   under ``det2026_br/`` that has a matching ``*_transactions_verbatim.txt``
+   under the offline gold dir that has a matching ``*_transactions_verbatim.txt``
    gold file, ``transactions_crawl.validate.assert_parse_matches_gold`` must
    reproduce it verbatim. Today this covers DET; as more teams' offline
    captures are added (T05) the same harness checks them automatically.
+
+   金标目录 = ``tests/fixtures/det2026_br/``（``det2026_br/`` 是指向外置盘的
+   符号链接，文件无法入库 → CI 上不存在）。快照口径见 tests/fixtures/README.md。
 
 2. **30-team prefix rebuild (unit)** — for every one of the 30 canonical
    abbrs, feed a synthetic transaction ``<li>`` through ``parse_transactions``
@@ -40,7 +43,7 @@ from common.team_names import TEAM_ABBRS, get_full_name  # noqa: E402
 from transactions_crawl.parse import parse_transactions  # noqa: E402
 from transactions_crawl.validate import assert_parse_matches_gold  # noqa: E402
 
-DET_DIR = os.path.join(ROOT, "det2026_br")
+DET_DIR = os.path.join(ROOT, "tests", "fixtures", "det2026_br")
 
 
 # ---------------------------------------------------------------------------

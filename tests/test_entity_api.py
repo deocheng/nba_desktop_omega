@@ -26,6 +26,7 @@ needs_db = pytest.mark.skipif(
 
 
 class TestPlayerDetail:
+    @pytest.mark.needs_data
     def test_404_for_unknown(self, app_client):
         resp = app_client.get("/players/unknown99zz/detail?season=2026")
         assert resp.status_code == 404

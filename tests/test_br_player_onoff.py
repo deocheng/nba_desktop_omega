@@ -15,10 +15,13 @@
      (复合 PK slug,year，note='http_404')，不写归档/不解析/不污染 crawl_failures。
 
 夹具（离线，零 BR 网络）：
-  * 常规赛样本：raw_archive/br_players/antetgi01/on_off_2024.html
-  * 季后赛样本：raw_archive/br_players/jamesle01/on_off_2018.html
-  * 404 页：raw_archive/br_players/alexaga01/shooting.html（复用既有 404 夹具；
+  * 常规赛样本：tests/fixtures/br_players/antetgi01/on_off_2024.html
+  * 季后赛样本：tests/fixtures/br_players/jamesle01/on_off_2018.html
+  * 404 页：tests/fixtures/br_players/alexaga01/shooting.html（复用既有 404 夹具；
     fetch_team_page 的 404 检测与页面类型无关，复用安全）
+
+  夹具是 raw_archive/br_players/ 的**冻结快照**（该目录被 gitignore，CI 上不存在 →
+  夹具缺失会让用例在 CI 上直接失败）。来源与刷新方式见 tests/fixtures/README.md。
 DB 相关用例全部用 MockConn（不连真实库），sandbox 离线跑、零回归风险。
 """
 from __future__ import annotations
@@ -40,9 +43,10 @@ from external_crawler.crawler.crawl_br_player_onoff import (  # noqa: E402
     parse_player_onoff_html,
 )
 
-FIXTURE_REG = ROOT / "raw_archive" / "br_players" / "antetgi01" / "on_off_2024.html"
-FIXTURE_PO = ROOT / "raw_archive" / "br_players" / "jamesle01" / "on_off_2018.html"
-FIXTURE_404 = ROOT / "raw_archive" / "br_players" / "alexaga01" / "shooting.html"
+FIXTURE_DIR = ROOT / "tests" / "fixtures" / "br_players"
+FIXTURE_REG = FIXTURE_DIR / "antetgi01" / "on_off_2024.html"
+FIXTURE_PO = FIXTURE_DIR / "jamesle01" / "on_off_2018.html"
+FIXTURE_404 = FIXTURE_DIR / "alexaga01" / "shooting.html"
 
 
 def _load(f: Path) -> str:
@@ -119,7 +123,8 @@ def test_parse_regular_only_3_rows():
     recs = parse_player_onoff_html(_load(FIXTURE_REG), "antetgi01", 2024)
     assert len(recs) == 3, f"常规赛样本应得 3 行，实得 {len(recs)}"
     sts = {r["season_type"] for r in recs}
-    assert sts == {"Regular"}, sts
+    # 落库值经 canon_season_type 归一 → dim_games 权威值 "Regular Season"
+    assert sts == {"Regular Season"}, sts
     splits = {r["split"] for r in recs}
     assert splits == {"On Court", "Off Court", "On-Off"}, splits
 
@@ -129,9 +134,9 @@ def test_parse_with_playoffs_6_rows():
     assert len(recs) == 6, f"含季后赛样本应得 6 行，实得 {len(recs)}"
     from collections import Counter
     cnt = Counter(r["season_type"] for r in recs)
-    assert cnt == {"Regular": 3, "Playoffs": 3}, dict(cnt)
+    assert cnt == {"Regular Season": 3, "Playoffs": 3}, dict(cnt)
     # 每组 3 行 split 齐全
-    for st in ("Regular", "Playoffs"):
+    for st in ("Regular Season", "Playoffs"):
         sp = {r["split"] for r in recs if r["season_type"] == st}
         assert sp == {"On Court", "Off Court", "On-Off"}, sp
 
@@ -228,7 +233,7 @@ def test_build_rows_injects_keys():
     row = c.build_rows(None, "antetgi01", 2024, "Regular", rec)
     assert row["player_id"] == "antetgi01"
     assert row["season"] == 2024
-    assert row["season_type"] == "Regular"
+    assert row["season_type"] == "Regular Season"
     assert row["split"] == "On-Off"
     assert row["team_id"] == "MIL"
     assert row["mp"] is None and row["min_pct"] == 65.0

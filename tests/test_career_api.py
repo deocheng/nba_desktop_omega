@@ -28,6 +28,7 @@ needs_db = pytest.mark.skipif(not _DB_AVAILABLE, reason="needs live PostgreSQL")
 
 # ── Envelope / validation ──
 class TestCareerEnvelope:
+    @pytest.mark.needs_data
     def test_peak_envelope_shape(self, app_client):
         resp = app_client.get("/api/career/peak?metric=pts_per_game&limit=1")
         assert resp.status_code == 200

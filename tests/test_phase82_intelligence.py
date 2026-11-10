@@ -91,16 +91,19 @@ class TestPacePure:
 # ── §5 Pace Adjustment (DB) ──
 
 class TestPaceDB:
+    @pytest.mark.needs_data
     def test_league_pace_realistic(self):
         lg = compute_league_pace(2025)
         # NBA league pace is ~95-110 possessions/48min
         assert 90.0 < lg < 115.0
 
+    @pytest.mark.needs_data
     def test_team_paces_nonempty(self):
         paces = compute_team_paces(2025)
         assert len(paces) >= 28  # ~30 teams
         assert all(80.0 < p < 120.0 for p in paces.values())
 
+    @pytest.mark.needs_data
     def test_pace_adjust_player_stats_keys(self):
         out = pace_adjust_player_stats(2025, ["jamesle01"], "Regular")
         assert "jamesle01" in out
@@ -114,6 +117,7 @@ class TestPaceDB:
         # ratio sanity: adjusted_points should be close to raw PPG (24.4)
         assert 20.0 < rec["adjusted_points"] < 30.0
 
+    @pytest.mark.needs_data
     def test_season_type_filter_real(self):
         reg = load_player_intel(2025, "Regular")
         po = load_player_intel(2025, "Playoffs")
@@ -139,6 +143,7 @@ class TestAvailability:
         assert minutes_share(25000, 19830) == pytest.approx(1.0)
         assert minutes_share(100, 0) == 0.0
 
+    @pytest.mark.needs_data
     def test_compute_availability_lebron(self):
         out = compute_availability(2025, ["jamesle01"], "Regular")
         assert "jamesle01" in out
@@ -166,6 +171,7 @@ class TestHistoricalPercentile:
     def test_percentile_rank_empty(self):
         assert percentile_rank(10, np.array([])) == 0.0
 
+    @pytest.mark.needs_data
     def test_historical_percentile_lebron(self):
         hp = historical_percentile(2025, "ppg", ["jamesle01"], "Regular")
         assert "jamesle01" in hp
@@ -173,6 +179,7 @@ class TestHistoricalPercentile:
         assert 90.0 < rec["percentile"] < 100.0  # LeBron top-tier scorer
         assert 20.0 < rec["value"] < 30.0
 
+    @pytest.mark.needs_data
     @pytest.mark.parametrize("metric", ["ts_percent", "ast", "reb", "bpm", "vorp"])
     def test_historical_percentile_all_metrics(self, metric):
         hp = historical_percentile(2025, metric, ["jamesle01"], "Regular")
@@ -183,6 +190,7 @@ class TestHistoricalPercentile:
         with pytest.raises(ValueError):
             historical_percentile(2025, "not_a_metric", ["jamesle01"])
 
+    @pytest.mark.needs_data
     def test_historical_percentile_playoffs_no_crash(self):
         # Player may have no playoff row; must return {} not crash
         out = historical_percentile(2025, "ppg", ["jamesle01"], "Playoffs")

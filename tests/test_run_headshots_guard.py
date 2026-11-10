@@ -28,7 +28,9 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "run_headshots_all.sh"
-PY = ROOT / ".venv" / "bin" / "python"
+# 用当前解释器（CI 上是 pip install 后的那个 python），不硬编码 .venv：
+# CI 没有 .venv，硬编码会直接 FileNotFoundError。
+PY = sys.executable
 
 # 真实 gamelog PID（不得误杀）
 REAL_GAMELOG_PIDS = set()

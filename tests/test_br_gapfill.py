@@ -78,22 +78,40 @@ def _shooting_html() -> str:
 
 
 def _lineups_html() -> str:
-    lineup = ("<a href='/players/a/aaabr01.html'>A. Aaa</a>/"
-              "<a href='/players/b/bbbbr01.html'>B. Bbb</a>/"
-              "<a href='/players/c/cccbr01.html'>C. Ccc</a>/"
-              "<a href='/players/d/dddbr01.html'>D. Ddd</a>/"
-              "<a href='/players/e/eeebr01.html'>E. Eee</a>")
-    row = (
-        '<tr>'
-        f'<td data-stat="lineup">{lineup}</td>'
-        '<td data-stat="gp">70</td><td data-stat="mp">480</td>'
-        '<td data-stat="won">40</td><td data-stat="lost">30</td>'
-        '<td data-stat="pts">5200</td><td data-stat="opp_pts">5000</td>'
-        '<td data-stat="off_rtg">112.3</td><td data-stat="def_rtg">110.1</td>'
-        '<td data-stat="net_rtg">2.2</td>'
-        '</tr>'
-    )
-    return '<table id="lineups"><thead><tr></tr></thead><tbody>' + row + '</tbody></table>'
+    """BR 按阵容人数拆表：id=lineups_{n}-man_（常规赛）/ lineups_{n}-man__p（季后赛）。
+
+    解析器（parse_team_lineups_html）遍历 2/3/4/5 四档表，不再只取 5-man，
+    故 fixture 必须按新表 id 结构构造，否则解析出 0 行。
+    """
+    names = [("a", "aaabr01", "A. Aaa"), ("b", "bbbbr01", "B. Bbb"),
+             ("c", "cccbr01", "C. Ccc"), ("d", "dddbr01", "D. Ddd"),
+             ("e", "eeebr01", "E. Eee")]
+    # BR lineups 页是**净差值(Net)表**：真实列为 diff_pts/diff_fg/.../diff_pf，
+    # **没有** gp/won/lost/pts/opp_pts/off_rtg/def_rtg/net_rtg
+    # （见 crawl_br_team_lineups.py 模块 docstring 的 2026-07-28 实测记录）。
+    cells = ('<td data-stat="mp">480:00</td>'
+             '<td data-stat="diff_pts">52</td><td data-stat="diff_fg">21</td>'
+             '<td data-stat="diff_fga">48</td><td data-stat="diff_fg_pct">.438</td>'
+             '<td data-stat="diff_fg3">7</td><td data-stat="diff_fg3a">18</td>'
+             '<td data-stat="diff_fg3_pct">.389</td><td data-stat="diff_efg_pct">.512</td>'
+             '<td data-stat="diff_ft">4</td><td data-stat="diff_fta">5</td>'
+             '<td data-stat="diff_ft_pct">.800</td>'
+             '<td data-stat="diff_orb">9</td><td data-stat="diff_orb_pct">.130</td>'
+             '<td data-stat="diff_drb">31</td><td data-stat="diff_drb_pct">.450</td>'
+             '<td data-stat="diff_trb">40</td><td data-stat="diff_trb_pct">.580</td>'
+             '<td data-stat="diff_ast">24</td><td data-stat="diff_stl">8</td>'
+             '<td data-stat="diff_blk">5</td><td data-stat="diff_tov">12</td>'
+             '<td data-stat="diff_pf">18</td>')
+    out = []
+    for n in (2, 3, 4, 5):
+        lineup = "/".join(
+            f"<a href='/players/{d}/{slug}.html'>{nm}</a>" for d, slug, nm in names[:n]
+        )
+        row = f'<tr><td data-stat="lineup">{lineup}</td>{cells}</tr>'
+        out.append(
+            f'<table id="lineups_{n}-man_"><thead><tr></tr></thead><tbody>{row}</tbody></table>'
+        )
+    return "".join(out)
 
 
 def _onoff_html() -> str:
@@ -157,16 +175,56 @@ def _depth_html() -> str:
 
 
 def _referees_html() -> str:
-    row = (
-        '<tr>'
-        "<td data-stat=\"g\"><a href='/boxscores/202510200BOS.html'>2025-10-20</a></td>"
-        '<td data-stat="oref1">John Doe</td>'
-        '<td data-stat="oref2">Jane Smith</td>'
-        '<td data-stat="oref3">Bob Lee</td>'
-        '</tr>'
-    )
-    return ('<table id="referees"><thead><tr></tr></thead><tbody>'
-            + row + '</tbody></table>')
+    """BR referees 页的真实结构（2026-07-28 SAS/2026 实抓）：
+
+    - 表 id = ``refs-summary``，粒度是 **team×season×referee 赛季汇总**
+      （每裁判一行），**不是**逐场裁判名单；
+    - 数值列 data-stat 与 DB 同名：rank/g/wins/losses/win_pct/pace +
+      team_/opp_/diff_ 的 pts/fta/pf/sfoul/ofoul。
+    """
+    # (slug, name, rank, g, wins, losses, win_pct, pace,
+    #  team_pts, team_fta, team_pf, team_sfoul, team_ofoul,
+    #  opp_pts, opp_fta, opp_pf, opp_sfoul, opp_ofoul,
+    #  diff_pts, diff_fta, diff_pf, diff_sfoul, diff_ofoul)
+    refs = [
+        ("johndoe01", "John Doe", 1, 62, 36, 26, ".581", "99.4",
+         112.3, 24.1, 21.9, 18.2, 17.1,
+         108.7, 22.8, 20.4, 17.6, 16.4,
+         3.6, 1.3, 1.5, 0.6, 0.7),
+        ("janesmi02", "Jane Smith", 2, 55, 30, 25, ".545", "98.8",
+         110.1, 23.5, 21.2, 17.8, 16.9,
+         109.4, 23.1, 20.7, 18.0, 16.8,
+         0.7, 0.4, 0.5, -0.2, 0.1),
+        ("boblee03", "Bob Lee", 3, 41, 21, 20, ".512", "100.2",
+         108.9, 22.6, 20.1, 17.4, 16.2,
+         110.2, 22.9, 20.6, 17.9, 16.7,
+         -1.3, -0.3, -0.5, -0.5, -0.5),
+    ]
+    rows = []
+    for (slug, name, rank, g, w, l, wp, pace, tpts, tfta, tpf, tsf, tof,
+         opts, ofta, opf, osf, oof, dpts, dfta, dpf, dsf, dof) in refs:
+        rows.append(
+            '<tr>'
+            f'<th data-stat="referee"><a href="/referees/{slug}.html">{name}</a></th>'
+            f'<td data-stat="rank">{rank}</td>'
+            f'<td data-stat="g">{g}</td>'
+            f'<td data-stat="wins">{w}</td>'
+            f'<td data-stat="losses">{l}</td>'
+            f'<td data-stat="win_pct">{wp}</td>'
+            f'<td data-stat="pace">{pace}</td>'
+            f'<td data-stat="team_pts">{tpts}</td><td data-stat="team_fta">{tfta}</td>'
+            f'<td data-stat="team_pf">{tpf}</td><td data-stat="team_sfoul">{tsf}</td>'
+            f'<td data-stat="team_ofoul">{tof}</td>'
+            f'<td data-stat="opp_pts">{opts}</td><td data-stat="opp_fta">{ofta}</td>'
+            f'<td data-stat="opp_pf">{opf}</td><td data-stat="opp_sfoul">{osf}</td>'
+            f'<td data-stat="opp_ofoul">{oof}</td>'
+            f'<td data-stat="diff_pts">{dpts}</td><td data-stat="diff_fta">{dfta}</td>'
+            f'<td data-stat="diff_pf">{dpf}</td><td data-stat="diff_sfoul">{dsf}</td>'
+            f'<td data-stat="diff_ofoul">{dof}</td>'
+            '</tr>'
+        )
+    return ('<table id="refs-summary"><thead><tr></tr></thead><tbody>'
+            + "".join(rows) + '</tbody></table>')
 
 
 # ───────────────────────── 1. 解析层全列覆盖 ─────────────────────────
@@ -193,15 +251,23 @@ def test_shooting_parse_columns():
 
 
 def test_lineups_parse_columns():
+    """BR 按人数拆表 → 解析器遍历 2/3/4/5 四档，各得一行（不再是"只取 5-man"）。"""
     recs = parse_team_lineups_html(_lineups_html(), "Regular", "BOS")
-    assert len(recs) == 1
-    r = recs[0]
-    assert len(r["players"]) == 5
-    for k in ("gp", "minutes", "won", "lost", "pts", "opp_pts",
-             "off_rtg", "def_rtg", "net_rtg"):
-        assert k in r, f"缺列 {k}"
-    assert r["minutes"] == 480 and r["pts"] == 5200
-    assert r["off_rtg"] == 112.3 and r["net_rtg"] == 2.2
+    assert len(recs) == 4, f"应解析出 2/3/4/5 四档共 4 行，实得 {len(recs)}"
+    # group_size 标记该行来自哪一档，人数与档位自洽
+    assert sorted(r["group_size"] for r in recs) == [2, 3, 4, 5]
+    for r in recs:
+        assert len(r["players"]) == r["group_size"], "行内人数应与档位自洽"
+    # 真实 BR 列是净差值 diff_*（无 gp/won/lost/pts）
+    r5 = next(r for r in recs if r["group_size"] == 5)
+    for k in ("diff_pts", "diff_fg", "diff_fga", "diff_fg_pct", "diff_efg_pct",
+              "diff_trb", "diff_trb_pct", "diff_ast", "diff_stl", "diff_blk",
+              "diff_tov", "diff_pf"):
+        assert k in r5, f"缺列 {k}"
+        assert r5[k] is not None, f"列 {k} 解析为 None（落库会成 NULL）"
+    assert r5["diff_pts"] == 52 and r5["diff_fg"] == 21
+    assert r5["diff_fg_pct"] == 0.438 and r5["diff_efg_pct"] == 0.512
+    assert r5["diff_trb"] == 40 and r5["diff_ast"] == 24
 
 
 def test_onoff_parse_columns():
@@ -243,26 +309,47 @@ def test_depth_parse_columns():
 
 
 def test_referees_parse_columns():
+    """refs-summary 表 = 每裁判一行的赛季汇总（非逐场名单）。
+
+    真实契约（crawl_br_team_referees.py 模块 docstring / 2026-07-28 实抓）：
+    记录含 referee_slug / referee_name + rank/g/wins/losses/win_pct/pace
+    + team_/opp_/diff_ 的 pts/fta/pf/sfoul/ofoul。
+    """
     recs = parse_team_referees_html(_referees_html(), "Regular", "BOS")
-    assert len(recs) == 3  # 一场 3 名裁判
+    assert len(recs) == 3, f"3 名裁判应得 3 行，实得 {len(recs)}"
     for r in recs:
-        assert {"game_id", "referee_name", "ref_order"} <= set(r.keys())
-    assert recs[0]["game_id"] == "202510200BOS"
-    assert [r["ref_order"] for r in recs] == [1, 2, 3]
-    assert recs[0]["referee_name"] == "John Doe"
+        assert {"referee_slug", "referee_name", "rank", "g", "wins", "losses",
+                "win_pct", "pace", "team_pts", "opp_pts", "diff_pts",
+                "team_pf", "opp_pf", "diff_pf"} <= set(r.keys()), \
+            f"缺列: 缺 { {'referee_slug','referee_name','rank','g','wins','losses','win_pct','pace','team_pts','opp_pts','diff_pts'} - set(r.keys()) }"
+        # 数值列不得解析为 None（落库会成 NULL）
+        for k in ("rank", "g", "wins", "losses", "win_pct", "pace",
+                  "team_pts", "opp_pts", "diff_pts"):
+            assert r[k] is not None, f"列 {k} 解析为 None（落库会成 NULL）"
+    assert [r["referee_name"] for r in recs] == ["John Doe", "Jane Smith", "Bob Lee"]
+    assert recs[0]["referee_slug"] == "johndoe01"
+    assert recs[0]["rank"] == 1 and recs[0]["g"] == 62
+    assert recs[0]["wins"] == 36 and recs[0]["losses"] == 26
+    assert recs[0]["win_pct"] == 0.581 and recs[0]["pace"] == 99.4
+    assert recs[0]["team_pts"] == 112.3 and recs[0]["opp_pts"] == 108.7
+    assert recs[0]["diff_pts"] == 3.6
 
 
-def test_referees_fallback_to_ref_links():
-    # 当无 oref1/2/3 单元格时，退回扫描 /referees/ 链接
-    html = ('<table id="referees"><tbody>'
-            '<tr><td data-stat="g"><a href="/boxscores/202510200BOS.html">x</a></td>'
-            '<td><a href="/referees/doejo01.html">John Doe</a></td>'
-            '<td><a href="/referees/smitja01.html">Jane Smith</a></td></td>'
-            '</tr></tbody></table>')
+def test_referees_slug_from_referee_link():
+    """裁判 slug 来自 /referees/{slug}.html 链接；无链接时退回 name 小写下划线。"""
+    html = ('<table id="refs-summary"><tbody>'
+            '<tr><th data-stat="referee"><a href="/referees/doejo01.html">John Doe</a></th>'
+            '<td data-stat="rank">1</td><td data-stat="g">10</td></tr>'
+            '<tr><th data-stat="referee">Zed Zylo</th>'
+            '<td data-stat="rank">2</td><td data-stat="g">8</td></tr>'
+            '</tbody></table>')
     recs = parse_team_referees_html(html, "Regular", "BOS")
     assert len(recs) == 2
-    assert recs[0]["game_id"] == "202510200BOS"
-    assert recs[1]["referee_name"] == "Jane Smith"
+    assert recs[0]["referee_slug"] == "doejo01"
+    assert recs[0]["referee_name"] == "John Doe"
+    # 无链接 → slug 退回 name 小写下划线
+    assert recs[1]["referee_slug"] == "zed_zylo"
+    assert recs[1]["referee_name"] == "Zed Zylo"
 
 
 # ───────────────────────── 2. 缓存 MERGE 语义 ─────────────────────────
@@ -371,14 +458,20 @@ def test_lineups_build_rows_keys():
     conn = _mock_conn_for_resolve([])  # resolve 返回 (None,None)
     c = LineupsCrawler()
     parsed = parse_team_lineups_html(_lineups_html(), "Regular", "BOS")
-    row = c.build_rows(conn, "BOS", 2026, "Regular", parsed[0])
-    expected = {"team_abbr", "season", "season_type", "lineup_key",
+    # 取 5 人档（build_rows 的球员键按 br_player_id1..N 生成，与人数无关）
+    rec5 = next(r for r in parsed if r["group_size"] == 5)
+    row = c.build_rows(conn, "BOS", 2026, "Regular", rec5)
+    expected = {"team_abbr", "season", "season_type", "lineup_key", "group_size", "mp",
                 "br_player_id1", "player_id1", "player_name1",
                 "br_player_id5", "player_id5", "player_name5",
-                "gp", "minutes", "won", "lost", "pts", "opp_pts",
-                "off_rtg", "def_rtg", "net_rtg"}
-    assert expected <= set(row.keys())
+                "diff_pts", "diff_fg", "diff_fga", "diff_fg_pct", "diff_efg_pct",
+                "diff_trb", "diff_trb_pct", "diff_ast", "diff_stl", "diff_blk",
+                "diff_tov", "diff_pf"}
+    assert expected <= set(row.keys()), f"缺列: {expected - set(row.keys())}"
     assert row["team_abbr"] == "BOS" and row["season"] == 2026
+    # 落库 season_type 经 canon_season_type 归一 → dim_games 权威值
+    assert row["season_type"] == "Regular Season"
+    assert row["group_size"] == 5
     # lineup_key 为 5 个 slug 排序后连接（无序去重）
     assert row["lineup_key"] == "|".join(
         sorted(["aaabr01", "bbbbr01", "cccbr01", "dddbr01", "eeebr01"]))
@@ -420,9 +513,14 @@ def test_referees_build_rows_keys():
     c = RefereesCrawler()
     parsed = parse_team_referees_html(_referees_html(), "Regular", "BOS")
     row = c.build_rows(conn, "BOS", 2026, "Regular", parsed[0])
-    assert row["game_id"] == "202510200BOS"
+    # build_rows 注入 team/season 维度 + 原样透传裁判与数值列
+    assert {"team_abbr", "season", "referee_slug", "referee_name",
+            "rank", "g", "wins", "losses", "win_pct", "pace",
+            "team_pts", "opp_pts", "diff_pts"} <= set(row.keys())
     assert row["team_abbr"] == "BOS" and row["season"] == 2026
-    assert row["referee_name"] == "John Doe" and row["ref_order"] == 1
+    assert row["referee_name"] == "John Doe" and row["referee_slug"] == "johndoe01"
+    assert row["rank"] == 1 and row["g"] == 62
+    assert row["diff_pts"] == 3.6
 
 
 def test_min_season_guard():

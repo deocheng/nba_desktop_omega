@@ -29,6 +29,15 @@ FRONTEND = ROOT / "frontend" / "js" / "components"
 # this avoids false positives on identifiers like "onselect" / "create:").
 SQL_RE = re.compile(r"\b(SELECT|INSERT|UPDATE|DELETE|CREATE)\b")
 
+# 前端专用：只匹配「真正的 SQL 语句形态」——关键字后必须跟空白 + SQL 语法
+# （FROM / INTO / TABLE / 等），从而放过 AB_deleteFlow / AB_clearCanvas 这类
+# 纯 JS 函数名（deleteFlow 是前端业务 API，不是 SQL）。
+FRONTEND_SQL_RE = re.compile(
+    r"(?<![<\w])(?:SELECT\s+(?:\*|DISTINCT\b|[\w.]+\s+FROM\b)|INSERT\s+INTO\b|UPDATE\s+[\w.]+\s+SET\b|"
+    r"DELETE\s+FROM\b|CREATE\s+(TABLE|INDEX|VIEW)\b)",
+    re.IGNORECASE,
+)
+
 ALLOWED_ROUTER_IMPORTS = {
     "fastapi",
     "__future__",
@@ -37,6 +46,20 @@ ALLOWED_ROUTER_IMPORTS = {
     "backend.services.analytics_builder_engine.ab_validation",
     "typing",
 }
+
+# 允许的前缀规则（表达 §6 的架构意图，避免枚举具体模块名导致断言随代码演进过时）：
+#   Layer 3 允许依赖同层的「契约模块」（*_schemas）与「引擎层」模块，
+#   但不得直接依赖 pandas / numpy / 任何写库层。
+ALLOWED_ROUTER_PREFIXES = (
+    "backend.api.routers.analytics_builder_schemas",
+    "backend.services.analytics_builder_engine",
+)
+
+
+def _router_import_allowed(mod: str) -> bool:
+    if mod in ALLOWED_ROUTER_IMPORTS:
+        return True
+    return any(mod == p or mod.startswith(p + ".") for p in ALLOWED_ROUTER_PREFIXES)
 
 
 def _src(path: Path) -> str:
@@ -66,11 +89,11 @@ def test_router_imports_restricted():
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for n in node.names:
-                assert n.name in ALLOWED_ROUTER_IMPORTS or n.name.split(".")[0] in ("fastapi", "typing"), \
+                assert _router_import_allowed(n.name) or n.name.split(".")[0] in ("fastapi", "typing"), \
                     f"router imports non-allowed module: {n.name}"
         elif isinstance(node, ast.ImportFrom):
             mod = node.module or ""
-            assert mod in ALLOWED_ROUTER_IMPORTS, f"router imports non-allowed module: {mod}"
+            assert _router_import_allowed(mod), f"router imports non-allowed module: {mod}"
 
 
 def test_router_no_eval_exec():
@@ -107,7 +130,10 @@ def test_frontend_no_eval_exec_sql():
         src = _src(p)
         assert "eval(" not in src, f"{fn} contains eval() — frontend must not compute"
         assert "exec(" not in src, f"{fn} contains exec() — frontend must not compute"
-        assert not SQL_RE.search(src), f"{fn} contains SQL keyword {SQL_RE.search(src).group(0)!r}"
+        # 用「SQL 语句形态」正则，而非裸关键字 —— 否则 AB_deleteFlow 等
+        # 纯 JS 业务函数名会被误判成 SQL（2026-11-10 实测误报）。
+        m = FRONTEND_SQL_RE.search(src)
+        assert m is None, f"{fn} contains SQL statement {m.group(0)!r}"
 
 
 def test_frontend_no_aggregation_loops():

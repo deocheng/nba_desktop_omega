@@ -31,6 +31,7 @@ def _sample_flow():
 
 
 class TestMetaEndpoint:
+    @pytest.mark.needs_data
     def test_meta_envelope(self, app_client):
         resp = app_client.get("/api/analytics-builder/meta")
         assert resp.status_code == 200

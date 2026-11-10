@@ -167,6 +167,7 @@ class TestPlayersEndpoints:
         names = [p.get("full_name") or p.get("player_name") or "" for p in data["players"]]
         assert any("lebron" in n.lower() for n in names), f"no LeBron in {names}"
 
+    @pytest.mark.needs_data
     def test_get_player_detail_404_for_unknown(self, app_client):
         """GET /players/{unknown}?season=2025 should return 404."""
         resp = app_client.get("/players/nonexistent99?season=2025")

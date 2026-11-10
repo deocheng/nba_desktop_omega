@@ -13,9 +13,12 @@
           self_test_player_url 静态校验（**不抓 BR**，沙箱过不了 CF）。
 
 夹具：
-  * 404 页：raw_archive/br_players/alexaga01/shooting.html
+  * 404 页：tests/fixtures/br_players/alexaga01/shooting.html
     （<title>Page Not Found (404 error)</title> + canonical /404.html）
-  * 真实页：raw_archive/br_players/brownja02/shooting.html（含 id="shooting"）
+  * 真实页：tests/fixtures/br_players/brownja02/shooting.html（含 id="shooting"）
+
+  夹具是 raw_archive/br_players/ 的**冻结快照**（该目录被 gitignore，CI 上不存在 →
+  夹具缺失会让用例在 CI 上直接失败）。来源与刷新方式见 tests/fixtures/README.md。
 
 DB 相关用例使用 MockConn（不连真实库），全部在 sandbox 离线跑；
 不含任何 BR 网络请求。若环境有 PGPASSWORD+集群 B，可用 --live 之外的方式跑，
@@ -43,8 +46,9 @@ from external_crawler.crawler.crawl_br_player_shooting import (  # noqa: E402
     TransientFetchError,
 )
 
-FIXTURE_404 = ROOT / "raw_archive" / "br_players" / "alexaga01" / "shooting.html"
-FIXTURE_REAL = ROOT / "raw_archive" / "br_players" / "brownja02" / "shooting.html"
+FIXTURE_DIR = ROOT / "tests" / "fixtures" / "br_players"
+FIXTURE_404 = FIXTURE_DIR / "alexaga01" / "shooting.html"
+FIXTURE_REAL = FIXTURE_DIR / "brownja02" / "shooting.html"
 
 
 def _load_404() -> str:

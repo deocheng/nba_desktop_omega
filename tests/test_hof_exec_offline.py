@@ -27,7 +27,12 @@ from hof_exec.parse import (  # noqa: E402
 )
 from hof_exec.validate import assert_parse_matches_gold  # noqa: E402
 
-DET_DIR = os.path.join(ROOT, "det2026_br")
+# 金标输入 = **入库的冻结快照**（tests/fixtures/det2026_br/）。
+# 不用仓库根的 det2026_br/：那是指向外置盘的符号链接（det2026_br ->
+# /Volumes/12T/NBA/det2026_br），其下文件无法入库 → CI 上该目录不存在 →
+# 本模块在 import 期读文件就会 FileNotFoundError，整个 test job 直接崩。
+# 快照来源/权威口径/刷新方式见 tests/fixtures/det2026_br/README.md。
+DET_DIR = os.path.join(ROOT, "tests", "fixtures", "det2026_br")
 HOF_HTML = open(os.path.join(DET_DIR, "DET_hof.html"), encoding="utf-8").read()
 EXEC_HTML = open(os.path.join(DET_DIR, "DET_executives.html"), encoding="utf-8").read()
 

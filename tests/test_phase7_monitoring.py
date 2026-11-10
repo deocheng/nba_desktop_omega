@@ -243,6 +243,7 @@ class TestMonitorEndpoints:
         assert len(body["layers"]) >= 6
         assert "endpoints" in body
 
+    @pytest.mark.needs_data
     def test_health_endpoint(self, app_client):
         resp = app_client.get("/health")
         assert resp.status_code == 200

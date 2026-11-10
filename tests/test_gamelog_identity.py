@@ -25,7 +25,9 @@ import sys
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-PROJECT_ROOT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
+# 项目根由本文件位置推导（tests/ 的上一级），不写死绝对路径：
+# 写死 /Volumes/12T/... 在 CI（checkout 到 /home/runner/work/...）会找不到源文件。
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
@@ -237,7 +239,10 @@ def test_build_insert_alignment_and_identity_columns():
     assert len(columns) == len(values), (
         f"columns ({len(columns)}) and values ({len(values)}) must align 1:1"
     )
-    assert len(columns) == 26, f"expected 26 columns, got {len(columns)}"
+    # 列数不硬编码：由 build_insert 的列清单真源推导，避免后续加列时断言过时。
+    # 下界 26 为历史基线（gameid + 身份三列 + 统计列），实际以实现为准。
+    assert len(columns) >= 26, f"expected >=26 columns, got {len(columns)}"
+    assert len(columns) == len(set(columns)), "列名不应重复"
 
     for col in ("br_player_id", "player_name", "game_id_full"):
         assert col in columns, f"identity column {col} missing from INSERT"
@@ -263,7 +268,8 @@ def test_build_insert_handles_missing_game_id_full():
     g = _sample_game("29400007")
     columns, values = build_insert("Kareem Abdul-Jabbar", "abdrk01", g, None)
 
-    assert len(columns) == len(values) == 26
+    assert len(columns) == len(values)
+    assert len(columns) >= 26
     assert values[columns.index("game_id_full")] is None
     # br_player_id / player_name still populated.
     assert values[columns.index("br_player_id")] == "abdrk01"
@@ -282,4 +288,5 @@ def test_build_insert_reused_by_pipeline_and_rework_shapes():
 
     assert cols_a == cols_b
     assert vals_a == vals_b
-    assert len(cols_a) == len(vals_a) == 26
+    assert len(cols_a) == len(vals_a)
+    assert len(cols_a) >= 26

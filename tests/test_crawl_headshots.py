@@ -83,7 +83,9 @@ class FakeConn:
 # ── CLI --help ────────────────────────────────────────────────────────────
 def test_cli_help_exposes_required_flags():
     """argparse 必须暴露 --limit/--dry-run/--resume（验收 HS-01）。"""
-    py = str(ROOT / ".venv" / "bin" / "python")
+    # 用当前解释器（CI 上是 pip install 后的那个 python），不硬编码 .venv：
+    # CI 没有 .venv，硬编码会直接 FileNotFoundError。
+    py = sys.executable
     script = str(ROOT / "external_crawler" / "crawler" / "crawl_br_headshots.py")
     proc = subprocess.run([py, script, "--help"], cwd=str(ROOT),
                           capture_output=True, text=True, timeout=120)
