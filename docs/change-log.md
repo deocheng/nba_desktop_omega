@@ -66,6 +66,48 @@ All changes to LOCKED phases must be recorded here (v8 §1 Change Request mechan
 
 ---
 
+### 补充：Shell 侧路径治理（37 个 .sh）+ 跨语言一致性契约
+
+**背景**：37 个 `.sh` 把 `/Users/deocheng` 与 `/Volumes/12T/NBA` 写进字面量。
+Shell 无法 import Python 模块，故新增 `common/paths.sh` 作为对应物，
+**解析规则与 `common/nba_paths.py` 一一对应**。
+
+**🔴 CI 暴露的真实口径分叉（run 42872122333 = failure）**：
+`start_crawler.sh` 里 `PG_DATADIR` 写死 `/Users/deocheng/nba_pg`，测试断言它等于
+Python 侧 `PG_DATA_DIR` 的解析结果。本地两者**恰好相等**（都是 `~/nba_pg`），
+CI 上因 `~/nba_pg/PG_VERSION` 不存在而回退到 `$DATA_ROOT/nba_pg` → 断言失败。
+
+这是**表面一致**（两边碰巧指向同一处）而非**规则一致**（两边走同一套解析）。
+根因是 shell 侧从未接入统一解析。
+
+**修法**：
+1. 新增 `common/paths.sh`（10 个解析变量，PG 数据目录解析顺序与 Python 侧严格一致）
+2. `start_crawler.sh` 改为 source 它，PG 目录不再写死
+3. 测试从**字面量断言**升级为**实跑 shell 解析并与 Python 侧比对**
+   —— 后者跨环境成立，前者只在本地成立
+4. 36 个 `.sh` 批量迁移到变量引用，全部 `bash -n` 通过
+
+**🔴 又一处版本目录写死**：`.../binaries/python/versions/3.13.12/bin/python3`
+在 5 个脚本里写死版本号 —— WorkBuddy 升级后旧版本目录会被清掉 → 脚本一起断
+（与 node 版本目录 `22.22.2` → `22.22.2-6` 同一类失效）。
+改走 `versions/current`（内容是版本号的文本文件）+ 兜底 `command -v python3`。
+
+**验证**：
+| 口径 | 结果 |
+|------|------|
+| Shell 路径迁移语义等价 | 受检 37 / 等价 37 / 差异 0 |
+| shell / Python 路径解析一致 | PG=True, ROOT=True, DATA=True |
+| 已跟踪 `.sh` 零硬编码绝对路径 | 46 个全部通过 |
+| `bash -n` 语法校验 | 53 个脚本全通过 |
+| 质量门禁 | PASS=42 FAIL=0 SKIP=0 TOTAL=42 |
+
+**门禁新增 3 项**（11c / 11d / shell 语义等价），形成持续门禁：
+- 已跟踪 `.sh` 零硬编码绝对路径
+- Shell 路径迁移语义等价
+- shell / Python 路径解析一致（跨语言契约）
+
+---
+
 ## 2026-11-10 — 数据层收口：本地真库 29 个失败清零（7 类根因，含 2 处生产代码缺陷 + 1 次真实补爬）
 
 **Status**: 本地真库全绿（783 passed / 1 skipped / 0 failed）；CI 复核 **run 42828756158 = success**
