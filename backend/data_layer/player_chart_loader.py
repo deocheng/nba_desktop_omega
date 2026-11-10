@@ -295,7 +295,7 @@ def get_player_per_game(season: int, limit: int, sort_by: str) -> list[dict]:
             FROM player_per_game
             WHERE season = %s AND g >= 10
               AND team NOT IN ('2TM', '3TM', '4TM', 'TOT')
-              AND (season_type = 'Regular' OR season_type IS NULL)
+              AND (season_type = 'Regular Season' OR season_type IS NULL)
         )
         SELECT player_id, player_name, team, g, mp, pts, reb, ast, stl, blk, tov,
                fg_pct, fg3_pct, ft_pct, e_fg_pct

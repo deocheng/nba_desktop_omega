@@ -202,7 +202,13 @@ def get_player_growth(player_id: str) -> GrowthReportResponse:
 def get_player_entity_detail(
     player_id: str,
     season: int = Query(..., ge=1900, le=2100, description="NBA season"),
-    season_type: str = Query("Regular", description="Regular | Playoffs | PlayIn"),
+    season_type: str = Query(
+        "Regular Season",
+        description=(
+            "Season type; accepts 'Regular'/'REG'/'rs' aliases and normalizes to "
+            "the dim_games canonical value. One of: Regular Season | Playoffs | Play-In"
+        ),
+    ),
 ) -> PlayerEntityDetail:
     """v8 Entity Detail — full player page: bio + metrics + shooting + defense + intel + seasons."""
     bios = get_player_bios([player_id])

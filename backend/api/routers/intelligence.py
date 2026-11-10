@@ -32,7 +32,13 @@ router = APIRouter(prefix="/players", tags=["intelligence"])
 def get_player_intelligence(
     player_id: str,
     season: int | None = Query(None, description="NBA season; defaults to latest available"),
-    season_type: str = Query("Regular", description="Regular | Playoffs | PlayIn"),
+    season_type: str = Query(
+        "Regular Season",
+        description=(
+            "Season type; accepts 'Regular'/'REG'/'rs' aliases and normalizes to "
+            "the dim_games canonical value. One of: Regular Season | Playoffs | Play-In"
+        ),
+    ),
 ):
     st = normalize_season_type(season_type)
     if season is None:

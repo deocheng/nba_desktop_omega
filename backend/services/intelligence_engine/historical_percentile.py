@@ -59,7 +59,7 @@ def historical_percentile(
     season: int,
     metric: str,
     player_ids: list[str] | None = None,
-    season_type: str = "Regular",
+    season_type: str = "Regular Season",
 ) -> dict[str, dict]:
     """Compute historical percentile for players against the league distribution.
 
@@ -67,7 +67,7 @@ def historical_percentile(
         season: required NBA season (v8 §2).
         metric: one of METRIC_COLUMNS keys.
         player_ids: players to score. If None, scores every player that season.
-        season_type: 'Regular' | 'Playoffs' | 'PlayIn'.
+        season_type: 'Regular Season' | 'Playoffs' | 'Play-In'.
 
     Returns:
         {player_id: {"value": float, "percentile": float}}

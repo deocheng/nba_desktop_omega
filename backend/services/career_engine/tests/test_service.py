@@ -163,7 +163,7 @@ def test_get_age_curves_multi_live():
     """Optional integration check (skips if no live DB is reachable)."""
     try:
         pid_rows = svc.db.batch_query(
-            "SELECT player_id FROM fact_player_season_stats WHERE season_type='Regular' LIMIT 1"
+            "SELECT player_id FROM fact_player_season_stats WHERE season_type='Regular Season' LIMIT 1"
         )
     except Exception:
         pytest.skip("live DB not available")

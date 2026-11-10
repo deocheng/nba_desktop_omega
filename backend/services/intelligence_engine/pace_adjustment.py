@@ -101,7 +101,7 @@ def compute_league_pace(season: int) -> float:
 def pace_adjust_player_stats(
     season: int,
     player_ids: list[str] | None = None,
-    season_type: str = "Regular",
+    season_type: str = "Regular Season",
 ) -> dict[str, dict]:
     """Pace-adjust the 4 core per-game/rate stats for players in a season.
 

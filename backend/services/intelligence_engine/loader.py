@@ -29,14 +29,14 @@ def _build_in_clause(values: list[Any]) -> tuple[str, tuple]:
 
 def load_player_intel(
     season: int,
-    season_type: str = "Regular",
+    season_type: str = "Regular Season",
     player_ids: list[str] | None = None,
 ) -> list[dict]:
     """Batch load fact_player_season_stats for a season + season_type.
 
     Args:
         season: required NBA season (v8 §2 mandate).
-        season_type: 'Regular' | 'Playoffs' | 'PlayIn' (normalized).
+        season_type: 'Regular Season' | 'Playoffs' | 'Play-In' (normalized).
         player_ids: optional BBR player_id IN-clause filter.
 
     Returns: list[dict] of player season rows (all 74 columns available).
@@ -69,7 +69,7 @@ def load_team_intel(season: int) -> list[dict]:
 def load_player_shooting(
     player_id: str,
     season: int,
-    season_type: str = "Regular",
+    season_type: str = "Regular Season",
 ) -> list[dict]:
     """Batch load player_shooting zone splits for one player + season.
 

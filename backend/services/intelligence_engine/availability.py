@@ -47,7 +47,7 @@ def minutes_share(player_minutes: float, team_minutes: float) -> float:
 def compute_availability(
     season: int,
     player_ids: list[str] | None = None,
-    season_type: str = "Regular",
+    season_type: str = "Regular Season",
 ) -> dict[str, dict]:
     """Compute availability signals for players in a season.
 

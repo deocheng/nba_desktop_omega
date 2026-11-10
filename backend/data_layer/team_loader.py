@@ -591,7 +591,7 @@ def get_team_legend_players(team_abbr: str, limit: int = 15) -> list[dict]:
             FROM fact_player_season_stats s
             JOIN dim_players p ON s.player_id = p.player_id
             WHERE s.team = %s
-              AND s.season_type = 'Regular'
+              AND s.season_type = 'Regular Season'
               AND s.g > 20
             GROUP BY p.player_id, p.player_name, p.position
             HAVING COUNT(DISTINCT s.season) >= 2
@@ -680,7 +680,7 @@ def get_team_season_roster(team_abbr: str, season: int) -> list[dict]:
         JOIN dim_players p ON s.player_id = p.player_id
         WHERE s.team = %s
           AND s.season = %s
-          AND s.season_type = 'Regular'
+          AND s.season_type = 'Regular Season'
           AND s.g > 0
         ORDER BY s.gs DESC, s.g DESC
     """

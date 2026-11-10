@@ -10,7 +10,7 @@ Design notes (validated against the live schema):
     - Duplicate (player, season) rows (regular vs playoffs, multi-team trades)
       are collapsed by a ``ROW_NUMBER() OVER (PARTITION BY player_id, season
       ORDER BY g DESC)`` dedup that keeps the regular-season row with the most
-      games — mirroring growth_loader. ``season_type = 'Regular'`` filters
+      games — mirroring growth_loader. ``season_type = 'Regular Season'`` filters
       playoffs out entirely.
     - All SQL is validated by ``db.validate_batch_sql`` on execution.
 """

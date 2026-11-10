@@ -23,7 +23,10 @@ PLAYERS_TABLE = "dim_players"
 # not create duplicate (player, season) points (mirrors growth_loader's
 # ROW_NUMBER() ... ORDER BY g DESC dedup, which always keeps the regular row
 # with the most games).
-SEASON_TYPE = "Regular"
+#
+# 🔴 物理值必须是 dim_games 权威写法 'Regular Season'，不是 'Regular'
+#    （2026-11-10 修正：旧值导致本表所有 `season_type = %s` 查询恒 0 行）。
+SEASON_TYPE = "Regular Season"
 
 # Metric whitelist: logical name -> SQL expression / direction / label.
 # ``expr`` is injected into the SELECT list; it is safe because the name is

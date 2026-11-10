@@ -36,16 +36,19 @@ from backend.services.intelligence_engine import (
 
 class TestSeasonType:
     def test_normalize_canonical(self):
-        assert normalize_season_type("Regular") == "Regular"
+        assert normalize_season_type("Regular Season") == "Regular Season"
         assert normalize_season_type("Playoffs") == "Playoffs"
+        assert normalize_season_type("Play-In") == "Play-In"
 
     @pytest.mark.parametrize("raw,expected", [
-        ("regular", "Regular"),
-        ("REG", "Regular"),
+        ("Regular", "Regular Season"),
+        ("regular", "Regular Season"),
+        ("REG", "Regular Season"),
+        ("rs", "Regular Season"),
         ("playoffs", "Playoffs"),
-        ("PLAY_IN", "PlayIn"),
-        ("play-in", "PlayIn"),
-        (None, "Regular"),
+        ("PLAY_IN", "Play-In"),
+        ("play-in", "Play-In"),
+        (None, "Regular Season"),
     ])
     def test_normalize_aliases(self, raw, expected):
         assert normalize_season_type(raw) == expected
@@ -53,6 +56,17 @@ class TestSeasonType:
     def test_normalize_invalid_raises(self):
         with pytest.raises(ValueError):
             normalize_season_type("finals")
+
+    def test_normalize_matches_db_canonical_values(self):
+        """归一化结果必须等于库中 dim_games 权威物理值（口径唯一）。
+
+        回归防护：曾用自造的 'Regular' 规范值 → 所有
+        `WHERE season_type = 'Regular'` 查询恒返回 0 行。
+        """
+        from common.season_type_norm import CANON_SEASON_TYPES
+
+        for value in ("Regular", "Playoffs", "Play-In"):
+            assert normalize_season_type(value) in CANON_SEASON_TYPES
 
 
 # ── §5 Pace Adjustment (pure) ──

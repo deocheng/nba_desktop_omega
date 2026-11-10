@@ -86,7 +86,7 @@ class BRPlayerLineupCrawlerBase(BRPlayerPageCrawler):
         """枚举待抓 ``(slug, year)`` 对。
 
         宇宙源: ``player_shooting`` 的 ``DISTINCT (player_id, season)`` WHERE
-        ``season_type='Regular'`` AND ``season >= 1997``。
+        ``season_type='Regular Season'`` AND ``season >= 1997``。
         排除:
           1. 已落库 ``player_lineups`` 的 ``(player_id, season)``
           2. 已隔离 ``player_lineups_404`` 的 ``(slug, year)``
@@ -100,7 +100,7 @@ class BRPlayerLineupCrawlerBase(BRPlayerPageCrawler):
             FROM player_shooting ps
             LEFT JOIN player_lineups_404 q
                    ON q.slug = ps.player_id AND q.year = ps.season
-            WHERE ps.season_type = 'Regular'
+            WHERE ps.season_type = 'Regular Season'
               AND ps.player_id IS NOT NULL
               AND ps.season >= %s
               AND q.slug IS NULL
@@ -132,7 +132,7 @@ class BRPlayerLineupCrawlerBase(BRPlayerPageCrawler):
         if slugs and not years:
             cur.execute(
                 "SELECT DISTINCT player_id, season FROM player_shooting "
-                "WHERE season_type='Regular' AND player_id IS NOT NULL "
+                "WHERE season_type='Regular Season' AND player_id IS NOT NULL "
                 "AND season >= %s AND player_id = ANY(%s) "
                 "ORDER BY player_id, season",
                 (self.MIN_SEASON, list(slugs)),
@@ -143,7 +143,7 @@ class BRPlayerLineupCrawlerBase(BRPlayerPageCrawler):
         if years and not slugs:
             cur.execute(
                 "SELECT DISTINCT player_id, season FROM player_shooting "
-                "WHERE season_type='Regular' AND player_id IS NOT NULL "
+                "WHERE season_type='Regular Season' AND player_id IS NOT NULL "
                 "AND season >= %s AND season = ANY(%s) "
                 "ORDER BY player_id, season",
                 (self.MIN_SEASON, list(years)),

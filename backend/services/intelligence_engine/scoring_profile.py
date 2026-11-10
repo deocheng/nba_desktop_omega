@@ -37,7 +37,7 @@ _EFF_COLS = [c.replace("percent_fga", "fg_percent") for c in _FREQ_COLS]
 def scoring_profile(
     player_id: str,
     season: int,
-    season_type: str = "Regular",
+    season_type: str = "Regular Season",
 ) -> dict:
     """Return {zone: {frequency, efficiency}} for a player's shooting.
 
