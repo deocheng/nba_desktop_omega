@@ -91,7 +91,7 @@ CI 的 test job 此前**刻意不提供 postgres 服务**（当时的实测结�
 **VERIFY**：
 - CI 模拟（干净 checkout + 一次性 postgres + `db/schema.sql` 还原，端口 5433）：
   **0 failed / 684 passed / 97 skipped**
-- 本地真实库回归：29 failed / 751 passed / 2 skipped（修复前 31 failed / 748 passed）
+- 本地真实库回归：29 failed / 750 passed / 2 skipped（修复前 31 failed / 748 passed）
 - `ruff check` 全仓 0 违规；CI workflow YAML 解析通过；service 端口与 `DB_PORT` 对齐核对通过
 - `tools/verify_ci_schema.sh`：还原零错误、表数与生产库一致（197=197）
 

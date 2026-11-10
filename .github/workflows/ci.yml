@@ -98,10 +98,11 @@ jobs:
         ports:
           - 5433:5433
         options: >-
-          --health-cmd "pg_isready -U postgres -d nba"
+          --health-cmd "pg_isready -h 127.0.0.1 -U postgres -d nba"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 12
+          --health-start-period 10s
     steps:
       - uses: actions/checkout@v4
 
@@ -125,19 +126,35 @@ jobs:
       - name: Restore schema (structure only, no data)
         # db/schema.sql = 生产库的完整 DDL（仅结构）。ON_ERROR_STOP=1 保证
         # 「schema 还原失败」直接让本 job 变红，而不是留下一堆看不懂的 ERROR。
+        #
+        # 🔴 重试 + 显式 127.0.0.1 的原因（2026-11-10 实测踩坑）：
+        #   postgres 官方镜像在 initdb 阶段会先起一个**只监听 unix socket** 的临时
+        #   实例；health check 若用默认 host（socket）判定就绪，GitHub 会提前放行，
+        #   而 psql 走的是 TCP → 命中「server closed the connection unexpectedly」。
+        #   → health check 与 psql 统一走 127.0.0.1（TCP），并加重试兜底。
         run: |
-          psql -h localhost -p 5433 -U postgres -d nba \
+          set -euo pipefail
+          for i in $(seq 1 15); do
+            if psql -h 127.0.0.1 -p 5433 -U postgres -d nba -c 'SELECT 1' >/dev/null 2>&1; then
+              break
+            fi
+            echo "postgres 尚未就绪（第 $i 次重试）…"
+            sleep 3
+          done
+          psql -h 127.0.0.1 -p 5433 -U postgres -d nba \
                -v ON_ERROR_STOP=1 -q -o /dev/null -f db/schema.sql
 
       - name: Verify schema restored
         run: |
-          test "$(psql -h localhost -p 5433 -U postgres -d nba -tAc \
+          test "$(psql -h 127.0.0.1 -p 5433 -U postgres -d nba -tAc \
             "SELECT count(*) FROM information_schema.tables WHERE table_schema='public';")" -ge 190 \
             || { echo "schema 还原不完整"; exit 1; }
 
       - name: Run tests
         env:
-          DB_HOST: localhost
+          # 用 127.0.0.1 而非 localhost：避免 ::1/IPv6 解析歧义
+          # （首次 push 就是在 "localhost (::1)" 上撞到容器未就绪）。
+          DB_HOST: 127.0.0.1
           DB_PORT: "5433"
           DB_NAME: nba
           DB_USER: postgres
