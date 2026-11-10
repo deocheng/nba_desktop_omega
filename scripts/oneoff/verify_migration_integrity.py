@@ -41,12 +41,16 @@ ENV_PATH = os.environ.get(
     "FIBA_ENV",
     str(ENV_FILE),
 )
+#: 仓库根（脚本已收敛到 scripts/oneoff/，自身目录不再是仓库根）
+#: 🔴 上溯**三层**：scripts/oneoff/x.py → oneoff → scripts → 仓库根
+REPO_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
+    REPO_DIR,
     "migration_verification_report.html")
 
 TARGET = dict(port=5433, dbname="nba")
 SOURCE = dict(port=5434, dbname="nba")
+
 
 
 def _load_cfg() -> dict:

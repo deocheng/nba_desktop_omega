@@ -22,13 +22,15 @@ import sys
 import psycopg2
 import psycopg2.extras
 
-
 # ── DB 口令：只从环境变量 / 项目根 .env 取，脚本内不落明文 ──────────
+#: 仓库根（脚本已收敛到 scripts/oneoff/，自身目录不再是仓库根）
+#: 🔴 上溯**三层**：scripts/oneoff/x.py → oneoff → scripts → 仓库根
+REPO_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 def _load_dotenv() -> None:
     """环境变量优先；缺失时逐级上溯找项目根 .env 补 DB_PASSWORD。"""
     if os.environ.get("DB_PASSWORD") or os.environ.get("PGPASSWORD"):
         return
-    d = os.path.dirname(os.path.abspath(__file__))
+    d = REPO_DIR
     for _ in range(4):
         cand = os.path.join(d, ".env")
         if os.path.isfile(cand):
@@ -62,6 +64,7 @@ TYPES = {
     "All-Star": "3",
     "All Star": "3",
 }
+
 
 
 def backfill(cur) -> list:

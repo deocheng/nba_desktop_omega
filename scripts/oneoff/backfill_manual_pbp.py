@@ -53,8 +53,12 @@ import time
 import psycopg2
 from psycopg2.extras import execute_batch
 
+#: 仓库根（脚本已收敛到 scripts/oneoff/，自身目录不再是仓库根）
+#: 🔴 上溯**三层**：scripts/oneoff/x.py → oneoff → scripts → 仓库根
+REPO_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 # --- path setup（与 br_fill_pbp.py 一致：把项目根加入 sys.path[0]） ---
-HERE = os.path.dirname(os.path.abspath(__file__))
+HERE = REPO_DIR
 sys.path.insert(0, HERE)
 
 try:
@@ -131,6 +135,7 @@ INSERT_SQL = """
         %(scorehome)s, %(scorevisitor)s, %(scoremargin)s, %(source)s
     )
 """
+
 
 
 def build_driver_retry():

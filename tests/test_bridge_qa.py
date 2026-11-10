@@ -46,6 +46,25 @@ from matcher import match_game  # noqa: E402
 # FileNotFoundError；sys.executable 就是跑 pytest 的那个解释器，依赖齐备。
 SCRIPT_PY = sys.executable
 
+#: 脚本搜索目录（相对仓库根，按序命中）
+#:
+#: 根目录收敛工程后，一次性脚本已从仓库根迁到 ``scripts/oneoff/``。
+#: 测试**不应**硬编码目录布局 —— 否则每挪一次脚本就要改一遍测试。
+#: 这里按「仓库根 → scripts/oneoff/」顺序找，找到即用。
+SCRIPT_SEARCH_DIRS = ("", "scripts/oneoff")
+
+
+def _resolve_script(script_rel: str) -> str:
+    """按名定位脚本真实路径（仓库根优先，其次 scripts/oneoff/）。"""
+    for sub in SCRIPT_SEARCH_DIRS:
+        cand = os.path.join(PROJECT_ROOT, sub, script_rel)
+        if os.path.exists(cand):
+            return cand
+    raise FileNotFoundError(
+        f"找不到脚本 {script_rel}；已搜索：" +
+        ", ".join(os.path.join(PROJECT_ROOT, s, script_rel) for s in SCRIPT_SEARCH_DIRS)
+    )
+
 
 def run_script(script_rel: str, args, *, offline: bool = True, timeout: int = 240,
                env_extra: "dict | None" = None):
@@ -64,7 +83,7 @@ def run_script(script_rel: str, args, *, offline: bool = True, timeout: int = 24
         env["https_proxy"] = "http://127.0.0.1:9"
     if env_extra:
         env.update({k: str(v) for k, v in env_extra.items()})
-    cmd = [SCRIPT_PY, os.path.join(PROJECT_ROOT, script_rel)] + list(args)
+    cmd = [SCRIPT_PY, _resolve_script(script_rel)] + list(args)
     return subprocess.run(
         cmd, cwd=PROJECT_ROOT, env=env,
         capture_output=True, text=True, timeout=timeout,

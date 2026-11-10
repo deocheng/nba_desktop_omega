@@ -19,7 +19,11 @@ import argparse
 import os
 import sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+#: 仓库根（脚本已收敛到 scripts/oneoff/，自身目录不再是仓库根）
+#: 🔴 上溯**三层**：scripts/oneoff/x.py → oneoff → scripts → 仓库根
+REPO_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+HERE = REPO_DIR
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
 
@@ -28,6 +32,7 @@ from common.bridge_constants import ARCHIVE_ROOT, get_pg_conn  # noqa: E402
 
 BR_ROOT = os.path.join(ARCHIVE_ROOT, "br")
 ESPN_ROOT = os.path.join(ARCHIVE_ROOT, "espn")
+
 
 
 def list_br_html():

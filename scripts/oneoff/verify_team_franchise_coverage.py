@@ -12,7 +12,11 @@ import sys
 
 import psycopg2
 
-PROJECT = os.path.dirname(os.path.abspath(__file__))
+#: 仓库根（脚本已收敛到 scripts/oneoff/，自身目录不再是仓库根）
+#: 🔴 上溯**三层**：scripts/oneoff/x.py → oneoff → scripts → 仓库根
+REPO_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+PROJECT = REPO_DIR
 sys.path.insert(0, PROJECT)
 from common.br_team_page import DB_CONFIG  # noqa: E402
 
@@ -35,6 +39,7 @@ LIST_TABLES = {
     "hof": "team_franchise_hof",
     "all_star": "team_franchise_all_star",
 }
+
 
 
 def main() -> int:

@@ -164,3 +164,35 @@ logs/crawler_watchdog.status
 # 此前 .gitignore 无任何 cookie 规则（仅靠"没 add"侥幸未入库），此处补显式规则。
 external_crawler/logs/
 external_crawler/**/.chrome_app_profile/
+
+# ── Chrome 用户 profile（变体名统一覆盖）─────────────────────────────────
+# 此前只精确列了 .uc_br_profile/ 与 .uc_pbp_profile/，但运行时会产出
+# .uc_fix_mia_profile/、.uc_pbp_profile_run2/、.uc_recon_profile_2026/ 等
+# **变体名** —— 精确名规则漏网，靠"没 add"侥幸未入库。改为通配。
+.uc_*profile*/
+
+# ── 根目录一次性产物（不入库）────────────────────────────────────────────
+# 前导 "/" 锚定根目录，避免误伤子目录里的同名 legit 文件。
+# bz_*.json        —— extract_bz_candidates.py 的候选抓取产物
+# nba_csv_*.zip    —— CSV 打包下载产物
+# *_preview.png    —— 一次性脚本的预览截图输出
+/bz_*.json
+/nba_csv_*.zip
+/*_preview.png
+
+# ── 一次性脚本的 HTML 输出产物（不入库）──────────────────────────────────
+# verify_user_version.py / verify_v3.py 的运行输出：内容随运行参数变化
+# （SAS 2026 vs BOS 2025），每次重跑都产生 diff —— 是产物，不是源码。
+# 二者曾在「项目收尾态快照」提交里被顺带带入，现移出版本控制（磁盘副本保留）。
+/verify_user_version.html
+/verify_v3.html
+/scripts/oneoff/*.html
+
+# ── scripts/oneoff/ 的 .py 例外 ───────────────────────────────────────────
+# 🔴 上方「一次性脚本不入库」规则组（_dbg_*.py / build_*.py / analyze_*.py /
+#    gen_*.py / debug_* / diag_*.py）会命中**已跟踪**脚本的新位置。
+#    gitignore 对已跟踪文件无效 → 旧位置的删除会入库、新位置的副本不入库
+#    → 提交后这些脚本**从仓库彻底消失**（实测 diag_*.py 6 个命中）。
+#    这里为 oneoff 下的 .py 开例外；根目录新产出的同名脚本仍按原规则忽略。
+#    放在文件末尾 —— gitignore「最后一条匹配者生效」，故不影响上面的 *.html。
+!scripts/oneoff/*.py

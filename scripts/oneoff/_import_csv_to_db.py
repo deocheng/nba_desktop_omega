@@ -21,10 +21,12 @@ import sys
 import psycopg2
 from psycopg2 import sql
 
-
+#: 仓库根（脚本已收敛到 scripts/oneoff/，自身目录不再是仓库根）
+#: 🔴 上溯**三层**：scripts/oneoff/x.py → oneoff → scripts → 仓库根
+REPO_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 def main():
     ap = argparse.ArgumentParser()
-    here = os.path.dirname(os.path.abspath(__file__))
+    here = REPO_DIR
     ap.add_argument("--csv-dir", default=os.path.join(here, "nba_csv"))
     ap.add_argument("--host", default="localhost")
     ap.add_argument("--port", default=5433, type=int)

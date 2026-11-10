@@ -333,6 +333,11 @@ PATH_TOOL_EXEMPT = {
     "tools/verify_quality_gate.py",
     "tools/migrate_hardcoded_paths.py",
     "tools/verify_path_migration_equivalence.py",
+    # shell 侧治理工具：规则表与检测前缀本身就是路径字面量
+    "tools/migrate_shell_paths.py",
+    "tools/verify_shell_path_migration.py",
+    # 根目录收敛器：规则表含路径模式
+    "tools/converge_root_scripts.py",
 }
 tracked_py = subprocess.run(
     ["git", "ls-files", "*.py"], cwd=ROOT, capture_output=True, text=True

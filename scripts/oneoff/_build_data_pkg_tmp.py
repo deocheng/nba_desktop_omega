@@ -3,7 +3,11 @@ import glob
 import os
 import zipfile
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+#: 仓库根（脚本已收敛到 scripts/oneoff/，自身目录不再是仓库根）
+#: 🔴 上溯**三层**：scripts/oneoff/x.py → oneoff → scripts → 仓库根
+REPO_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+ROOT = REPO_DIR
 CSV_DIR = os.path.join(ROOT, "nba_csv")
 OUT = os.path.join(ROOT, "nba_csv_2026-07-13.zip")
 
@@ -16,4 +20,5 @@ with zipfile.ZipFile(OUT, "w", zipfile.ZIP_DEFLATED) as z:
         z.write(f, rel)
         entries += 1
 size = os.path.getsize(OUT)
+
 print(f"DONE entries={entries} size={size/1e6:.1f} MB -> {OUT}", flush=True)

@@ -22,7 +22,11 @@ from typing import Dict, List, Tuple
 import psycopg2
 from dotenv import load_dotenv
 
-load_dotenv(Path(__file__).with_name(".env"))
+#: 仓库根（脚本已收敛到 scripts/oneoff/，自身目录不再是仓库根）
+#: 🔴 上溯**三层**：scripts/oneoff/x.py → oneoff → scripts → 仓库根
+REPO_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+load_dotenv(Path(REPO_DIR).joinpath(".env"))
 
 DB_CONFIG = {
     "host": os.getenv("DB_HOST", "localhost"),
@@ -48,6 +52,7 @@ BG_COLOR = "#080e1a"
 # Fixed angular layout parameters (in degrees)
 PLAYER_SECTOR_DEG = 45.0      # each player sector angle
 INTER_PLAYER_GAP_DEG = 5.0    # gap between player sectors
+
 
 
 @dataclass
@@ -380,7 +385,7 @@ def main():
     team = sys.argv[2] if len(sys.argv) > 2 else "BOS"
 
     html = render(season, team)
-    out_path = Path(__file__).with_suffix(".html")
+    out_path = Path(REPO_DIR) / Path(__file__).with_suffix(".html")
     out_path.write_text(html, encoding="utf-8")
     print(f"Wrote {out_path} for {team} {season}")
 

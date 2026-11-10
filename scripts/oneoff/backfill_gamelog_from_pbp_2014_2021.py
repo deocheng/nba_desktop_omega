@@ -37,6 +37,7 @@ load_dotenv()
 SEASONS = [2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021]
 
 
+
 def get_conn():
     return psycopg2.connect(
         host='127.0.0.1', port=5433, dbname='nba',
@@ -184,9 +185,12 @@ def backfill_player_season(conn, br_id, season, dry_run):
     return total
 
 
+#: 仓库根（脚本已收敛到 scripts/oneoff/，自身目录不再是仓库根）
+#: 🔴 上溯**三层**：scripts/oneoff/x.py → oneoff → scripts → 仓库根
+REPO_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 def main():
     dry = '--dry-run' in sys.argv
-    here = os.path.dirname(os.path.abspath(__file__))
+    here = REPO_DIR
     bypass = os.path.join(here, 'logs', 'gamelog_500_bypass.txt')
     targets = []
     if os.path.exists(bypass):
