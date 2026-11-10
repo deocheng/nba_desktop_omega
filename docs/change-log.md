@@ -2,6 +2,245 @@
 
 All changes to LOCKED phases must be recorded here (v8 §1 Change Request mechanism).
 
+## 2026-11-10 — 数据层收口：本地真库 29 个失败清零（7 类根因，含 2 处生产代码缺陷 + 1 次真实补爬）
+
+**Status**: 本地真库全绿（783 passed / 1 skipped / 0 failed）；CI 复核待推送后进行
+
+**背景**：
+上一轮 CI 工程化把「DB 依赖三层门控 + schema-only postgres」落地后，CI 全绿，但本地真实库
+仍留 **29 个 failed / 750 passed / 2 skipped**。这批红在 CI 里统一被 `needs_data` skip，
+因此**只有对着真库跑才能暴露** —— 它们是数据内容层的历史存量，不是 CI 工程问题。
+
+本轮对这 29 个失败做逐项归因并修复。归因结论：**7 类根因，没有一类是「测试写得不好」这种
+无信息的结论** —— 每一类都指向具体的代码缺陷、数据缺口或环境契约变更。
+
+**结果对照**：
+
+| 口径 | 修复前 | 修复后 |
+|------|--------|--------|
+| 本地真库（tests/） | 29 failed / 750 passed / 2 skipped | **0 failed / 783 passed / 1 skipped** |
+| 用例总数 | 781 | 784（新增 3 个回归防护用例） |
+| ruff 全仓 | 0 | 0 |
+
+---
+
+### 根因 1（16 项）：service 层 season_type 口径与库物理值分叉 —— 本轮最大单一根因
+
+**症状**：智能层（phase82 9 项 + phase82b 5 项）与 career 层（2 项）全部「查不到数据」。
+
+**取证**（逐行 SQL + 引擎日志）：
+```
+SELECT DISTINCT season_type FROM fact_player_season_stats;
+→ Playoffs | Regular Season          -- 库里的物理值是 'Regular Season'
+```
+`player_advanced` / `player_shooting` / `player_shot_chart` / `dim_games` 四个表**同样**是
+`'Regular Season'`（`dim_games` 全集为 Regular Season / Playoffs / Pre Season / All-Star /
+Play-In / NBA Cup）。而 `backend/services/intelligence_engine/season_type.py` 自造了一套规范值
+`'Regular' / 'Playoffs' / 'PlayIn'` → 所有 `WHERE season_type = 'Regular'` 的查询**恒定返回 0 行**，
+且被误读成「该球员没有数据」。
+
+**关键发现**：仓库**早已存在唯一权威** `common/season_type_norm.py`（docstring 明写
+「`dim_games.season_type` 的权威取值只有 6 个」），爬虫 12 处写侧全部采用它 ——
+但**服务层读侧从未引用**。分叉不是设计意图，是遗漏。
+
+**修法**（以既有权威为唯一来源，不另立标准）：
+1. `common/season_type_norm.py` —— 补齐常量（`SEASON_TYPE_REGULAR_SEASON` 等）、
+   `CANON_SEASON_TYPES` / `PLAYER_SEASON_TYPES` 集合，并新增读侧严格入口
+   `canon_season_type_strict()`（未知取值抛 ValueError，保留 v8 §2「fail loud」语义）。
+   写侧 `canon_season_type()` 的宽松语义**不变**（未知值原样返回，不破坏既有数据）。
+2. `backend/services/intelligence_engine/season_type.py` —— 规范值改为库物理值
+   （`Regular Season` / `Playoffs` / `Play-In`），委托 `common` 实现。
+3. `backend/services/career_engine/career_constants.py` —— `SEASON_TYPE = "Regular Season"`。
+4. `backend/data_layer/player_chart_loader.py`、`backend/data_layer/team_loader.py`、
+   `common/br_player_lineup.py`、`common/br_player_onoff.py` —— SQL 里的硬编码
+   `'Regular'` 字面量 → `'Regular Season'`（共 7 处）。
+5. `backend/api/routers/intelligence.py`、`backend/api/routers/players.py` ——
+   `Query` 默认值与 description 对齐；**对外契约仍向后兼容**（外部传 `"Regular"` / `"REG"` /
+   `"rs"` / `"play_in"` 均由别名表归一）。
+
+**兼容性与边界**：
+- 归一化是**幂等**的，已归一值直通；`normalize_season_type("Regular Season")` 仍返回自身。
+- `normalize_season_type(None)` 由 `"Regular"` 改为 `"Regular Season"`（默认值语义随权威口径走）。
+- 未知取值仍抛 `ValueError`（不放宽），避免把「查错口径」静默成「无数据」。
+
+---
+
+### 根因 2（4 项）：测试的「先切片后过滤」顺序缺陷
+
+`tests/test_phase05_data_layer.py` / `tests/test_phase1_data_layer.py` 里：
+```python
+sample_bbr_ids = [r["player_id"] for r in stats[:3] if r.get("player_id")]
+```
+`load_player_season_stats(2025)` 无 `ORDER BY`，返回顺序不确定；而
+`fact_player_season_stats` 的 **Playoffs 行 `player_id` 全为 NULL**（见「数据变更」§），
+实测前几行恰是 PO 行 → 过滤后为空 → 断言失败。
+
+作者**本意**就是「挑出有 player_id 的行」（`if r.get("player_id")` 过滤写在切片之后是顺序错）。
+修法：改为「先全局过滤、再取前 N 个」（`[... for r in stats if r.get("player_id")][:3]`），
+并加注释说明前 3 行可能落在 PO 空值行上。
+
+---
+
+### 根因 3（3 项）：测试硬编码的样本球员已失效
+
+`tests/test_entity_loader.py` / `tests/test_entity_api.py` 硬编码
+`_KNOWN_PLAYER = "greenac01"  # verified to have 2026 gamelog`。实测：该 slug 在
+`fact_player_season_stats` 中 **2024 年后完全无行**，`player_gamelog` 的 season=2026 也为 0 行
+（该季整季有 29944 行 / 585 人，是球员级缺口而非整季缺口）→ 聚合返回空。
+
+修法：新增 `tests/conftest.py` 的 `player_with_gamelog` fixture，**从库里动态选取**目标赛季
+确有 gamelog 的球员（JOIN 键与生产代码一致：`gameid = nba_api_id::text`，保证拿到完整聚合）。
+断言的是聚合/接口**结构**，不该被任一球员的当前数据状态绑死。
+
+---
+
+### 根因 4（2 项）：analytics_builder 测试期望与实际响应契约不符
+
+实测两个端点的真实响应：
+
+| 端点 | 实际 |
+|------|------|
+| `POST /api/analytics-builder/run` | 400「节点 v：visualize 的 y_fields 必须是非空数组」 |
+| `POST /api/workspaces/{id}/flows` | 201 + `{"code":0,"data":{id,…},"message":"ok"}`（envelope） |
+| `GET/PUT/DELETE …/flows` | 同为 envelope；`DELETE` 返回 **200** + `data.deleted=true` |
+
+对照仓库内旧副本 `backend/tests/test_analytics_builder_api.py`（docstring 明写
+「flows CRUD + **envelope shape**」）→ **新副本的期望写错了**，不是产品 bug。
+
+修法：
+- `test_run_real_source` 改为按实际表结构自适应填 `x_field` / `y_fields`（从
+  `introspect_tables()` 取该表第一个数值列），使 flow 满足引擎契约。
+- flows CRUD 的四处断言改为 envelope 形状（`data.id` / `data[name]` / `data` 列表 /
+  `data.deleted`），`DELETE` 期望状态码 204 → 200。
+
+---
+
+### 根因 5（1 项）：ESPN ↔ 我们的队名缩写映射漏项 —— 真实代码缺陷
+
+`espn_broad_crawler.py --limit 1` 输出 `! 无法解析 ESPN event 202210060POR 2022-10-06`，
+但脚本 returncode 仍为 0 → 测试在「输出里找不到 `espn=`」处失败。
+
+**取证**：ESPN scoreboard API **网络可达**（直连/代理均 200），不是网络问题。逐日扫描
+2022-10-01 ~ 2023-01-15 实测：
+```
+MRC 出现的日期数: 2 | 场次: 2      (2022-10-06, 2022-10-09)
+MEM 出现的日期数: 47 | 场次: 47
+```
+ESPN 在这 2 场把灰熊写作 **`MRC`**，其余场次是 `MEM`；而 `espn_backfill_shot_coords.py`
+的 `_OUR_TO_ESPN_MAP` 只有 9 条，**无 MEM↔MRC** → `espn_to_our('MRC')` 原样返回 `'MRC'`，
+与我们的 `'MEM'` 比对失败 → `resolve_event_id` 静默返回 None。
+
+修法：**只补 ESPN → 我们 单向**（`_ESPN_TO_OUR_MAP["MRC"] = "MEM"`）。
+反向（我们→ESPN）绝不能改成 `MRC` —— 否则 `matcher.py` 与投篮坐标回补会去找 ESPN
+现已不用的缩写，把原本正常的 47 场弄坏（`our_to_espn('MEM')` 必须仍是 `'MEM'`）。
+实测修复后 `resolve_event_id(2022-10-06, POR, MEM)` 从 `None` → `401474867`。
+
+---
+
+### 根因 6（2 项）：a1-3 验收单测依赖已被备份治理删除的快照表
+
+`tests/test_a1_3_acceptance.py` 的两个用例查 `dim_draft_history_bak_20260712`，
+该表已按仓库备份治理（2026-08-18 收官：30 张备份表全删，唯一权威备份为
+`backups/nba_full_*.dump`）删除。
+
+**取证（用更强的对照源替代）**：把权威 dump
+`/Volumes/12T/NBA/backups/nba_full_20261023_013448.dump`（2026-10-23 全库备份）中的
+`dim_draft_history` 恢复到**临时库** `nba_draft_cmp`，与生产库按
+`(season, pick_overall, player_id, player_name, player_id_orig)` 排序导出后逐行 diff：
+
+```
+live 8446 行 / dump 8446 行 → diff 退出码 0，差异行数 0
+```
+
+即 **live == 权威备份（逐行 0 差异）**，且行数 8446 == A1-3 验收时的快照行数。
+该时间窗覆盖 A1-3 验收（2026-07-12）之后约 3 个月，**比原快照对照更长**。
+另外核实 263 个 mismatch id 在 live 表中**全部存在**（distinct player_id = 263，缺失 0）。
+
+修法：用例改为断言**当前仍可独立验证的不变式**（行数 == 8446 + 无重复主键 + 263 个 mismatch
+id 逐个覆盖），并把上述逐行核验方式与结论写在用例注释里。临时库已删除。
+
+---
+
+### 根因 7（1 项 + 1 次真实补爬）：weight 链路三处缺陷
+
+`tests/test_a3_weight_kg.py` 断言 `dim_players` 覆盖 ≥ total−3，实测 5473/5482（缺 9，容差 3）。
+
+**取证**：9 名缺 weight 球员**全部在 BR 上有页面**（各有 gamelog / lineup / fact 数据），
+故缺 weight 是**可补的真实缺口**，而非「BR 无页面」。追链发现三处缺陷：
+
+1. **硬编码口令** —— `scrape_player_weight.py` 的 `DB_CONFIG` 写死 `password="postgres"`，
+   与生产库实际口令不符 → 脚本连库直接 `FATAL: password authentication failed`，
+   即**整个补爬脚本在当前环境下完全不可用**（且违反「密钥一律走 env」）。
+   修为 `_db_config()`：端点与口令全部走 env（`DB_PASSWORD` / `PGPASSWORD`），并 best-effort 加载 `.env`。
+2. **候选宇宙窄于目标表** —— 候选来自 `player_per_game`（= 有赛季统计的球员），
+   而目标是 `dim_players`（全部球员）→ 6 名从未出现在 `player_per_game` 的球员
+   **永远不会被补爬**（"Remaining players to scrape: 3" 正是当年的老 3 人）。
+   候选宇宙与 `get_remaining_count()` 一并改为 `dim_players`。
+3. **写入全空行** —— 页面无体重时仍 `save_player()`，写入 weight/height/born 全 NULL 的空行，
+   破坏 `player_weight_history` 的不变量 `with_kg == total`，且每次重跑都会重新插入。
+   改为**只记日志不落库**。
+
+**补爬执行与结果**（BR 后端 curl_cffi，未撞 CF，9 人共约 100 秒）：
+```
+awakato01 Tobe Awaka      250 lbs     diopkh01 Khalifa Diop    231 lbs
+ikegr01   Graham Ike      251 lbs     selleja01 Jaylin Sellers 205 lbs
+udehjer01 Ernest Udeh Jr. 266 lbs     vildolu01 L. Vildoza     190 lbs
+```
+另 3 人 **BR 页面确实无体重字段**（实测页面只有 per-game 统计表，无 bio info 表）：
+`leedi01` Dick Lee / `mitchmu01` Murray Mitchell / `wertira01` Ray Wertis
+→ 缺 weight 是**合理终态**，与 `weight_writer.backfill_dim_players_null()` 的
+docstring（"the 3 known NULL rows (mitchmu01/wertira01/leedi01)"）完全一致。
+
+**结果**：`dim_players` 5473 → **5479** 有 weight（缺 3，容差恰好成立）；
+`player_weight_history` 5479 行**全覆盖**（with_kg == with_lbs == total）。
+测试断言**未作任何放宽**即通过 —— 修的是数据与代码，不是断言。
+
+---
+
+### 本轮实际数据变更清单（均在真实库 `nba` 上）
+
+| 表 | 变更 | 行数 | 可逆性 |
+|----|------|------|--------|
+| `player_weight_history` | 新增 6 行（补爬到的体重） | +6 | 重爬即可逆 |
+| `player_weight_history` | 删除 3 行全空行（weight/height/born 全 NULL） | −3 | 已存档 `/tmp/pwh_null_rows_20261110.csv`；本轮脚本已修，不会再产生 |
+| `dim_players` | 6 行 weight_lbs/weight_kg 由 NULL 补为实值 | 6 行 UPDATE | 可用 `backfill_dim_players_null` 反向清空（该函数只填 NULL，语义幂等） |
+| `dim_teams` | （上一轮）PHX → is_active=false | 1 行 | 见上一轮登记的可逆 SQL |
+
+**未变更**：`fact_player_season_stats` 的 11734 行 Playoffs `player_id` 仍为 NULL（见遗留 §）。
+
+---
+
+### 本轮顺带修掉的两处工程缺陷
+
+1. **`.gitignore` 完全没有 cookie 规则** —— `external_crawler/.br_cf_cookies.pkl`
+   （BR 的 cf_clearance 会话 cookie）与 `external_crawler/**/.chrome_app_profile/`
+   （含 Chrome Cookies DB）此前仅靠「没 add」侥幸未入库。核查确认
+   **git 历史中无任何 cookie 文件被跟踪**（历史里只有生成 cookie 的脚本本身），
+   本次补显式忽略规则，消除隐患。
+2. **`external_crawler/logs/` 此前不在忽略列表**（脚本运行时才创建）→ 一并纳入忽略。
+
+---
+
+### 遗留（诚实边界）
+
+- **`fact_player_season_stats` 的 Playoffs 行 `player_id` 全为 NULL**（11734 行，
+  占全表 26%）。这是**装载期缺口**（源头即如此，非查询口径问题）。
+  可回填：按同 `(season, player)` 的 RS 兄弟行可精确回填 10156 行，其余 1578 行
+  按 `player_name → dim_players` 唯一匹配可回填一部分（`dim_players.player_name`
+  有 46 组重名需排除）。本轮**未做** —— 属独立的数据治理项，且需评估对
+  `ROW_NUMBER() PARTITION BY player_id, season` 去重语义的影响。
+- **CI 仍无数据内容层覆盖** —— 本轮 784 个用例在 CI（schema-only）里 `needs_data`
+  部分统一 skip；数据层覆盖仍依赖本地真库，后续需 nightly job。
+  （灌种子数据不可行：`dim_games` 34MB / `player_gamelog` 263MB。）
+- **权威备份位置修正** —— 记忆里登记的 `backups/nba_full_20260818.dump` 实际不存在；
+  现存权威备份为 `/Volumes/12T/NBA/backups/nba_full_20261023_013448.dump`（928MB，2026-10-23），
+  更早还有 `nba_full_20260911.dump`（917MB）。**注意这些在仓库之外**（`/Volumes/12T/NBA/backups/`），
+  仓库内 `backups/` 只有 CSV 与日志。
+- **`dim_teams.current_code` 语义不一致**（CHH/NOH/SEA/VAN 指向自己、PHX 指向 PHO）——
+  涉及 6+ 行，需先定标准，本轮仍有意未动。
+
+---
+
 ## 2026-11-10 — CI 工程化：DB 依赖三层门控 + schema-only postgres（工程改进，非 v8 phase 交付）
 
 ### 2026-11-10 — DB 依赖分层 + CI 接入 schema-only postgres + 两处真 bug 修复 + dim_teams 缺陷修复

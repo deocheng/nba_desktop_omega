@@ -156,3 +156,11 @@ logs/crawler_watchdog.status
 # 必须入库，否则 CI 上夹具缺失 → 用例在 collection 期就 FileNotFoundError。
 # 这是对上方 *.csv / *.parquet 等「数据文件不入库」规则的**唯一例外**（限定目录）。
 !tests/fixtures/**
+
+# ── 爬虫运行时会话态（2026-11-10 新增，敏感面补防患）────────────────────
+# external_crawler/logs/br_cookies/ 内含 BR 的 cf_clearance 会话 cookie，
+# external_crawler/**/.chrome_app_profile/ 内含 Chrome profile（含 Cookies DB）
+# —— 二者都是**会话凭据**，一律不入库。
+# 此前 .gitignore 无任何 cookie 规则（仅靠"没 add"侥幸未入库），此处补显式规则。
+external_crawler/logs/
+external_crawler/**/.chrome_app_profile/
