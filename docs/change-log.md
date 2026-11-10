@@ -95,6 +95,25 @@ CI 的 test job 此前**刻意不提供 postgres 服务**（当时的实测结�
 - `ruff check` 全仓 0 违规；CI workflow YAML 解析通过；service 端口与 `DB_PORT` 对齐核对通过
 - `tools/verify_ci_schema.sh`：还原零错误、表数与生产库一致（197=197）
 
+**CI 复核（run 42818612573 = success）**：
+lint / test / secret-scan / frontend-test 全绿（quality-gate、docker-build 按 `if: main/master` 跳过）。
+test job 实际计数 **684 passed / 97 skipped / 0 failed** —— 与本地「干净 checkout + 一次性 postgres +
+schema 还原」模拟**完全一致**，该模拟器再次被证实为可信预测器。
+CI 全程实测耗时：schema 还原 + 全量 pytest 约 3 分钟。
+
+**🔴 踩坑记录（CI postgres service，两次连续失败换来的）**：
+| run | 现象 | 真因 |
+|-----|------|------|
+| 42817640761 | Restore schema 47s 红：`server closed the connection unexpectedly` | 端口映射写成 `5433:5433`，官方镜像**容器内固定监听 5432** → 主机 5433 转到容器里没人监听的端口 → docker-proxy 接连接即关闭 |
+| 42818017961 | 同处 45s / 15 次重试全败 | 同上；且 **health check 显示 healthy 极具迷惑性** —— `pg_isready` 不带 `-p` 时默认查 **5432**，正好探到容器里真正的 postgres，于是放行了一个根本连不通的映射 |
+
+**铁律**：
+1. service 端口映射必须写 **`主机端口:容器真实端口`**（官方 postgres 镜像容器内是 5432）；
+2. **health check 必须显式 `-p` 与映射对齐**，否则它测的根本不是同一个目标；
+3. 容器化依赖失败时**先取 run 日志里的 `docker create` 实际命令行**（`gh run view <id> --log`
+   能看到 `Initialize containers` 段），比猜快一个数量级；
+4. 还原步骤加**失败诊断**（容器状态 + 容器日志 + 主机监听端口），下次失败直接看证据。
+
 **🔴 遗留与边界（诚实记录）**：
 - **CI 绿只代表「不依赖生产数据」的部分**。96 个 skip 里是确证需要真实数据的用例；
   数据内容层回归目前仍靠本地真实库覆盖，**后续应加 nightly job**（对生产 dump 的子集跑）。
