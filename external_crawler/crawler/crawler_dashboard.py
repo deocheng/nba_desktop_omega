@@ -6,6 +6,7 @@ NBA 爬虫控制面板（本地 Web UI，纯标准库，无外部依赖）
 和「YouTube 下载器」同形态：在浏览器打开 http://127.0.0.1:8787 即可看到
 爬虫状态、当前季、实时日志，并可用按钮 启动 / 停止 爬虫。
 
+
 设计：
   - 后端用 http.server 起一个本地服务（不需要 Flask）。
   - 爬虫本身是一个【独立常驻进程】：后端通过 os.setsid 把它放进自己的
@@ -14,6 +15,21 @@ NBA 爬虫控制面板（本地 Web UI，纯标准库，无外部依赖）
   - 停止 = 向爬虫进程组发 SIGTERM（supervisor + driver 一起停，Chrome 保留复用）。
   - DB 行数用 psql 子进程读（本地库，无需在面板里装驱动）。
 """
+import os as _os
+import sys as _sys
+
+# 仓库根由**文件位置**反推（external_crawler/crawler/ → 上溯两级），
+# 不写死绝对路径 —— 换机器/换挂载点也能跑。
+_REPO_ROOT = _os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+if _REPO_ROOT not in _sys.path:
+    _sys.path.insert(0, _REPO_ROOT)
+
+# 统一令牌块（--viz-*）由主仓库 viz 内核**运行时派生**：
+# 本文件不抄写色值，改内核一处、本面板同步跟随。
+from viz.theme import compat_vars
+
+VIZ_VARS = compat_vars("dark")
+
 import os
 import sys
 import json
@@ -289,11 +305,13 @@ INDEX_HTML = """<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NBA 爬虫控制面板</title>
-<style>
+<style>__VIZ_VARS__
   :root{
-    --bg:#0f1420; --panel:#171e2e; --panel2:#1e2740; --line:#2a3650;
-    --txt:#e6ecf5; --muted:#8da0c0; --accent:#4f8cff; --green:#39d98a;
-    --red:#ff6b6b; --amber:#ffb454;
+    /* 统一令牌块由主仓库 viz 内核运行时派生并前置注入（--viz-*），
+       这里只做语义别名，避免本面板自带一套色值。 */
+    --bg:var(--viz-bg); --panel:var(--viz-panel); --panel2:var(--viz-surface); --line:var(--viz-border);
+    --txt:var(--viz-fg); --muted:var(--viz-muted); --accent:var(--viz-accent); --green:var(--viz-positive);
+    --red:var(--viz-negative); --amber:var(--viz-warn);
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--txt);
@@ -312,11 +330,11 @@ INDEX_HTML = """<!DOCTYPE html>
   .controls{display:flex;gap:12px;margin-bottom:18px}
   button{flex:1;padding:13px 0;font-size:15px;font-weight:600;border:none;border-radius:12px;
     cursor:pointer;transition:.15s;color:#fff}
-  .start{background:linear-gradient(135deg,#3a7bff,#5a9bff)}
+  .start{background:linear-gradient(135deg,var(--viz-accent),var(--viz-accent))}
   .start:hover{filter:brightness(1.1)}
-  .stop{background:linear-gradient(135deg,#c0392b,#e74c3c)}
+  .stop{background:linear-gradient(135deg,var(--viz-negative),var(--viz-negative))}
   .stop:hover{filter:brightness(1.1)}
-  .target{background:linear-gradient(135deg,#8a5cf6,#a87bff)}
+  .target{background:linear-gradient(135deg,var(--viz-cat-6),var(--viz-cat-6))}
   .target:hover{filter:brightness(1.1)}
   button:disabled{opacity:.4;cursor:not-allowed}
   .season-row{display:flex;gap:12px;margin-bottom:18px;align-items:center}
@@ -329,10 +347,10 @@ INDEX_HTML = """<!DOCTYPE html>
     padding:12px 16px;border-bottom:1px solid var(--line);background:var(--panel2)}
   .panel .ph span{font-size:13px;color:var(--muted)}
   pre{margin:0;padding:14px 16px;max-height:460px;overflow:auto;
-    font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.55;color:#cfe0ff}
+    font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.55;color:var(--viz-fg)}
   #msg{margin:10px 0;font-size:13px;color:var(--amber);min-height:18px}
   .tip{margin-top:18px;font-size:12px;color:var(--muted);line-height:1.7}
-  .tip code{background:var(--panel2);padding:2px 6px;border-radius:6px;color:#cfe0ff}
+  .tip code{background:var(--panel2);padding:2px 6px;border-radius:6px;color:var(--viz-fg)}
 </style>
 </head>
 <body>
@@ -434,6 +452,9 @@ timer = setInterval(refresh, 2500);
 </body>
 </html>
 """
+
+# 统一令牌块在运行时注入（避免把色值抄进本文件）
+INDEX_HTML = INDEX_HTML.replace("__VIZ_VARS__", VIZ_VARS)
 
 
 if __name__ == "__main__":

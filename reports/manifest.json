@@ -1,0 +1,506 @@
+[
+  {
+    "path": "analysis_duo_density.html",
+    "generator": "build_duo_density.py",
+    "status": "authoritative",
+    "bytes": 35789,
+    "note": "内联 plotly bundle 剥离后为权威版本；剥离前原始备份在 reports/_pre_strip_backup/（由 plotly 迁移 worker 处理）"
+  },
+  {
+    "path": "analysis_duos_trios.html",
+    "generator": "build_duos_trios.py",
+    "status": "authoritative",
+    "bytes": 32895,
+    "note": "内联 plotly bundle 剥离后为权威版本；剥离前原始备份在 reports/_pre_strip_backup/（由 plotly 迁移 worker 处理）"
+  },
+  {
+    "path": "analysis_longterm_scatter.html",
+    "generator": "build_longterm_scatter.py",
+    "status": "authoritative",
+    "bytes": 55270,
+    "note": "内联 plotly bundle 剥离后为权威版本；剥离前原始备份在 reports/_pre_strip_backup/（由 plotly 迁移 worker 处理）"
+  },
+  {
+    "path": "analysis_player_coaches.html",
+    "generator": "build_player_coaches.py",
+    "status": "authoritative",
+    "bytes": 56345,
+    "note": "内联 plotly bundle 剥离后为权威版本；剥离前原始备份在 reports/_pre_strip_backup/（由 plotly 迁移 worker 处理）"
+  },
+  {
+    "path": "analysis_salary_share.html",
+    "generator": "build_salary_share.py",
+    "status": "authoritative",
+    "bytes": 43266,
+    "note": "内联 plotly bundle 剥离后为权威版本；剥离前原始备份在 reports/_pre_strip_backup/（由 plotly 迁移 worker 处理）"
+  },
+  {
+    "path": "analysis_trio_density.html",
+    "generator": "build_trio_density.py",
+    "status": "authoritative",
+    "bytes": 37085,
+    "note": "内联 plotly bundle 剥离后为权威版本；剥离前原始备份在 reports/_pre_strip_backup/（由 plotly 迁移 worker 处理）"
+  },
+  {
+    "path": "analysis_trio_scatter.html",
+    "generator": "build_trio_scatter.py",
+    "status": "authoritative",
+    "bytes": 315584,
+    "note": "内联 plotly bundle 剥离后为权威版本；剥离前原始备份在 reports/_pre_strip_backup/（由 plotly 迁移 worker 处理）"
+  },
+  {
+    "path": "analysis_allstar_scatter.html",
+    "generator": "build_allstar_scatter.py",
+    "status": "authoritative",
+    "bytes": 26891,
+    "note": "不含内联 plotly bundle（体积远小于上述 7 份），为当前权威版本"
+  },
+  {
+    "path": "analysis_nicknames.html",
+    "generator": "build_nicknames.py",
+    "status": "authoritative",
+    "bytes": 946215,
+    "note": "不含内联 plotly bundle（体积远小于上述 7 份），为当前权威版本"
+  },
+  {
+    "path": "star_rings_2026/ATL_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 68839,
+    "note": "ATL 队星环图权威版本；由 team_shot_radial.py（star_*.py 为其等价包装）按 CLI 输出参数批量生成"
+  },
+  {
+    "path": "star_rings_2026/BOS_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 78841,
+    "note": "BOS 队星环图权威版本；由 team_shot_radial.py（star_*.py 为其等价包装）按 CLI 输出参数批量生成"
+  },
+  {
+    "path": "star_rings_2026/BRK_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 66712,
+    "note": "BRK 队星环图权威版本；由 team_shot_radial.py（star_*.py 为其等价包装）按 CLI 输出参数批量生成"
+  },
+  {
+    "path": "star_rings_2026/CHI_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 81284,
+    "note": "CHI 队星环图权威版本；由 team_shot_radial.py（star_*.py 为其等价包装）按 CLI 输出参数批量生成"
+  },
+  {
+    "path": "star_rings_2026/CHO_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 91473,
+    "note": "CHO 队星环图权威版本；由 team_shot_radial.py（star_*.py 为其等价包装）按 CLI 输出参数批量生成"
+  },
+  {
+    "path": "star_rings_2026/CLE_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 62559,
+    "note": "CLE 队星环图权威版本；由 team_shot_radial.py（star_*.py 为其等价包装）按 CLI 输出参数批量生成"
+  },
+  {
+    "path": "star_rings_2026/DAL_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 131459,
+    "note": "DAL 队星环图权威版本；由 team_shot_radial.py（star_*.py 为其等价包装）按 CLI 输出参数批量生成"
+  },
+  {
+    "path": "star_rings_2026/DEN_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 92551,
+    "note": "DEN 队星环图权威版本；由 team_shot_radial.py（star_*.py 为其等价包装）按 CLI 输出参数批量生成"
+  },
+  {
+    "path": "star_rings_2026/DET_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 93104,
+    "note": "DET 队星环图权威版本；由 team_shot_radial.py（star_*.py 为其等价包装）按 CLI 输出参数批量生成"
+  },
+  {
+    "path": "star_rings_2026/GSW_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 94136,
+    "note": "GSW 队星环图权威版本；由 team_shot_radial.py（star_*.py 为其等价包装）按 CLI 输出参数批量生成"
+  },
+  {
+    "path": "star_rings_2026/HOU_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 61251,
+    "note": "HOU 队星环图权威版本；由 team_shot_radial.py（star_*.py 为其等价包装）按 CLI 输出参数批量生成"
+  },
+  {
+    "path": "star_rings_2026/IND_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 63946,
+    "note": "IND 队星环图权威版本；由 team_shot_radial.py（star_*.py 为其等价包装）按 CLI 输出参数批量生成"
+  },
+  {
+    "path": "star_rings_2026/LAC_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 72263,
+    "note": "LAC 队星环图权威版本；由 team_shot_radial.py（star_*.py 为其等价包装）按 CLI 输出参数批量生成"
+  },
+  {
+    "path": "star_rings_2026/LAL_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 86197,
+    "note": "LAL 队星环图权威版本；由 team_shot_radial.py（star_*.py 为其等价包装）按 CLI 输出参数批量生成"
+  },
+  {
+    "path": "star_rings_2026/MEM_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 71470,
+    "note": "MEM 队星环图权威版本；由 team_shot_radial.py（star_*.py 为其等价包装）按 CLI 输出参数批量生成"
+  },
+  {
+    "path": "star_rings_2026/MIA_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 90598,
+    "note": "MIA 队星环图权威版本；由 team_shot_radial.py（star_*.py 为其等价包装）按 CLI 输出参数批量生成"
+  },
+  {
+    "path": "star_rings_2026/MIL_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 94431,
+    "note": "MIL 队星环图权威版本；由 team_shot_radial.py（star_*.py 为其等价包装）按 CLI 输出参数批量生成"
+  },
+  {
+    "path": "star_rings_2026/MIN_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 59707,
+    "note": "MIN 队星环图权威版本；由 team_shot_radial.py（star_*.py 为其等价包装）按 CLI 输出参数批量生成"
+  },
+  {
+    "path": "star_rings_2026/NOP_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 90511,
+    "note": "NOP 队星环图权威版本；由 team_shot_radial.py（star_*.py 为其等价包装）按 CLI 输出参数批量生成"
+  },
+  {
+    "path": "star_rings_2026/NYK_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 100099,
+    "note": "NYK 队星环图权威版本；由 team_shot_radial.py（star_*.py 为其等价包装）按 CLI 输出参数批量生成"
+  },
+  {
+    "path": "star_rings_2026/OKC_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 98261,
+    "note": "OKC 队星环图权威版本；由 team_shot_radial.py（star_*.py 为其等价包装）按 CLI 输出参数批量生成"
+  },
+  {
+    "path": "star_rings_2026/ORL_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 115853,
+    "note": "ORL 队星环图权威版本；由 team_shot_radial.py（star_*.py 为其等价包装）按 CLI 输出参数批量生成"
+  },
+  {
+    "path": "star_rings_2026/PHI_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 103104,
+    "note": "PHI 队星环图权威版本；由 team_shot_radial.py（star_*.py 为其等价包装）按 CLI 输出参数批量生成"
+  },
+  {
+    "path": "star_rings_2026/PHO_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 14682,
+    "note": "PHO 队星环图权威版本；由 team_shot_radial.py（star_*.py 为其等价包装）按 CLI 输出参数批量生成"
+  },
+  {
+    "path": "star_rings_2026/POR_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 72613,
+    "note": "POR 队星环图权威版本；由 team_shot_radial.py（star_*.py 为其等价包装）按 CLI 输出参数批量生成"
+  },
+  {
+    "path": "star_rings_2026/SAC_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 57712,
+    "note": "SAC 队星环图权威版本；由 team_shot_radial.py（star_*.py 为其等价包装）按 CLI 输出参数批量生成"
+  },
+  {
+    "path": "star_rings_2026/SAS_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 67026,
+    "note": "SAS 队星环图权威版本；由 team_shot_radial.py（star_*.py 为其等价包装）按 CLI 输出参数批量生成"
+  },
+  {
+    "path": "star_rings_2026/TOR_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 65875,
+    "note": "TOR 队星环图权威版本；由 team_shot_radial.py（star_*.py 为其等价包装）按 CLI 输出参数批量生成"
+  },
+  {
+    "path": "star_rings_2026/UTA_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 40080,
+    "note": "UTA 队星环图权威版本；由 team_shot_radial.py（star_*.py 为其等价包装）按 CLI 输出参数批量生成"
+  },
+  {
+    "path": "star_rings_2026/WAS_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 96739,
+    "note": "WAS 队星环图权威版本；由 team_shot_radial.py（star_*.py 为其等价包装）按 CLI 输出参数批量生成"
+  },
+  {
+    "path": "star_ring_CLE_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 74036,
+    "note": "根级单队星环图权威版本；30 队批量版本另见 star_rings_2026/"
+  },
+  {
+    "path": "star_ring_CLE_2026_logo.html",
+    "generator": "star_logo.py",
+    "status": "variant",
+    "bytes": 229642,
+    "note": "logo 版：内嵌 base64 队标/头像，体积约为普通版 2–4 倍；同一内容的呈现变体，不覆盖权威版"
+  },
+  {
+    "path": "star_ring_DET_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 96180,
+    "note": "根级单队星环图权威版本；30 队批量版本另见 star_rings_2026/"
+  },
+  {
+    "path": "star_ring_DET_2026_logo.html",
+    "generator": "star_logo.py",
+    "status": "variant",
+    "bytes": 385414,
+    "note": "logo 版：内嵌 base64 队标/头像，体积约为普通版 2–4 倍；同一内容的呈现变体，不覆盖权威版"
+  },
+  {
+    "path": "star_ring_HOU_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 84559,
+    "note": "根级单队星环图权威版本；30 队批量版本另见 star_rings_2026/"
+  },
+  {
+    "path": "star_ring_HOU_2026_logo.html",
+    "generator": "star_logo.py",
+    "status": "variant",
+    "bytes": 220934,
+    "note": "logo 版：内嵌 base64 队标/头像，体积约为普通版 2–4 倍；同一内容的呈现变体，不覆盖权威版"
+  },
+  {
+    "path": "star_ring_LAL_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 100080,
+    "note": "根级单队星环图权威版本；30 队批量版本另见 star_rings_2026/"
+  },
+  {
+    "path": "star_ring_LAL_2026_logo.html",
+    "generator": "star_logo.py",
+    "status": "variant",
+    "bytes": 348682,
+    "note": "logo 版：内嵌 base64 队标/头像，体积约为普通版 2–4 倍；同一内容的呈现变体，不覆盖权威版"
+  },
+  {
+    "path": "star_ring_OKC_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 104388,
+    "note": "根级单队星环图权威版本；30 队批量版本另见 star_rings_2026/"
+  },
+  {
+    "path": "star_ring_OKC_2026_logo.html",
+    "generator": "star_logo.py",
+    "status": "variant",
+    "bytes": 406298,
+    "note": "logo 版：内嵌 base64 队标/头像，体积约为普通版 2–4 倍；同一内容的呈现变体，不覆盖权威版"
+  },
+  {
+    "path": "star_ring_SAS_2026.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 92201,
+    "note": "根级单队星环图权威版本；30 队批量版本另见 star_rings_2026/"
+  },
+  {
+    "path": "star_ring_SAS_2026_logo.html",
+    "generator": "star_logo.py",
+    "status": "variant",
+    "bytes": 249311,
+    "note": "logo 版：内嵌 base64 队标/头像，体积约为普通版 2–4 倍；同一内容的呈现变体，不覆盖权威版"
+  },
+  {
+    "path": "team_shot_radial.html",
+    "generator": "team_shot_radial.py",
+    "status": "authoritative",
+    "bytes": 385414,
+    "note": "当前主版本（无数字/时间戳后缀）；由 team_shot_radial.py 生成"
+  },
+  {
+    "path": "team_shot_radial_215504.html",
+    "generator": "team_shot_radial.py",
+    "status": "snapshot",
+    "bytes": 21937,
+    "note": "历史快照（数字/时间戳后缀，如 team_shot_radial_215504）：非权威，勿删除，仅作历史追溯"
+  },
+  {
+    "path": "team_shot_radial_215729.html",
+    "generator": "team_shot_radial.py",
+    "status": "snapshot",
+    "bytes": 21937,
+    "note": "历史快照（数字/时间戳后缀，如 team_shot_radial_215504）：非权威，勿删除，仅作历史追溯"
+  },
+  {
+    "path": "team_shot_radial_222205.html",
+    "generator": "team_shot_radial.py",
+    "status": "snapshot",
+    "bytes": 21940,
+    "note": "历史快照（数字/时间戳后缀，如 team_shot_radial_215504）：非权威，勿删除，仅作历史追溯"
+  },
+  {
+    "path": "team_shot_radial_223108.html",
+    "generator": "team_shot_radial.py",
+    "status": "snapshot",
+    "bytes": 21940,
+    "note": "历史快照（数字/时间戳后缀，如 team_shot_radial_215504）：非权威，勿删除，仅作历史追溯"
+  },
+  {
+    "path": "team_shot_radial_223153.html",
+    "generator": "team_shot_radial.py",
+    "status": "snapshot",
+    "bytes": 25061,
+    "note": "历史快照（数字/时间戳后缀，如 team_shot_radial_215504）：非权威，勿删除，仅作历史追溯"
+  },
+  {
+    "path": "team_shot_radial_5.html",
+    "generator": "team_shot_radial.py",
+    "status": "snapshot",
+    "bytes": 21479,
+    "note": "历史快照（数字/时间戳后缀，如 team_shot_radial_215504）：非权威，勿删除，仅作历史追溯"
+  },
+  {
+    "path": "team_shot_radial_6.html",
+    "generator": "team_shot_radial.py",
+    "status": "snapshot",
+    "bytes": 24565,
+    "note": "历史快照（数字/时间戳后缀，如 team_shot_radial_215504）：非权威，勿删除，仅作历史追溯"
+  },
+  {
+    "path": "team_shot_radial_7.html",
+    "generator": "team_shot_radial.py",
+    "status": "snapshot",
+    "bytes": 27616,
+    "note": "历史快照（数字/时间戳后缀，如 team_shot_radial_215504）：非权威，勿删除，仅作历史追溯"
+  },
+  {
+    "path": "workspace/workbuddy-scripts/nba_game_results.html",
+    "generator": null,
+    "status": "orphan",
+    "bytes": 5282656,
+    "note": "约 5.28MB；全库找不到生成脚本，来源不可追溯；只登记不删除"
+  },
+  {
+    "path": "debug_sas_2026.html",
+    "generator": null,
+    "status": "orphan",
+    "bytes": 1605358,
+    "note": "约 1.6MB 诊断产物；找不到生成脚本；只登记不删除"
+  },
+  {
+    "path": "wemby_chart_composition.png",
+    "generator": null,
+    "status": "orphan",
+    "bytes": 51335,
+    "note": "文班亚马图表；找不到生成脚本；只登记不删除"
+  },
+  {
+    "path": "wemby_chart_efficiency.png",
+    "generator": null,
+    "status": "orphan",
+    "bytes": 49715,
+    "note": "文班亚马图表；找不到生成脚本；只登记不删除"
+  },
+  {
+    "path": "wemby_chart_trend.png",
+    "generator": null,
+    "status": "orphan",
+    "bytes": 101380,
+    "note": "文班亚马图表；找不到生成脚本；只登记不删除"
+  },
+  {
+    "path": "workspace/workbuddy-scripts/crawler_code_review_20260816.html",
+    "generator": null,
+    "status": "document",
+    "bytes": 18185,
+    "note": "文档类代码评审产物；虽为孤儿但属说明文档，可接受；只登记不删除"
+  },
+  {
+    "path": "reports/nba-analysis/season_report_2026.html",
+    "generator": null,
+    "status": "authoritative",
+    "bytes": 440767,
+    "note": "P 顶层 45 份 html 之一（season_report_1997..2026）；generator 为 nba_report.py / batch_report.py 之一，未逐一绑定；经 reports/nba-analysis -> P 软链收敛，原样保留，未移动未删除"
+  },
+  {
+    "path": "reports/nba-analysis/pace_five_eras_2026.html",
+    "generator": null,
+    "status": "authoritative",
+    "bytes": 64563,
+    "note": "P 批量节奏报告；W/reskin_pace_white.py 曾对其做白底改写（字符串补丁反模式）；经 reports/nba-analysis -> P 软链收敛，原样保留，未移动未删除"
+  },
+  {
+    "path": "reports/nba-analysis/champ_hbar_2026.svg",
+    "generator": null,
+    "status": "authoritative",
+    "bytes": 31157,
+    "note": "P 顶层 22 份 svg 之一；经 reports/nba-analysis -> P 软链收敛，原样保留，未移动未删除"
+  },
+  {
+    "path": "reports/nba-analysis/pace_chart_bar.png",
+    "generator": null,
+    "status": "authoritative",
+    "bytes": 53954,
+    "note": "P 顶层 12 份 png 之一；经 reports/nba-analysis -> P 软链收敛，原样保留，未移动未删除"
+  },
+  {
+    "path": "reports/nba-analysis/pace_five_eras_2026.html.darkbak",
+    "generator": null,
+    "status": "snapshot",
+    "bytes": 60736,
+    "note": "深色主题原始备份；非权威，勿删除；经 reports/nba-analysis -> P 软链收敛，原样保留，未移动未删除"
+  },
+  {
+    "path": "reports/nba-analysis/team_style_evolution_1979_2026.html.bugbak_20260825",
+    "generator": null,
+    "status": "snapshot",
+    "bytes": 312160,
+    "note": "历史备份快照；非权威，勿删除；经 reports/nba-analysis -> P 软链收敛，原样保留，未移动未删除"
+  }
+]

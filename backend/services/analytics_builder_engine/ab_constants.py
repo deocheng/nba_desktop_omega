@@ -9,6 +9,9 @@ No SQL, no computation, no DB access here.
 """
 from __future__ import annotations
 
+# 统一色板来源：主仓库 viz 内核（唯一色板）
+from viz.theme import CATEGORICAL
+
 # ── Node types (the ONLY truth for "what kinds of nodes exist") ──
 # P0 = exactly these five. Derived-metric (P1) is intentionally absent.
 NODE_TYPES: tuple[str, ...] = ("source", "filter", "aggregate", "transform", "visualize")
@@ -19,12 +22,18 @@ PORT_OUT = "out"
 
 # Per-type accent color (mirrors the CSS data-type rules on the frontend).
 # Purely cosmetic, but defined here so the frontend can pull a single source.
+#
+# 色值来源：主仓库 viz 内核的分类色板（CATEGORICAL，Okabe-Ito 派生）。
+# 这里**不抄写 hex** —— 抄一份就等于多出一套色值，只能靠人工同步，
+# 那正是本项目要消灭的「多套互不相认的视觉语言」。
+# 五类节点按语义取分类色前 5 个：source=蓝 / filter=灰 / aggregate=绿
+#                                    / transform=橙 / visualize=红
 NODE_COLORS: dict[str, str] = {
-    "source": "#3b82f6",      # blue
-    "filter": "#94a3b8",       # gray
-    "aggregate": "#10b981",    # green
-    "transform": "#8b5cf6",    # purple
-    "visualize": "#f97316",    # orange
+    "source": CATEGORICAL[0],
+    "filter": CATEGORICAL[3],
+    "aggregate": CATEGORICAL[4],
+    "transform": CATEGORICAL[1],
+    "visualize": CATEGORICAL[2],
 }
 
 # ── Aggregation functions (white-list only) ──
