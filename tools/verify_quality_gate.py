@@ -366,6 +366,66 @@ if os.path.exists(equiv):
 else:
     check("路径迁移语义等价（还原比对）", None, "校验器不存在")
 
+# 11c. Shell 侧路径治理：.sh 不得残留硬编码绝对路径 + 语义等价。
+#      shell 无法 import Python 模块，故建 common/paths.sh 作为对应物；
+#      两侧解析规则必须一致（尤其 PG 数据目录），否则 shell 启动的 PG
+#      与 Python 读到的 PG 会指向不同目录。
+shell_files = sorted(glob.glob(rp("*.sh"))) + sorted(glob.glob(rp("external_crawler", "**", "*.sh")))
+shell_offenders: list[str] = []
+for f in shell_files:
+    if not os.path.exists(f):
+        continue
+    rel = os.path.relpath(f, ROOT)
+    txt = read(f)
+    # 只看代码行（跳过注释行 —— 说明文字里的路径不是路径使用）
+    code = "\n".join(ln for ln in txt.splitlines() if not ln.strip().startswith("#"))
+    if "/Users/deocheng" in code or "/Volumes/12T/NBA" in code:
+        shell_offenders.append(rel)
+check("已跟踪 .sh 零硬编码绝对路径", not shell_offenders,
+      ("违规: " + ", ".join(shell_offenders[:6])) if shell_offenders
+      else f"{len(shell_files)} 个 .sh 全部走 common/paths.sh")
+
+shell_equiv = rp("tools", "verify_shell_path_migration.py")
+if os.path.exists(shell_equiv):
+    rc, out = run([sys.executable, "tools/verify_shell_path_migration.py"])
+    m = re.search(r"受检脚本\s*(\d+)\s*/\s*等价\s*(\d+)\s*/\s*有差异\s*(\d+)", out)
+    if rc == 0 and m:
+        checked_n, same_n, differ_n = (int(x) for x in m.groups())
+        check("Shell 路径迁移语义等价", differ_n == 0 and checked_n > 0,
+              f"受检 {checked_n} / 等价 {same_n} / 差异 {differ_n}")
+    else:
+        check("Shell 路径迁移语义等价", False, (out[-240:].replace("\n", " ") or f"rc={rc}"))
+else:
+    check("Shell 路径迁移语义等价", None, "校验器不存在")
+
+# 11d. shell 与 Python 的路径解析必须一致（跨语言一致性契约）
+#      PG 数据目录最关键：两侧解析顺序不同 → 启动的 PG 与读到的 PG 不是同一个
+paths_sh = rp("common", "paths.sh")
+if os.path.exists(paths_sh):
+    py_vals: dict[str, str] = {}
+    try:
+        import importlib.util as _ilu
+        _spec = _ilu.spec_from_file_location("_nba_paths_probe", rp("common", "nba_paths.py"))
+        _mod = _ilu.module_from_spec(_spec)
+        _spec.loader.exec_module(_mod)
+        py_vals = {"pg": str(_mod.PG_DATA_DIR), "repo": str(_mod.REPO_ROOT),
+                   "data": str(_mod.DATA_ROOT)}
+    except Exception as exc:  # noqa: BLE001
+        py_vals = {"error": str(exc)}
+    probe = ('. "' + paths_sh + '"; printf "%s|%s|%s" '
+             '"$PG_DATA_DIR" "$PROJ_ROOT" "$DATA_ROOT"')
+    rc, out = run(["bash", "-c", probe])
+    parts = out.strip().split("|")
+    if rc == 0 and len(parts) == 3 and "error" not in py_vals:
+        check("shell / Python 路径解析一致",
+              parts == [py_vals["pg"], py_vals["repo"], py_vals["data"]],
+              f"PG={parts[0] == py_vals['pg']}, ROOT={parts[1] == py_vals['repo']}, "
+              f"DATA={parts[2] == py_vals['data']}")
+    else:
+        check("shell / Python 路径解析一致", False, (out[-160:].replace("\n", " ") or f"rc={rc}"))
+else:
+    check("shell / Python 路径解析一致", None, "common/paths.sh 不存在")
+
 # 汇总
 print("| 状态 | 检查项 | 证据 |")
 print("|---|---|---|")
