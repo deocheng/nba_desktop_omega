@@ -96,9 +96,14 @@ jobs:
           # trust 认证：CI 的一次性容器不需要口令，DB_PASSWORD/PGPASSWORD 留空
           POSTGRES_HOST_AUTH_METHOD: trust
         ports:
-          - 5433:5433
+          # 🔴 主机 5433 → **容器 5432**（官方镜像容器内固定监听 5432）。
+          #    写成 5433:5433 会让 psql 连到容器里没人监听的 5433 →
+          #    docker-proxy 接到连接后立刻关闭 → libpq 报
+          #    "server closed the connection unexpectedly"（2026-11-10 实测踩坑）。
+          #    主机侧仍用 5433（v7 约定，tests/test_phase0_health.py 断言该值）。
+          - 5433:5432
         options: >-
-          --health-cmd "pg_isready -h 127.0.0.1 -U postgres -d nba"
+          --health-cmd "pg_isready -h 127.0.0.1 -p 5432 -U postgres -d nba"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 12
@@ -127,20 +132,28 @@ jobs:
         # db/schema.sql = 生产库的完整 DDL（仅结构）。ON_ERROR_STOP=1 保证
         # 「schema 还原失败」直接让本 job 变红，而不是留下一堆看不懂的 ERROR。
         #
-        # 🔴 重试 + 显式 127.0.0.1 的原因（2026-11-10 实测踩坑）：
-        #   postgres 官方镜像在 initdb 阶段会先起一个**只监听 unix socket** 的临时
-        #   实例；health check 若用默认 host（socket）判定就绪，GitHub 会提前放行，
-        #   而 psql 走的是 TCP → 命中「server closed the connection unexpectedly」。
-        #   → health check 与 psql 统一走 127.0.0.1（TCP），并加重试兜底。
+        # -p 5433 是**主机侧**端口（映射到容器 5432）；重试循环兜底容器启动竞态。
         run: |
           set -euo pipefail
+          ready=0
           for i in $(seq 1 15); do
             if psql -h 127.0.0.1 -p 5433 -U postgres -d nba -c 'SELECT 1' >/dev/null 2>&1; then
+              ready=1
               break
             fi
             echo "postgres 尚未就绪（第 $i 次重试）…"
             sleep 3
           done
+          if [ "$ready" != "1" ]; then
+            echo "===== postgres service 诊断 ====="
+            docker ps -a --filter "name=postgres" --format '{{.Names}} | {{.Status}} | {{.Ports}}' || true
+            echo "----- 容器日志（末 40 行）-----"
+            docker logs "$(docker ps -aq --filter 'name=postgres' | head -1)" 2>&1 | tail -40 || true
+            echo "----- 主机监听端口 -----"
+            (ss -ltn 2>/dev/null || netstat -ltn 2>/dev/null) | grep -E ':543[0-9]' || true
+            echo "=============================="
+            exit 1
+          fi
           psql -h 127.0.0.1 -p 5433 -U postgres -d nba \
                -v ON_ERROR_STOP=1 -q -o /dev/null -f db/schema.sql
 
