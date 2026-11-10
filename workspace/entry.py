@@ -10,10 +10,15 @@
 """
 import argparse
 import os
+import sys
+from pathlib import Path
 
-NBA_ROOT = "/Volumes/12T/NBA"
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from common.nba_paths import DATA_ROOT, WORKSPACE_ROOT
+
+NBA_ROOT = str(DATA_ROOT)
 R = NBA_ROOT + "/nba_desktop_omega_mac_migrate_2026-07-13"
-W = "/Users/deocheng/WorkBuddy/2026-07-13-10-47-43"
+W = str(WORKSPACE_ROOT)
 P = NBA_ROOT + "/nba_analysis"
 
 # 三个逻辑来源

@@ -40,10 +40,12 @@ import sys
 import time
 from datetime import date
 
+from common.nba_paths import PG_DATA_DIR
+
 BASE = os.path.dirname(os.path.abspath(__file__))
 PY = os.path.join(BASE, ".venv", "bin", "python")
 PGCTL = "/opt/homebrew/opt/postgresql@18/bin/pg_ctl"
-PGDATA = "/Users/deocheng/nba_pg"
+PGDATA = str(PG_DATA_DIR)
 PGPORT = 5433
 PGLOG = "/tmp/nba_pg.log"
 LOG_FILE = os.path.join(BASE, "br_crawler.log")

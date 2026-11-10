@@ -15,10 +15,12 @@ import re
 import psycopg2
 import psycopg2.extras as extras
 
+from common.nba_paths import ENV_FILE
+
 # Default path to the .env that holds DB_* for the local PG cluster.
 ENV_PATH = os.environ.get(
     "FIBA_ENV",
-    "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/.env",
+    str(ENV_FILE),
 )
 
 

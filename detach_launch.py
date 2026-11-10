@@ -7,7 +7,7 @@
 用法:
     python3 detach_launch.py <logfile> <cmd> [args...]
 例:
-    python3 detach_launch.py /Volumes/12T/NBA/resume_launcher.log bash resume_shooting_shotchart.sh
+    python3 detach_launch.py <数据盘根>/resume_launcher.log bash resume_shooting_shotchart.sh
 """
 import os
 import sys

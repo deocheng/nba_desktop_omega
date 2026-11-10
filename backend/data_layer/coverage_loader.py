@@ -21,7 +21,7 @@ rules:
             the dataset ``approx`` (no per-season breakdown).
     - Filesystem roots come from ``common.bridge_constants.ARCHIVE_ROOT`` and
       ``common.player_page_cache.CACHE_ROOT`` (which honor the NBA_ARCHIVE_ROOT
-      env var) — never hardcoded ``/Volumes/12T/NBA``. A safe fallback mirrors
+      env var) — never hardcoded ``<数据盘根>``. A safe fallback mirrors
       the exact same env logic if ``common`` is not importable.
 
 The router (``backend.api.routers.coverage``) only calls :func:`get_coverage`
@@ -37,6 +37,7 @@ from pathlib import Path
 from typing import Any
 
 from backend.core.db import batch_query
+from common.nba_paths import ARCHIVE_ROOT
 
 logger = logging.getLogger("nbacore.data_layer.coverage_loader")
 
@@ -56,7 +57,7 @@ def _resolve_paths() -> tuple[Path, Path]:
         return Path(ARCHIVE_ROOT), Path(CACHE_ROOT)
     except Exception as exc:  # pragma: no cover - defensive
         logger.warning("common constants unavailable (%s); using env fallback", exc)
-        root = os.environ.get("NBA_ARCHIVE_ROOT", "/Volumes/12T/NBA/raw_archive")
+        root = os.environ.get("NBA_ARCHIVE_ROOT", str(ARCHIVE_ROOT))
         return Path(root), Path(root) / "br_players"
 
 

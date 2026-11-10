@@ -15,6 +15,8 @@ import re
 import sys
 import time
 
+from common.nba_paths import REPO_ROOT
+
 sys.stdout.reconfigure(encoding="utf-8")
 import psycopg2
 from psycopg2.extras import execute_batch
@@ -22,7 +24,7 @@ from psycopg2.extras import execute_batch
 sys.path.insert(0, os.path.dirname(__file__))
 from xcheck_playin_br import CDPClient
 
-ROOT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
+ROOT = str(REPO_ROOT)
 PW = "R!h0N-ctlg=xB01V_-1VJcFeCCuBjS6UCvV1"
 DB = dict(host="127.0.0.1", port=5433, dbname="nba", user="postgres", password=PW)
 RATE = 1.5

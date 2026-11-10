@@ -1,8 +1,8 @@
 """DB disk-migration verification — source (12T) vs target (local) for the `nba` library.
 
 Read-only. Connects to:
-  * target: local PG cluster at /Users/deocheng/nba_pg, port 5433, dbname=nba
-  * source: 12T external cluster at /Volumes/12T/NBA/nba_pg, port 5434, dbname=nba
+  * target: local PG cluster at ~/nba_pg (生产实例), port 5433, dbname=nba
+  * source: 12T external cluster at <数据盘根>/nba_pg (迁出前的旧副本), port 5434, dbname=nba
     (started separately by the wrapper; if unreachable, source=None and we fall
     back to live integrity + reference to the 2026-08-30 diff)
 
@@ -31,12 +31,15 @@ import html
 import os
 import re
 import sys
+from pathlib import Path
 
 import psycopg2
 
+from common.nba_paths import ENV_FILE, PG_DATA_DIR, PG_DATA_DIR_LEGACY
+
 ENV_PATH = os.environ.get(
     "FIBA_ENV",
-    "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/.env",
+    str(ENV_FILE),
 )
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
@@ -129,7 +132,7 @@ def main() -> None:
                 "JOIN pg_class ic ON ic.oid=i.indexrelid "
                 "WHERE c.relname='dim_games' AND i.indisprimary")
             has_pk = cur.fetchone() is not None
-        add("目标集群数据目录 = 本机本地盘", data_dir == "/Users/deocheng/nba_pg",
+        add("目标集群数据目录 = 本机本地盘", data_dir == str(PG_DATA_DIR),
             data_dir)
         add("目标非恢复模式(普通主库)", not in_rec, f"pg_is_in_recovery={in_rec}")
         add("无失效索引", invalid_idx == 0, f"invalid_index={invalid_idx}")
@@ -276,7 +279,7 @@ footer{{color:var(--muted);font-size:12px;text-align:center;margin-top:28px}}
 </style></head><body><div class="wrap">
 <header>
 <h1>数据库迁移验证报告</h1>
-<div class="sub">源：12T 外置盘 <code>/Volumes/12T/NBA/nba_pg</code> → 目标：本机本地盘 <code>/Users/deocheng/nba_pg</code>（@5433）<br>
+<div class="sub">源：12T 外置盘 <code>{str(PG_DATA_DIR_LEGACY)}</code> → 目标：本机本地盘 <code>{str(PG_DATA_DIR)}</code>（@5433）<br>
 生成时间 {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</div>
 <div class="verdict {'pass' if hard else 'review'}">{esc(verdict)}</div>
 </header>

@@ -25,8 +25,12 @@ verify_gaps.py — 严格逐人完整性校验（替代临场手写 SQL，杜绝
 import os
 import subprocess
 import sys
+from pathlib import Path
 
-ROOT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from common.nba_paths import REPO_ROOT
+
+ROOT = str(REPO_ROOT)
 PSQL = "/opt/homebrew/opt/postgresql@18/bin/psql"
 
 

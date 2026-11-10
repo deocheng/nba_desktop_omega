@@ -33,6 +33,8 @@ import subprocess
 import sys
 import time
 
+from common.nba_paths import PG_DATA_DIR_LEGACY
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import fiba_api as fa
@@ -46,9 +48,9 @@ DEFAULT_DAYS = 2  # > retention window (~17h) so we never skip a catchable game
 # we try to bring it up if it's down, so the run doesn't silently fail.
 PG_START = [
     "/opt/homebrew/opt/postgresql@18/bin/pg_ctl",
-    "-D", "/Volumes/12T/NBA/nba_pg",
+    "-D", str(PG_DATA_DIR_LEGACY),
     "-o", "-p 5433",
-    "-l", "/Volumes/12T/NBA/nba_pg/pg.log",
+    "-l", str(PG_DATA_DIR_LEGACY) + '/pg.log',
     "start",
 ]
 

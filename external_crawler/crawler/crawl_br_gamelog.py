@@ -29,6 +29,8 @@ import psycopg2.extras
 import requests
 from bs4 import BeautifulSoup
 
+from common.nba_paths import VENV_PYTHON, WORKSPACE_ROOT
+
 # Ensure the project root (three levels up from this file) is on sys.path so
 # `import common.browser` resolves when run as a standalone script.
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -45,8 +47,8 @@ DB_CONFIG = dict(host='localhost', port=5433, dbname='nba', user='postgres', pas
 # 不变量 + Tier1 回归基线（9 例 BR 阻塞）。爬虫自身只写 BR 源 slug，不会触发
 # FAIL；门禁是防御 backfill / 其他回填路径二次写入身份错位的二次防线。
 # 调 --no-gate 可关闭（默认开）。
-GATE_SCRIPT = "/Users/deocheng/WorkBuddy/2026-07-13-10-47-43/gate_gamelog_identity.py"
-GATE_VENV = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/.venv/bin/python"
+GATE_SCRIPT = str(WORKSPACE_ROOT) + '/gate_gamelog_identity.py'
+GATE_VENV = str(VENV_PYTHON)
 
 
 def run_post_load_gate() -> int:

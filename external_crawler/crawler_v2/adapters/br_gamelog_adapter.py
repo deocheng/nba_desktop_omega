@@ -37,10 +37,12 @@ import os
 import sys
 from typing import Any, Dict, List, Optional, Tuple
 
+from common.nba_paths import REPO_ROOT
+
 # 把迁移包根目录与 crawler/ 加入 path，以便复用旧版已验证模块（单向复用，旧版不被修改）。
 # 用 lazy import（_legacy()）包裹，避免在本沙箱缺 dotenv 时连模块都 import 不进来；
 # 在用户既有 crawler 运行环境（已装 dotenv 等）下正常工作。
-ROOT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
+ROOT = str(REPO_ROOT)
 CRAWLER_DIR = os.path.join(ROOT, "external_crawler", "crawler")
 for _p in (ROOT, CRAWLER_DIR):
     if _p not in sys.path:

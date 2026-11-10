@@ -21,8 +21,10 @@ import logging
 import os
 import sys
 
+from common.nba_paths import REPO_ROOT
+
 # 把迁移包根目录加入 path，以便复用旧版已验证模块（单向复用，旧版不被修改）
-ROOT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
+ROOT = str(REPO_ROOT)
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 

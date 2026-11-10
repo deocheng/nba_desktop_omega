@@ -21,7 +21,9 @@ from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 
-LOGO_ROOT = Path(os.environ.get("NBA_LOGO_ROOT", "/Volumes/12T/NBA/logo"))
+from common.nba_paths import DATA_ROOT
+
+LOGO_ROOT = Path(os.environ.get("NBA_LOGO_ROOT", str(DATA_ROOT) + '/logo'))
 _THROTTLE_S = float(os.environ.get("LOGO_THROTTLE_S", "1.5"))
 _last_fetch = 0.0
 

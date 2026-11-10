@@ -1,9 +1,9 @@
 #!/usr/env python3
 # -*- coding: utf-8 -*-
 """
-本地服务：让 calendar.html 能在浏览器里直接播 /Volumes/12T/NBA 下的录像。
+本地服务：让 calendar.html 能在浏览器里直接播 <数据盘根> 下的录像。
 - GET /            -> 服务 calendar.html (项目目录)
-- GET /video/<p>  -> 服务 /Volumes/12T/NBA/<p>，显式支持 Range 请求(拖动进度条必需)
+- GET /video/<p>  -> 服务 <数据盘根>/<p>，显式支持 Range 请求(拖动进度条必需)
 - 仅绑定 127.0.0.1，禁止目录穿越。
 
 用法:
@@ -17,7 +17,9 @@ import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import unquote, urlparse
 
-VIDEO_ROOT = "/Volumes/12T/NBA"
+from common.nba_paths import DATA_ROOT
+
+VIDEO_ROOT = str(DATA_ROOT)
 HERE = os.path.dirname(os.path.abspath(__file__))
 HTML_FILE = os.path.join(HERE, "calendar.html")
 CHUNK = 64 * 1024

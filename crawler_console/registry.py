@@ -22,9 +22,11 @@
 # 迁移到外挂硬盘后无需再改硬编码绝对路径。
 import os
 
+from common.nba_paths import DATA_ROOT, HEADSHOTS_ROOT, watchdog_script
+
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 VENV_PY = f"{PROJECT_ROOT}/.venv/bin/python"
-LOG_DIR = "/Volumes/12T/NBA"
+LOG_DIR = str(DATA_ROOT)
 
 
 def _db_password() -> str:
@@ -115,7 +117,7 @@ CRAWLERS = [
          log=f"{LOG_DIR}/headshots_crawl.log", pattern="crawl_br_headshots.py",
          br=True, needs_cdp=True, desc="球员头像图片下载",
          tables=["dim_players（headshot_path/headshot_status/headshot_scraped_at 列）"],
-         cache="/Volumes/12T/NBA/headshots/{player_id}.{jpg|png}",
+         cache=str(HEADSHOTS_ROOT) + '/{player_id}.{jpg|png}',
          url="basketball-reference.com/players/{x}/{slug}.html（<img> 头像）"),
     dict(id="nicknames", name="球员绰号", group="球员数据", kind="py",
          script="external_crawler/crawler/crawl_br_nicknames.py", args=[],
@@ -139,7 +141,7 @@ CRAWLERS = [
          br=True, needs_cdp=True,
          desc="31 队 × 2000-2026 球队赛季 PBP 页 + 队标（当前 134/800+ 队季）",
          tables=["team_pbp_raw（长表，逐 data-stat）", "team_page_raw（同页队级表，零额外请求）"],
-         cache="队标 /Volumes/12T/NBA/logo/{slug}-{season}.png；HTML 仅 --dump-html 手动落盘",
+         cache='队标 ' + str(DATA_ROOT) + '/logo/{slug}-{season}.png；HTML 仅 --dump-html 手动落盘',
          url="basketball-reference.com/teams/{ABBR}/{year}.html"),
     dict(id="team_depth", name="球队深度轮换", group="球队数据", kind="py",
          script="external_crawler/crawler/crawl_br_team_depth.py", args=["--resume"],
@@ -197,6 +199,6 @@ CRAWLERS = [
 
 # 盯梢巡检脚本（独立按钮，一次性运行取输出）
 WATCHER = dict(
-    script="/Users/deocheng/.workbuddy/skills/nba-crawler-watch/scripts/watch_crawlers.py",
+    script=str(watchdog_script()),
     python=VENV_PY,
 )

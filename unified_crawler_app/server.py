@@ -10,7 +10,7 @@ This is CONTROL-ONLY: it never re-implements the crawlers. It shells out to
 the existing, validated scripts (see job_manager.py) and to osascript for BR.
 Stdlib + psycopg2 (already in the project venv) for read-only status queries.
 
-Run:  /Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/.venv/bin/python \
+Run:  <项目根>/.venv/bin/python \
           unified_crawler_app/server.py
 Then open http://127.0.0.1:8793
 """

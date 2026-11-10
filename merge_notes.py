@@ -4,7 +4,9 @@ import json
 import os
 import unicodedata
 
-BASE = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
+from common.nba_paths import REPO_ROOT
+
+BASE = str(REPO_ROOT)
 PATH = os.path.join(BASE, "notes_work.json")
 
 NEW = {

@@ -4,7 +4,9 @@ import os
 import psycopg2
 from dotenv import load_dotenv
 
-ENV_PATH = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/.env"
+from common.nba_paths import ENV_FILE, REPO_ROOT
+
+ENV_PATH = str(ENV_FILE)
 load_dotenv(ENV_PATH)
 pw = os.getenv("DB_PASSWORD")
 conn = psycopg2.connect(host="localhost", port=5433, dbname="nba",
@@ -103,7 +105,7 @@ for team, season, pid, total, ppg, g, pos in rows:
                     'total':float(total),'ppg':float(ppg),'g':int(g),
                     'pos':pos,'grp':classify(pos)})
 
-with open('/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/primary_scorers.json','w') as f:
+with open(str(REPO_ROOT) + '/primary_scorers.json','w') as f:
     json.dump(primary, f)
 
 # sample seasons 1985-86 and 2025-26

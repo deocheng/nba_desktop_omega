@@ -10,7 +10,9 @@ import sys
 
 import psycopg2
 
-ROOT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
+from common.nba_paths import REPO_ROOT
+
+ROOT = str(REPO_ROOT)
 PROG = f"{ROOT}/logs/db_validation_20260810.log"
 
 def g(k):

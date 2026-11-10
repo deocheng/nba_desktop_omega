@@ -54,7 +54,7 @@ def run_script(script_rel: str, args, *, offline: bool = True, timeout: int = 24
     从而让桥接/回补在离线快速模式下运行（不影响 DB 连接，DB 走 psycopg2 非 HTTP）。
 
     env_extra: 追加到子进程环境（如 NBA_ARCHIVE_ROOT 重定向归档根），
-    避免用例依赖本机绝对路径 —— CI 上 /Volumes/12T 根本不存在。
+    避免用例依赖本机绝对路径 —— CI 上<数据盘根>根本不存在。
     """
     env = dict(os.environ)
     if offline:
@@ -484,7 +484,7 @@ class TestVerifyArchive:
         不断言「归档为空」—— 本机归档有数百个 BR HTML，CI 上则完全没有；
         这里只断言脚本正常退出且输出结构完整（与归档内容无关）。
 
-        归档根经 NBA_ARCHIVE_ROOT 指向 tmp_path：不依赖本机 /Volumes/12T
+        归档根经 NBA_ARCHIVE_ROOT 指向 tmp_path：不依赖本机<数据盘根>
         （CI runner 上该路径不存在且不可写，会直接 PermissionError）。
         """
         archive_root = tmp_path / "raw_archive_empty"
@@ -503,7 +503,7 @@ class TestVerifyArchive:
         而**不是** 项目根下的 raw_archive/ —— 此前写 BR_ROOT/raw_archive/... 与
         脚本读 ARCHIVE_ROOT 不是一个地方，用例实际从未验证到「新增文件被识别」。
 
-        归档根经 NBA_ARCHIVE_ROOT 指向 tmp_path：不依赖本机 /Volumes/12T
+        归档根经 NBA_ARCHIVE_ROOT 指向 tmp_path：不依赖本机<数据盘根>
         （CI runner 上该路径不存在且不可写，会直接 PermissionError）。
 
         断言用**相对**口径（计数 ≥1 且能解析出数值）：归档里已有多少文件与

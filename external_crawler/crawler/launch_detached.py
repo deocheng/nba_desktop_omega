@@ -14,7 +14,9 @@ launch_detached.py — 让爬虫彻底脱离 WorkBuddy 任务树（双 fork 守�
 import os
 import sys
 
-LAUNCHER = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/external_crawler/crawler/start_crawler_standalone.sh"
+from common.nba_paths import REPO_ROOT
+
+LAUNCHER = str(REPO_ROOT) + '/external_crawler/crawler/start_crawler_standalone.sh'
 
 pid = os.fork()
 if pid > 0:

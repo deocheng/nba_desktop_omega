@@ -1,7 +1,9 @@
 import psycopg2
 from dotenv import dotenv_values
 
-env = dotenv_values("/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/.env")
+from common.nba_paths import ENV_FILE
+
+env = dotenv_values(str(ENV_FILE))
 PW = env["DB_PASSWORD"]
 conn = psycopg2.connect(host="127.0.0.1", port=5433, dbname="nba",
                         user="postgres", password=PW)

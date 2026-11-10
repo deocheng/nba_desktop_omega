@@ -10,7 +10,7 @@ Only the Python standard library plus psycopg2 (already in the project venv,
 used for read-only status queries). No web framework, so the app stays
 installable and runnable offline.
 
-Run:  /Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/.venv/bin/python \
+Run:  <项目根>/.venv/bin/python \
           metrics_snapshot_app/server.py
 Then open http://127.0.0.1:8791
 """

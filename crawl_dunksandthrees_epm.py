@@ -31,6 +31,8 @@ from pathlib import Path
 import psycopg2
 import psycopg2.extras
 
+from common.nba_paths import node_binary
+
 URL = "https://dunksandthrees.com/epm"
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
@@ -74,8 +76,7 @@ def db_conn():
 def _node_bin() -> str:
     for cand in (
         shutil.which("node"),
-        "/Users/deocheng/.workbuddy/binaries/node/versions/22.22.2/bin/node",
-        "/Users/deocheng/.local/bin/node",
+        node_binary(),
     ):
         if cand and Path(cand).exists():
             return cand

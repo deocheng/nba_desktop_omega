@@ -40,13 +40,15 @@ import subprocess
 import sys
 import time
 
+from common.nba_paths import PG_DATA_DIR_LEGACY
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import fiba_api as fa
 import fiba_db as db
 
 ARCHIVE_DIR = os.path.join(HERE, "raw_archive")
-PG_DATA_DIR = "/Volumes/12T/NBA/nba_pg"
+PG_DATA_DIR = str(PG_DATA_DIR_LEGACY)
 PG_PORT = 5433
 PG_BIN = "/opt/homebrew/opt/postgresql@18/bin/pg_ctl"
 

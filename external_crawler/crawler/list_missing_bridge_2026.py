@@ -1,8 +1,10 @@
 import os
 import subprocess
 
+from common.nba_paths import ENV_FILE
+
 val = None
-for line in open('/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/.env'):
+for line in open(str(ENV_FILE)):
     line = line.strip()
     if line.startswith('DB_PASSWORD'):
         val = line.split('=', 1)[1].strip().strip('"').strip("'")

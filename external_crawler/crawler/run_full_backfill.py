@@ -26,6 +26,8 @@ import sys
 import time
 from typing import Callable, List, Optional
 
+from common.nba_paths import DATA_ROOT
+
 # ── 路径：脚本位于 external_crawler/crawler，common 在项目根 ──
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(os.path.dirname(SCRIPT_DIR))
@@ -48,7 +50,7 @@ CF_STALL_THRESHOLD = 8     # 单季/批次新增失败数 ≥ 此值 → 疑似 
 CF_PAUSE_S = 600           # 暂停等待用户清 CF 的秒数
 CF_MAX_RETRIES = 8         # 同一季/批次最多重试次数（≈ 80min 窗）
 
-LOG_PATH = "/Volumes/12T/NBA/crawl_full_backfill.log"
+LOG_PATH = str(DATA_ROOT) + '/crawl_full_backfill.log'
 
 logging.basicConfig(
     level=logging.INFO,

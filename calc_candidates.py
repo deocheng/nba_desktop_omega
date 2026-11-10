@@ -5,7 +5,9 @@ import os
 import re
 import unicodedata
 
-BASE = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
+from common.nba_paths import REPO_ROOT
+
+BASE = str(REPO_ROOT)
 cfg = {}
 with open(os.path.join(BASE, ".env")) as f:
     for line in f:

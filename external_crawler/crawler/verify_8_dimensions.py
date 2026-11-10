@@ -5,7 +5,9 @@ import re
 
 import psycopg2
 
-PROJECT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
+from common.nba_paths import REPO_ROOT
+
+PROJECT = str(REPO_ROOT)
 pw = None
 for line in open(f"{PROJECT}/.env"):
     m = re.match(r"^\s*DB_PASSWORD\s*=(.+?)\s*$", line)

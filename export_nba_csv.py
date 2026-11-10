@@ -11,9 +11,11 @@ import time
 
 import psycopg2
 
+from common.nba_paths import DATA_ROOT
+
 DB = dict(host="127.0.0.1", port=5433, dbname="nba",
           user="postgres", password=os.environ["DB_PASSWORD"])
-OUTDIR = "/Volumes/12T/NBA/csv_export_2026-07-23"
+OUTDIR = str(DATA_ROOT) + '/csv_export_2026-07-23'
 MANIFEST = os.path.join(OUTDIR, "manifest.csv")
 
 

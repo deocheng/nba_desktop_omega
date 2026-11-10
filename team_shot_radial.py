@@ -30,6 +30,8 @@ from typing import Dict, List, Optional, Tuple
 import psycopg2
 from dotenv import load_dotenv
 
+from common.nba_paths import HEADSHOTS_ROOT, REPO_ROOT
+
 load_dotenv(Path(__file__).with_name(".env"))
 
 DB_CONFIG = {
@@ -74,8 +76,8 @@ def lighten(hex_color: str, f: float) -> str:
 BG_COLOR = "#ffffff"
 CHART_NAME = "星环图"
 
-HEADSHOT_DIR = "/Volumes/12T/NBA/headshots"
-LOGO_DIR = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/NBAlogo"
+HEADSHOT_DIR = str(HEADSHOTS_ROOT)
+LOGO_DIR = str(REPO_ROOT) + '/NBAlogo'
 
 PORTRAIT_OPACITY = 0.55
 LOGO_OPACITY = 0.60

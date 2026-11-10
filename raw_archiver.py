@@ -32,7 +32,7 @@ from common.bridge_constants import (
 )
 
 # 归档根基准(可被测试重定向): 默认 = ARCHIVE_BASE(= ARCHIVE_ROOT 的父目录
-# /Volumes/12T/NBA), 与模板 "raw_archive/..." 拼接即得 <ARCHIVE_ROOT>/br|espn/...。
+# <数据盘根>), 与模板 "raw_archive/..." 拼接即得 <ARCHIVE_ROOT>/br|espn/...。
 # 测试里通过 raw_archiver.PROJECT_ROOT = tmp_dir 隔离, 避免污染真实归档。
 PROJECT_ROOT = ARCHIVE_BASE
 

@@ -4,7 +4,9 @@ import re
 import psycopg2
 from psycopg2 import sql
 
-ENV_PATH = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/.env"
+from common.nba_paths import ENV_FILE
+
+ENV_PATH = str(ENV_FILE)
 cfg = {}
 for line in open(ENV_PATH, encoding="utf-8"):
     line = line.strip()

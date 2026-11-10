@@ -16,13 +16,15 @@
 import os
 import sys
 
-sys.path.insert(0, "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13")
+from common.nba_paths import ENV_FILE, REPO_ROOT
+
+sys.path.insert(0, str(REPO_ROOT))
 import psycopg2
 
 
 def conn():
     pw = ""
-    with open("/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/.env") as f:
+    with open(str(ENV_FILE)) as f:
         for line in f:
             if line.startswith("DB_PASSWORD="):
                 pw = line.strip().split("=", 1)[1]

@@ -11,10 +11,15 @@ transaction and is reversible: the pre-backfill snapshot table
 player_gamelog_bak_pid_20260807 still exists as a rollback point.
 """
 import os
+import sys
+from pathlib import Path
 
 import psycopg2
 
-ROOT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from common.nba_paths import REPO_ROOT
+
+ROOT = str(REPO_ROOT)
 SLUG = "holmeda01"
 
 

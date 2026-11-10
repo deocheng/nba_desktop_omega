@@ -6,6 +6,10 @@ import json
 import os
 import sys
 import time
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from common.nba_paths import REPO_ROOT
 
 sys.stdout.reconfigure(encoding="utf-8")
 for k in ("HTTP_PROXY","HTTPS_PROXY","http_proxy","https_proxy","ALL_PROXY","all_proxy"):
@@ -14,7 +18,7 @@ import psycopg2
 from curl_cffi import requests
 from psycopg2.extras import execute_batch
 
-ROOT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
+ROOT = str(REPO_ROOT)
 PW = "R!h0N-ctlg=xB01V_-1VJcFeCCuBjS6UCvV1"
 DB = dict(host="127.0.0.1", port=5433, dbname="nba", user="postgres", password=PW)
 CDN = "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_{gid}.json"

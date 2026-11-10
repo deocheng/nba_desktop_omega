@@ -33,7 +33,7 @@ advanced / adj_shooting / team_misc / team_and_opponent，及其 Playoffs 的
         --season 2026 --dry-run
     BROWSER_BACKEND=cdp CHROME_CDP_URL=http://127.0.0.1:9222 \
         .venv/bin/python external_crawler/crawler/crawl_br_team_pbp.py \
-        --season 2026 --resume --cache-dir /Volumes/12T/NBA/br_team_pbp_cache
+        --season 2026 --resume --cache-dir <数据盘根>/br_team_pbp_cache
 """
 import logging
 import sys

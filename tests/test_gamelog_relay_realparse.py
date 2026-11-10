@@ -53,7 +53,7 @@ def _build_sandbox(root: Path) -> Path:
     """拷脚本到临时目录并放入桩爬虫，返回脚本路径。
 
     ⚠️ 不做**文本改写**（旧实现靠 str(REPO_ROOT) 字面量替换脚本里的硬编码路径）：
-       脚本里的路径是本机生产路径 /Volumes/12T/...，在 CI（checkout 到别处）
+       脚本里的路径是本机生产路径 <数据盘根>/...，在 CI（checkout 到别处）
        替换**不会命中** → 脚本仍会 cd 回真实仓库并跑**真爬虫**（实测：真爬虫
        被启动、日志被追加到真实仓库）。现改为脚本自身支持环境变量
        （REPO_ROOT / LOG / HEADSHOT_LOG / PY / GUARD_PATTERN），测试只注入 env，

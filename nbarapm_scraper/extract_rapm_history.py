@@ -30,14 +30,18 @@ import json
 import os
 import re
 import sys
+from pathlib import Path
 
 import psycopg2
 import psycopg2.extras as extras
 from psycopg2 import sql
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from common.nba_paths import ENV_FILE
+
 ENV_PATH = os.environ.get(
     "FIBA_ENV",
-    "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/.env",
+    str(ENV_FILE),
 )
 HERE = os.path.dirname(os.path.abspath(__file__))
 CACHE_DIR = os.path.join(HERE, "raw_archive")

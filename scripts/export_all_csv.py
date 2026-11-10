@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Export all DB tables to CSV in /Volumes/12T/NBA/backups/csv/.
+"""Export all DB tables to CSV in <数据盘根>/backups/csv/.
 
 - Regular tables (relkind='r') and partitioned parents (relkind='p') are exported.
 - Partition children are skipped (parent SELECT covers them).
@@ -11,13 +11,15 @@ import sys
 import time
 from pathlib import Path
 
+from common.nba_paths import DATA_ROOT
+
 sys.path.insert(0, ".")
 from dotenv import load_dotenv
 
 load_dotenv()
 import psycopg2
 
-OUT_DIR = Path("/Volumes/12T/NBA/backups/csv")
+OUT_DIR = Path(str(DATA_ROOT) + '/backups/csv')
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 DSN = dict(host="127.0.0.1", port=5433, dbname="nba", user="postgres",

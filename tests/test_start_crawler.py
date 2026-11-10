@@ -20,6 +20,8 @@ from pathlib import Path
 
 import pytest
 
+from common.nba_paths import PG_DATA_DIR
+
 PROJ = Path(__file__).resolve().parent.parent
 SRC = PROJ / "start_crawler.sh"
 REAL_HS = PROJ / "run_headshots_all.sh"
@@ -226,7 +228,7 @@ def test_key_constructs():
 
 def test_default_params():
     src = SRC.read_text()
-    assert 'PG_DATADIR="${PG_DATADIR:-/Users/deocheng/nba_pg}"' in src
+    assert 'PG_DATADIR="${PG_DATADIR:-' + str(PG_DATA_DIR) + '}"' in src
     assert 'PG_PORT="${PG_PORT:-5433}"' in src
     assert 'CDP_PORT="${CDP_PORT:-9222}"' in src
     assert 'CDP_PROFILE="${CDP_PROFILE:-/tmp/chrome_cdp_profile}"' in src

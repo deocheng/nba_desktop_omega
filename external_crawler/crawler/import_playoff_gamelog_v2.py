@@ -20,14 +20,18 @@ from datetime import datetime
 
 sys.stdout.reconfigure(encoding='utf-8')
 import logging
+from pathlib import Path
 
 import psycopg2
 from psycopg2.extras import execute_batch
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from common.nba_paths import REPO_ROOT
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
 logger = logging.getLogger("PlayoffGamelogV2")
 
-PROJECT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
+PROJECT = str(REPO_ROOT)
 
 
 def db_password() -> str:

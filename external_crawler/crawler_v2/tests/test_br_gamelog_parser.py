@@ -17,7 +17,9 @@ import sys
 
 import pytest
 
-ROOT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
+from common.nba_paths import REPO_ROOT
+
+ROOT = str(REPO_ROOT)
 CRAWLER_DIR = os.path.join(ROOT, "external_crawler", "crawler")
 for _p in (CRAWLER_DIR, ROOT):
     if _p not in sys.path:

@@ -7,7 +7,9 @@ import re
 
 import psycopg2
 
-ROOT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
+from common.nba_paths import REPO_ROOT
+
+ROOT = str(REPO_ROOT)
 
 def g(k):
     m = re.search(r'^%s=(.*)' % k, open(f"{ROOT}/.env").read(), re.I | re.M)

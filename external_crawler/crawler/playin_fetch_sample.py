@@ -7,8 +7,10 @@ import time
 import urllib.parse
 import urllib.request
 
+from common.nba_paths import REPO_ROOT
+
 sys.stdout.reconfigure(encoding="utf-8")
-sys.path.insert(0, "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13")
+sys.path.insert(0, str(REPO_ROOT))
 import websocket
 from bs4 import BeautifulSoup
 

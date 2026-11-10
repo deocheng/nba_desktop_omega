@@ -2,7 +2,7 @@
 
 职责：
   * 计算本地落盘路径（HEADSHOT_ROOT 下，按 player_id 命名，避免按姓名建目录的歧义）
-    —— 落盘根可用 ``NBA_HEADSHOT_ROOT`` 覆盖（默认 /Volumes/12T/NBA/headshots），
+    —— 落盘根可用 ``NBA_HEADSHOT_ROOT`` 覆盖（默认 <数据盘根>/headshots），
     与归档根 ``NBA_ARCHIVE_ROOT`` 同一套口径
   * 从 BR 球员页 HTML 抽取头像 ``<img>`` 的 src（已实测选择器 ``#info .media-item img``）
   * 两级稳健下载：
@@ -25,13 +25,15 @@ import os
 import urllib.parse
 from pathlib import Path
 
+from common.nba_paths import HEADSHOTS_ROOT
+
 logger = logging.getLogger(__name__)
 
 # ── 常量 ──────────────────────────────────────────────────────────────────
 # 落盘根：默认外置盘；可用 NBA_HEADSHOT_ROOT 覆盖（与归档根 NBA_ARCHIVE_ROOT
 # 同一套口径）。可覆盖的必要性：CI runner 上 /Volumes 不可写，硬编码绝对路径
 # 会让「落盘」类用例在 CI 上直接 PermissionError。
-DEFAULT_HEADSHOT_ROOT = "/Volumes/12T/NBA/headshots"
+DEFAULT_HEADSHOT_ROOT = str(HEADSHOTS_ROOT)
 HEADSHOT_ROOT = Path(os.environ.get("NBA_HEADSHOT_ROOT", DEFAULT_HEADSHOT_ROOT))
 SELECTOR = "#info .media-item img"                 # 已实测验证（Architect 实测 LeBron James 命中 1 个 <img>）
 BR_HEADSHOT_HOST = "https://www.basketball-reference.com"

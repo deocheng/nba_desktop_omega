@@ -34,9 +34,11 @@ import time
 
 import psycopg2
 
-PROJECT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
-STATE_FILE = "/Volumes/12T/NBA/crawl_orchestrator_state.json"
-LOG = "/Volumes/12T/NBA/crawl_orchestrator.log"
+from common.nba_paths import DATA_ROOT, REPO_ROOT
+
+PROJECT = str(REPO_ROOT)
+STATE_FILE = str(DATA_ROOT) + '/crawl_orchestrator_state.json'
+LOG = str(DATA_ROOT) + '/crawl_orchestrator.log'
 POLL_S = int(os.environ.get("ORCH_POLL_S", "30"))
 ROTATE_AFTER_S = int(os.environ.get("ORCH_ROTATE_AFTER_S", "1800"))  # 主动轮换窗口
 WEDGED_S = int(os.environ.get("ORCH_WEDGED_S", "900"))               # 无进度判 wedged
@@ -219,7 +221,7 @@ def run_task(task: dict, once: bool) -> str:
     """启动并监控一个任务。返回 'done' / 'rotate' / 'wedged'。"""
     name = task["name"]
     env = build_child_env()
-    log_path = task.get("log") or f"/Volumes/12T/NBA/{name}_crawl.log"
+    log_path = task.get("log") or f"{str(DATA_ROOT)}/{name}_crawl.log"
     lf = open(log_path, "a")
     log(f"  -> 启动 [{name}]: {' '.join(task['cmd'])}")
     proc = subprocess.Popen(

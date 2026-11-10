@@ -15,6 +15,8 @@
 """
 from typing import Optional
 
+from common.nba_paths import DATA_ROOT, HEADSHOTS_ROOT
+
 # ── 探针 SQL ────────────────────────────────────────────────────────────
 # 【数据四性铁律 · 统一】探针口径必须与对应爬虫 enumerate_pairs() 的口径**逐字一致**，
 # 否则调度器与爬虫互相打架（爬虫认为无缺口→空转退出；探针认为有缺口→永不标 done）。
@@ -158,7 +160,7 @@ TASKS = [
         "deps": [],
         "priority": 90,
         "probe_sql": _SHOOTING_GAP_SQL,
-        "log": "/Volumes/12T/NBA/shooting_crawl.log",
+        "log": str(DATA_ROOT) + '/shooting_crawl.log',
     },
     {
         "name": "player_shot_chart",
@@ -169,7 +171,7 @@ TASKS = [
         "deps": [],
         "priority": 100,
         "probe_sql": _SHOTCHART_GAP_SQL,
-        "log": "/Volumes/12T/NBA/shot_chart_crawl.log",
+        "log": str(DATA_ROOT) + '/shot_chart_crawl.log',
     },
     {
         "name": "player_page_extras",
@@ -177,7 +179,7 @@ TASKS = [
         "deps": [],
         "priority": 70,
         "probe_sql": _PAGE_EXTRAS_GAP_SQL,
-        "log": "/Volumes/12T/NBA/player_page_extras_crawl.log",
+        "log": str(DATA_ROOT) + '/player_page_extras_crawl.log',
     },
     {
         "name": "team_page_extras",
@@ -185,7 +187,7 @@ TASKS = [
         "deps": [],
         "priority": 60,
         "probe_sql": None,
-        "log": "/Volumes/12T/NBA/team_page_extras_crawl.log",
+        "log": str(DATA_ROOT) + '/team_page_extras_crawl.log',
     },
     {
         "name": "team_lineups",
@@ -194,7 +196,7 @@ TASKS = [
         "deps": [],
         "priority": 50,
         "probe_sql": None,
-        "log": "/Volumes/12T/NBA/team_lineups_crawl.log",
+        "log": str(DATA_ROOT) + '/team_lineups_crawl.log',
     },
     {
         "name": "team_referees",
@@ -203,7 +205,7 @@ TASKS = [
         "deps": [],
         "priority": 50,
         "probe_sql": None,
-        "log": "/Volumes/12T/NBA/team_referees_crawl.log",
+        "log": str(DATA_ROOT) + '/team_referees_crawl.log',
     },
     {
         "name": "team_pbp",
@@ -212,7 +214,7 @@ TASKS = [
         "deps": [],
         "priority": 40,
         "probe_sql": None,
-        "log": "/Volumes/12T/NBA/team_pbp_crawl.log",
+        "log": str(DATA_ROOT) + '/team_pbp_crawl.log',
     },
     {
         "name": "headshots",
@@ -220,7 +222,7 @@ TASKS = [
         "deps": [],
         "priority": 30,
         "probe_sql": None,
-        "log": "/Volumes/12T/NBA/headshots_crawl.log",
+        "log": str(DATA_ROOT) + '/headshots_crawl.log',
     },
     {
         "name": "nicknames",
@@ -228,7 +230,7 @@ TASKS = [
         "deps": [],
         "priority": 30,
         "probe_sql": _NICKNAME_GAP_SQL,
-        "log": "/Volumes/12T/NBA/nicknames_crawl.log",
+        "log": str(DATA_ROOT) + '/nicknames_crawl.log',
     },
     {
         "name": "bio_ext",
@@ -236,7 +238,7 @@ TASKS = [
         "deps": [],
         "priority": 30,
         "probe_sql": _BIO_EXT_GAP_SQL,
-        "log": "/Volumes/12T/NBA/bio_ext_crawl.log",
+        "log": str(DATA_ROOT) + '/bio_ext_crawl.log',
     },
     {
         "name": "epm",
@@ -244,7 +246,7 @@ TASKS = [
         "deps": [],
         "priority": 20,
         "probe_sql": _EPM_GAP_SQL,
-        "log": "/Volumes/12T/NBA/epm_crawl.log",
+        "log": str(DATA_ROOT) + '/epm_crawl.log',
     },
     {
         "name": "epm_actual",
@@ -252,7 +254,7 @@ TASKS = [
         "deps": [],
         "priority": 20,
         "probe_sql": _EPM_ACTUAL_GAP_SQL,
-        "log": "/Volumes/12T/NBA/epm_actual_crawl.log",
+        "log": str(DATA_ROOT) + '/epm_actual_crawl.log',
     },
     {
         "name": "epm_history",
@@ -260,7 +262,7 @@ TASKS = [
         "deps": [],
         "priority": 15,
         "probe_sql": _EPM_HISTORY_GAP_SQL,
-        "log": "/Volumes/12T/NBA/epm_history_crawl.log",
+        "log": str(DATA_ROOT) + '/epm_history_crawl.log',
     },
     # ── G2 team_shooting：已下线，勿重新接入（2026-08-05 实证）────────────
     # crawl_br_team_shooting.py 的前提是「BR 主队页含 team_shooting /
@@ -278,7 +280,7 @@ TASKS = [
         "deps": [],
         "priority": 45,
         "probe_sql": None,
-        "log": "/Volumes/12T/NBA/team_on_off_crawl.log",
+        "log": str(DATA_ROOT) + '/team_on_off_crawl.log',
     },
 ]
 

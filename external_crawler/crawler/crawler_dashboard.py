@@ -18,6 +18,8 @@ NBA 爬虫控制面板（本地 Web UI，纯标准库，无外部依赖）
 import os as _os
 import sys as _sys
 
+from common.nba_paths import REPO_ROOT
+
 # 仓库根由**文件位置**反推（external_crawler/crawler/ → 上溯两级），
 # 不写死绝对路径 —— 换机器/换挂载点也能跑。
 _REPO_ROOT = _os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
@@ -39,7 +41,7 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-ROOT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
+ROOT = str(REPO_ROOT)
 CRAWLER = os.path.join(ROOT, "external_crawler", "crawler")
 STANDALONE = os.path.join(CRAWLER, "start_crawler_standalone.sh")
 MASTER_LOG = os.path.join(ROOT, "logs", "recrawl_2004_2026_autofill.log")

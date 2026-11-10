@@ -9,7 +9,9 @@ import os
 import re
 import unicodedata
 
-BASE = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
+from common.nba_paths import REPO_ROOT
+
+BASE = str(REPO_ROOT)
 OUT_MD  = os.path.join(BASE, "analysis_nicknames_bz.md")
 OUT_JSON = os.path.join(BASE, "notes_enriched.json")
 

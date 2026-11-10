@@ -9,7 +9,7 @@
   * ``fetch_image_via_cdp``：mock CDP 取字节成功；非图片字节 → None（Tier-2 magic 校验）
 
 所有落盘均通过 monkeypatch 把 ``HEADSHOT_ROOT`` 指向 pytest 的 tmp_path，
-绝不触碰真实 /Volumes/12T，绝不发生真实网络请求（curl_cffi / requests 均被 mock）。
+绝不触碰真实<数据盘根>，绝不发生真实网络请求（curl_cffi / requests 均被 mock）。
 """
 from __future__ import annotations
 
@@ -19,6 +19,8 @@ import types
 from pathlib import Path
 
 import pytest
+
+from common.nba_paths import HEADSHOTS_ROOT
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in __import__("sys").path:
@@ -49,7 +51,7 @@ CF_HTML = (
     "</body></html>"
 ).encode("utf-8")
 
-REAL_ROOT = Path("/Volumes/12T/NBA/headshots")
+REAL_ROOT = Path(str(HEADSHOTS_ROOT))
 
 PLAYER_ID = "jamesle01"
 IMG_URL = "https://www.basketball-reference.com/req/202605210/images/headshots/jamesle01.jpg"
@@ -102,7 +104,7 @@ def test_is_valid_image_false_for_cf_challenge_html():
 
 # ── headshot_path_for ─────────────────────────────────────────────────────
 def test_real_root_constant_matches_spec():
-    """落盘根目录必须是 /Volumes/12T/NBA/headshots（不与现有按姓名目录冲突）。"""
+    '落盘根目录必须是 ' + str(HEADSHOTS_ROOT) + '（不与现有按姓名目录冲突）。'
     assert str(store.HEADSHOT_ROOT) == str(REAL_ROOT)
 
 

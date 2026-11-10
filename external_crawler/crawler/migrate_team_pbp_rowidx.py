@@ -27,10 +27,14 @@ v2 爬虫（crawl_br_team_pbp_v2.py）冲突键加入 row_idx，本迁移负责�
 import re
 import sys
 from datetime import datetime
+from pathlib import Path
 
 import psycopg2
 
-PROJECT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from common.nba_paths import REPO_ROOT
+
+PROJECT = str(REPO_ROOT)
 
 
 def db_password() -> str:

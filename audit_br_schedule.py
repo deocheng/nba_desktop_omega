@@ -83,6 +83,8 @@ from collections import Counter, defaultdict
 
 import psycopg2
 
+from common.nba_paths import WORKSPACE_ROOT
+
 # --- path setup（与 br_fill_pbp.py 一致：把项目根加入 sys.path[0]） ---
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -120,7 +122,7 @@ DB_CONN = dict(DB)
 DB_CONN.setdefault("connect_timeout", 30)
 
 SCHED_URL = "https://www.basketball-reference.com/leagues/NBA_{yyyy}_games.html"
-REPORT_PATH = "/Users/deocheng/WorkBuddy/2026-07-13-10-47-43/audit_output/dirty_games_report.json"
+REPORT_PATH = str(WORKSPACE_ROOT) + '/audit_output/dirty_games_report.json'
 
 MAX_PAGE_RETRY = 3
 MAX_DRIVER_RETRY = 4

@@ -36,8 +36,10 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
+from common.nba_paths import ENV_FILE, REPO_ROOT
+
 sys.stdout.reconfigure(encoding="utf-8")
-sys.path.insert(0, "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13")
+sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import psycopg2
@@ -361,7 +363,7 @@ def parse_box_tables_meta(html, game):
 # ── DB ─────────────────────────────────────────────────────────────────────
 def db_conn():
     env = {}
-    with open("/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/.env") as f:
+    with open(str(ENV_FILE)) as f:
         for line in f:
             if line.startswith("DB_PASSWORD="):
                 env["pw"] = line.strip().split("=", 1)[1]

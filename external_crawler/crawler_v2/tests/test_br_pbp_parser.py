@@ -19,7 +19,9 @@ import sys
 import pytest
 from bs4 import BeautifulSoup
 
-ROOT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
+from common.nba_paths import REPO_ROOT
+
+ROOT = str(REPO_ROOT)
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 

@@ -3,7 +3,9 @@ import os
 import psycopg2
 from dotenv import load_dotenv
 
-ENV_PATH = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/.env"
+from common.nba_paths import ENV_FILE
+
+ENV_PATH = str(ENV_FILE)
 load_dotenv(ENV_PATH)
 pw = os.getenv("DB_PASSWORD")
 

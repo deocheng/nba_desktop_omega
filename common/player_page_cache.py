@@ -19,6 +19,8 @@ import tempfile
 from pathlib import Path
 from typing import Optional
 
+from common.nba_paths import ARCHIVE_ROOT
+
 logger = logging.getLogger(__name__)
 
 # ── 共享 Cloudflare 防撞 + 自恢复熔断器 ──
@@ -31,8 +33,8 @@ from common.cf_breaker import CFBreaker  # noqa: E402
 _BREAKER = CFBreaker()
 
 # 缓存根(绝对路径): 经环境变量 NBA_ARCHIVE_ROOT 重定向到外置 12T 盘;
-# 默认 /Volumes/12T/NBA/raw_archive → CACHE_ROOT = <NBA_ARCHIVE_ROOT>/br_players
-_ARCHIVE_ROOT = os.environ.get("NBA_ARCHIVE_ROOT", "/Volumes/12T/NBA/raw_archive")
+# 默认 <数据盘根>/raw_archive → CACHE_ROOT = <NBA_ARCHIVE_ROOT>/br_players
+_ARCHIVE_ROOT = os.environ.get("NBA_ARCHIVE_ROOT", str(ARCHIVE_ROOT))
 CACHE_ROOT = Path(_ARCHIVE_ROOT) / "br_players"
 
 BR_HOST = "https://www.basketball-reference.com"

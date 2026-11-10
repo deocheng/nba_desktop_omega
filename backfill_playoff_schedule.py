@@ -3,7 +3,7 @@
 Backfill NBA playoff schedule rows into `dim_games` for seasons whose
 postseason schedule was missing, using the BR schedule cache JSONs.
 
-Source : /Users/deocheng/WorkBuddy/NBA_BR_爬虫/audit_output/season_<Y>.json
+Source : ~/WorkBuddy/NBA_BR_爬虫/audit_output/season_<Y>.json
          each record with "issues" containing "MISSING" is a game absent from dim_games.
 Target : dim_games  (game_id=YYYYMMDD0HOME, 12-char; home_team_id = NBA numeric id string)
 
@@ -28,9 +28,11 @@ from collections import Counter
 import psycopg2
 from dotenv import load_dotenv
 
-PROJECT_ROOT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
+from common.nba_paths import REPO_ROOT, WORKSPACE_PARENT
+
+PROJECT_ROOT = str(REPO_ROOT)
 ENV_PATH = os.path.join(PROJECT_ROOT, ".env")
-CACHE_ROOT = "/Users/deocheng/WorkBuddy/NBA_BR_爬虫/audit_output"
+CACHE_ROOT = str(WORKSPACE_PARENT) + '/NBA_BR_爬虫/audit_output'
 
 # playoff window lower bound per target season (first possible playoff date)
 PO_START = {

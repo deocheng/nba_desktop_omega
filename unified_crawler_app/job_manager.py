@@ -14,8 +14,8 @@ Design rules (inherited from the crawler-control-panel pattern):
 This module is CONTROL-ONLY: it never re-implements the crawlers. It shells
 out to the existing, validated scripts:
   * Metrics snapshot:  scripts/daily_metrics_snapshot.py, scripts/enrich_metrics_team_abbr.py
-  * FIBA:             /Volumes/12T/NBA/fiba_scraper/daily_scrape_fiba.py
-                       /Volumes/12T/NBA/fiba_scraper/batch_scrape_fiba.py
+  * FIBA:             <数据盘根>/fiba_scraper/daily_scrape_fiba.py
+                       <数据盘根>/fiba_scraper/batch_scrape_fiba.py
   * BR:               launched/stopped via osascript (see server.py), not a job.
 """
 import io
@@ -28,6 +28,8 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+from common.nba_paths import DATA_ROOT
+
 APP_DIR = Path(__file__).resolve().parent
 ROOT = APP_DIR.parent                      # project root (nba_desktop_omega_mac_migrate_...)
 LOGS_DIR = APP_DIR / "logs"
@@ -39,7 +41,7 @@ SNAPSHOT_SCRIPT = "scripts/daily_metrics_snapshot.py"
 ENRICH_SCRIPT = "scripts/enrich_metrics_team_abbr.py"
 
 # ---- FIBA (absolute, lives OUTSIDE the project root) ----
-FIBA_DIR = "/Volumes/12T/NBA/fiba_scraper"
+FIBA_DIR = str(DATA_ROOT) + '/fiba_scraper'
 FIBA_DAILY = os.path.join(FIBA_DIR, "daily_scrape_fiba.py")
 FIBA_BATCH = os.path.join(FIBA_DIR, "batch_scrape_fiba.py")
 

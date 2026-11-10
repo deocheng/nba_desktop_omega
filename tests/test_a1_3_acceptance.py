@@ -104,7 +104,7 @@ def test_exists_match_requires_no_rewrite(db_available):
 #
 # 因此本用例改为断言**当前仍可独立验证的不变式**，并把逐行等価性核验结论
 # 落在 change-log：
-#   2026-11-10 实测：把权威 dump（/Volumes/12T/NBA/backups/nba_full_20261023_013448.dump，
+#   2026-11-10 实测：把权威 dump（<数据盘根>/backups/nba_full_20261023_013448.dump，
 #   2026-10-23 全库备份）中的 dim_draft_history 恢复到临时库 nba_draft_cmp，
 #   与生产库按 (season, pick_overall, player_id, player_name, player_id_orig)
 #   排序导出后逐行 diff → **8446 行、0 差异**（live == 权威备份）。

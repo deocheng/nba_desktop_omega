@@ -24,8 +24,10 @@ import re
 import sys
 from pathlib import Path
 
-sys.path.insert(0, "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13")
-sys.path.insert(0, "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/external_crawler/crawler")
+from common.nba_paths import REPO_ROOT
+
+sys.path.insert(0, str(REPO_ROOT))
+sys.path.insert(0, str(REPO_ROOT) + '/external_crawler/crawler')
 import psycopg2
 from bs4 import BeautifulSoup
 

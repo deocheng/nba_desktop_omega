@@ -10,13 +10,15 @@ import glob
 import os
 import sys
 
+from common.nba_paths import DATA_ROOT
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 from src.pipeline import run  # noqa: E402
 
 VIDEO_EXTS = ("*.mp4", "*.mkv", "*.ts", "*.mov", "*.avi", "*.webm")
-BASE = "/Volumes/12T/NBA/篮球训练"
+BASE = str(DATA_ROOT) + '/篮球训练'
 CONFIG = os.path.join(HERE, "config.yaml")
 
 

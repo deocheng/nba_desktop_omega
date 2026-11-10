@@ -44,6 +44,8 @@ import psycopg2
 import psycopg2.extras
 from bs4 import BeautifulSoup
 
+from common.nba_paths import DATA_ROOT
+
 # 确保仓库根（本文件向上一级即 common/ 的父目录 = 仓库根）在 sys.path，
 # 使 ``import common.*`` 与 ``from common.browser import ...`` 可解析。
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -194,7 +196,7 @@ class BRTeamPageCrawler:
                  start_season: Optional[int] = None) -> None:
         # 默认缓存根统一放到 12T 数据盘，避免占项目盘；可用 --cache-dir 覆盖。
         self.cache_dir = cache_dir or os.path.join(
-            "/Volumes/12T/NBA", f"br_{self.DOMAIN}_cache")
+            str(DATA_ROOT), f"br_{self.DOMAIN}_cache")
         self.dry_run = dry_run
         self.resume = resume
         # 全量爬取起始赛季（--start-season 覆盖 FULL_CRAWL_START）。
@@ -625,7 +627,7 @@ class BRTeamPageCrawler:
             return 0
         # ── 队标抽取（logo 管线；仅 Regular 首遍，幂等+节流）──
         # 队页 HTML 已就绪即抽取 <img class="teamlogo"> src 并节流落盘到
-        # /Volumes/12T/NBA/logo/{slug}-{season}.png。Playoffs 遍复用同页 HTML，
+        # <数据盘根>/logo/{slug}-{season}.png。Playoffs 遍复用同页 HTML，
         # 故只走 Regular 一遍；失败绝不中断抓取（独立 try）。
         if season_type == "Regular":
             try:

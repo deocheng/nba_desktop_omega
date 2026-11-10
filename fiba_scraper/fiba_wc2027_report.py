@@ -19,12 +19,16 @@ import json
 import os
 import re
 import sys
+from pathlib import Path
 
 import psycopg2
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from common.nba_paths import ENV_FILE
+
 ENV_PATH = os.environ.get(
     "FIBA_ENV",
-    "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13/.env",
+    str(ENV_FILE),
 )
 COMPETITION_ID = int(sys.argv[1]) if len(sys.argv) > 1 else 208943
 OUT = sys.argv[2] if len(sys.argv) > 2 else os.path.join(

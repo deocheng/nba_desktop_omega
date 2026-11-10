@@ -32,10 +32,14 @@ import argparse
 import json
 import os
 import sys
+from pathlib import Path
 
 import psycopg2
 
-ROOT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from common.nba_paths import REPO_ROOT
+
+ROOT = str(REPO_ROOT)
 CACHE = os.path.join(ROOT, "external_crawler/crawler/gamelog_cache")
 # ── DB 口令：只从环境变量 / 项目根 .env 取，脚本内不落明文 ──────────
 def _load_dotenv() -> None:

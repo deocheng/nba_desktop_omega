@@ -12,13 +12,17 @@ import sys
 import time
 import urllib.parse
 import urllib.request
+from pathlib import Path
 
 import websocket
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from common.nba_paths import REPO_ROOT
 
 sys.stdout.reconfigure(encoding="utf-8")
 import psycopg2
 
-ROOT = "/Volumes/12T/NBA/nba_desktop_omega_mac_migrate_2026-07-13"
+ROOT = str(REPO_ROOT)
 PW = "R!h0N-ctlg=xB01V_-1VJcFeCCuBjS6UCvV1"
 DB = dict(host="127.0.0.1", port=5433, dbname="nba", user="postgres", password=PW)
 CDP = "http://127.0.0.1:9223"
