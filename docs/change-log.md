@@ -2,6 +2,111 @@
 
 All changes to LOCKED phases must be recorded here (v8 §1 Change Request mechanism).
 
+## 2026-11-10 — CI 工程化：DB 依赖三层门控 + schema-only postgres（工程改进，非 v8 phase 交付）
+
+### 2026-11-10 — DB 依赖分层 + CI 接入 schema-only postgres + 两处真 bug 修复 + dim_teams 缺陷修复
+**Status**: ✅ 已落地（CI run 待复核）
+
+**背景 — 为什么 DB 依赖此前在 CI 里全部 skip**：
+CI 的 test job 此前**刻意不提供 postgres 服务**（当时的实测结论是「起空库 → 105 failed + 3 errors」）。
+但那组数据只回答了「起库 vs 不起库」，没有回答「DB 依赖到底值不值得跑」。本轮做了三档对照实测：
+
+| 场景                              | passed | skipped | failed | error |
+|-----------------------------------|--------|---------|--------|-------|
+| A 不提供 postgres（不可达）        |   620 |     161 |      0 |     0 |
+| B 提供 postgres 但空库（无 schema） |   654 |      25 |     89 |    13 |
+| C 提供 postgres + schema-only      |   684 |      97 |      0 |     0 |
+
+**关键结论（本次真正的发现）**：
+- `ping()` 只跑 `SELECT 1`，**空库也能通过** → 「可连」≠「有数据」。场景 B 的 102 个红，
+  是把「环境缺数据」误报成「代码有 bug」—— 这正是当初决定不起库的理由，**该判断是对的**；
+- 但场景 B 犯了个错：它把「结构」和「数据」一起丢了。DDL、列类型、约束、视图、路由契约
+  这类断言**只需要库结构在**，不需要库里有数据 —— 把它们和内容断言一起 skip 等于白扔覆盖；
+- schema-only 的成本几乎为零：`psql -f db/schema.sql` 实测 **0.30s**，197 个对象，
+  与生产库 `information_schema.tables` 计数完全一致。**起库的成本被严重高估了**。
+
+**本轮改动**：
+
+1. **`db/schema.sql`（新增，14512 行 / 398KB）** — 从生产库 `pg_dump --schema-only` 导出的
+   完整 DDL，仅结构、零数据行。`\restrict` / `\unrestrict` 伪指令已剥除（PG18.3+ pg_dump 的
+   转储安全特性，老版本 psql 不识别会直接报错，而 CI 的镜像版本不可控）。
+   头部注释写明唯一生成方式与两项必做核对。
+2. **`tools/verify_ci_schema.sh`（新增）** — 在干净库上做往返还原并核对表数，
+   退出码非 0 即失败。提交前本地自检与 CI 口径同一套命令。
+3. **`.github/workflows/ci.yml`** — test job 新增 `postgres:18` service（trust 认证、
+   映射到 **5433** 而非默认 5432，因 v7 约定 `DB_PORT=5433` 有断言覆盖），
+   新增「还原 schema」与「校验表数 ≥190」两步，`ON_ERROR_STOP=1` 保证
+   schema 还原失败直接让 job 变红而不是留下一堆看不懂的 ERROR。
+4. **`tests/conftest.py`** — 门控从两档升为**三档**：
+   - `needs_db` → 需要「可连 **且** 核心表存在」（schema 完整）；
+   - `needs_data` → 需要「表存在 **且** 有行」（内容断言）；
+   - 新增 `db_has_schema` fixture（探 `information_schema.tables`），把
+     「有 schema」与「有数据」正式分开 —— 这是本次能同时做到「结构真跑 + 内容 skip」的关键。
+5. **68 个用例重新标注 `needs_data`**（56 个标注单元，覆盖 19 个文件）——
+   这些用例此前被标成 `needs_db` / 用 `db_available` 守卫，实际需要真实数据。
+   判定方法：先跑三档对照拿到「仅 schema 红」清单，再逐类/逐方法用 AST 定位插入，
+   **按字节读写以保住 CRLF 文件的行尾**（`test_phase3_api_layer.py` 否则会产生 983 行噪音 diff）。
+   标注后 CI 不再把「环境缺数据」误报成「代码有 bug」，本地真库回归也少一批噪音红。
+
+**FIX（两处真实代码缺陷，非测试问题）**：
+
+1. **`common/bridge_constants.py` — `PG_DSN` / `get_pg_conn()` 的连接目标与探活口径分叉**
+   原实现把 `host=localhost port=5433` 写死在 DSN 里，而探活走的是
+   `config.DB_HOST` / `config.DB_PORT`（读 env）。两者一旦不同步，就会出现
+   「探活说连得上、实际连到另一台实例」—— 最难排查的一类假绿/假红。
+   本轮实测即命中：模拟环境 `DB_HOST=192.168.2.5` 下，`tests/test_bridge_qa.py` 的
+   `conn` fixture 探活通过却连到生产库 → 10 个 ERROR。改为跟随 env 后全部转绿。
+   **生产行为零变化**：默认值逐字相同（localhost / 5433 / nba / postgres），
+   且生产 `.env` 的取值正是这四个。
+2. **`backend/services/clutch_engine/tests/test_service.py` — 赛季上界写死导致每年必失效**
+   `assert min(seasons) >= 1946 and max(seasons) <= 2026` 把「当时的最新赛季」写死了。
+   `dim_games.season` 用**赛季结束年**口径（2026-27 赛季 → `season=2027`），
+   2026-11 实测库里已有 2027 赛季的 145 场 → 硬编码上界当天失效。
+   改为按当前日期动态推导：`season_end = year + 1 if month >= 7 else year`。
+
+**FIX（数据层，1 行）** — `dim_teams` 菲尼克斯太阳双 active 缺陷
+- **现象**：`tests/test_team_names.py::test_check_against_db_alignment` 红，
+  `check_against_db()` 返回 `extra_in_db = ['PHX']`。
+- **根因**：`dim_teams` 里太阳有两行且**都是 `is_active = true`** ——
+  id=30 `PHO`（BR 站队码）与 id=37 `PHX`（规范缩写别名，2026-07-29 新增）。
+  其余 5 支改名球队一律是「现行行 active + 历史行 inactive」
+  （CHO/CHH、BRK/NJN、NOP/NOH+NOK、OKC/SEA、MEM/VAN），
+  太阳是唯一例外 → 违反 `list_all_teams()` 文档承诺的「30 NBA teams」，
+  `team_mapping`（`dim_teams` 的视图）会返回 31 支球队。
+- **修复**：`UPDATE dim_teams SET is_active = false WHERE team_abbr = 'PHX';`
+  （PHO 保持 active —— 它是 BR 站现行队码，与 CHO/BRK/OKC/MEM/NOP 同级）。
+- **核对**：active 球队数 30 ✓ / `team_mapping` active 30 ✓ / 总行数 37 不变 ✓ /
+  `check_against_db()` 双空 ✓ / `tests/test_team_names.py` 8 passed ✓。
+- **可逆**：备份表 `dim_teams_activefix_bak_20261110` 已按仓库约定「用完即弃」删除；
+  权威备份是 `backups/nba_full_*.dump`。反向 SQL：
+  `UPDATE dim_teams SET is_active = true WHERE team_abbr = 'PHX';`
+- **未做（有意）**：`current_code` 的语义在这张表里历史行与现行行不一致
+  （CHH/NOH/SEA/VAN 等历史行的 `current_code` 指向自己），PHX 行指向 `PHO`。
+  归一化涉及 6+ 行、语义需先定标准，**不在本轮范围**，留作独立治理项。
+
+**防误用** — `nba_schema_only.sql`（初版提交留下的 PG 17.9 快照，93 个对象）
+已加头部提示：它是**历史快照、与生产库相差 104 个对象**，勿用于 CI/环境搭建；
+当前权威 schema 来源是 `db/schema.sql`。按仓库铁律**不移动、不重命名、不删除**既有文件。
+
+**VERIFY**：
+- CI 模拟（干净 checkout + 一次性 postgres + `db/schema.sql` 还原，端口 5433）：
+  **0 failed / 684 passed / 97 skipped**
+- 本地真实库回归：29 failed / 751 passed / 2 skipped（修复前 31 failed / 748 passed）
+- `ruff check` 全仓 0 违规；CI workflow YAML 解析通过；service 端口与 `DB_PORT` 对齐核对通过
+- `tools/verify_ci_schema.sh`：还原零错误、表数与生产库一致（197=197）
+
+**🔴 遗留与边界（诚实记录）**：
+- **CI 绿只代表「不依赖生产数据」的部分**。96 个 skip 里是确证需要真实数据的用例；
+  数据内容层回归目前仍靠本地真实库覆盖，**后续应加 nightly job**（对生产 dump 的子集跑）。
+- 灌种子数据进 CI 不可行：`dim_games` 纯数据 34MB、`player_gamelog` 263MB，
+  既违反「数据文件不入库」铁律，体积也不可接受 → 数据层 CI 覆盖需另设方案。
+- 本地真实库仍有 **29 failed**，全部是数据内容层的历史存量断言
+  （phase82b 智能层、entity_loader/entity_api 的月份分组、phase05/phase1 批量加载、
+  analytics_builder API 契约、ESPN 网络依赖等），**本轮只修了其中 2 个真问题**，
+  其余未做 —— 它们属于数据层治理，不是 CI 工程问题。
+
+---
+
 ## v8.3 — Analytics Workspace (in progress)
 
 First sub-phase delivered against the v8.3.1 Workspace Core PRD:
