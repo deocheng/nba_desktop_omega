@@ -323,6 +323,49 @@ else:
             check("ruff check 全仓通过", False,
                   f"{len(lines)} 处违规: " + "; ".join(lines[:4]))
 
+# 11. 路径治理（硬编码绝对路径）
+# 11a. 已跟踪 .py 不得残留用户目录/数据盘根字面量。
+#      例外只有「治理工具自身」——它们必须含字面量才能检测别人：
+#        · verify_quality_gate.py          本文件，检测用字面量
+#        · migrate_hardcoded_paths.py      迁移器的规则表（路径字面量是它的输入）
+#        · verify_path_migration_equivalence.py  校验器的白名单/路径前缀表
+PATH_TOOL_EXEMPT = {
+    "tools/verify_quality_gate.py",
+    "tools/migrate_hardcoded_paths.py",
+    "tools/verify_path_migration_equivalence.py",
+}
+tracked_py = subprocess.run(
+    ["git", "ls-files", "*.py"], cwd=ROOT, capture_output=True, text=True
+).stdout.split()
+path_offenders: list[str] = []
+for rel in tracked_py:
+    if rel in PATH_TOOL_EXEMPT:
+        continue
+    txt = read(rp(rel))
+    if "/Users/deocheng" in txt or "/Volumes/12T" in txt:
+        path_offenders.append(rel)
+check("已跟踪 .py 零硬编码绝对路径", not path_offenders,
+      ("违规: " + ", ".join(path_offenders[:6])) if path_offenders
+      else f"{len(tracked_py)} 个已跟踪 .py 全部走路径模块（豁免治理工具 "
+           f"{len(PATH_TOOL_EXEMPT)} 个）")
+
+# 11b. 路径语义等价性：迁移前后「还原比对」必须零差异。
+#      只 grep 零命中**不能**证明语义未变（拆分方式、顺序、引号风格都会影响），
+#      故必须实跑逐表达式求值比对。
+equiv = rp("tools", "verify_path_migration_equivalence.py")
+if os.path.exists(equiv):
+    rc, out = run([sys.executable, "tools/verify_path_migration_equivalence.py"])
+    m = re.search(r"受检文件\s*(\d+)\s*/\s*完全等价\s*(\d+)\s*/\s*有差异\s*(\d+)", out)
+    if rc == 0 and m:
+        checked_n, same_n, differ_n = (int(x) for x in m.groups())
+        check("路径迁移语义等价（还原比对）", differ_n == 0 and checked_n > 0,
+              f"受检 {checked_n} / 等价 {same_n} / 差异 {differ_n}")
+    else:
+        check("路径迁移语义等价（还原比对）", False,
+              (out[-240:].replace("\n", " ") or f"rc={rc}"))
+else:
+    check("路径迁移语义等价（还原比对）", None, "校验器不存在")
+
 # 汇总
 print("| 状态 | 检查项 | 证据 |")
 print("|---|---|---|")
