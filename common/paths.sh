@@ -40,16 +40,52 @@ fi
 _NBA_PATHS_SH_LOADED=1
 
 # ── 仓库根 ────────────────────────────────────────────────────────────────
-# 由调用方解析（脚本自身位置），或用环境变量覆盖。
-if [ -z "${PROJ_ROOT:-}" ]; then
-  # 退化：假设本文件在 <repo>/common/paths.sh
-  _paths_sh_dir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
-  PROJ_ROOT="$(cd "$_paths_sh_dir/.." && pwd)"
+# 🔴 **始终**从本文件自身位置推导，**不采纳外部预设的 PROJ_ROOT**：
+#     Python 侧 REPO_ROOT = `Path(common/nba_paths.py).resolve().parents[1]`
+#     （固定指向代码自身所在仓库，与 CWD 无关）。
+#     若 shell 侧采纳外部预设的 PROJ_ROOT（各脚本自己算的），
+#     两侧就可能指向**不同仓库** —— 实测第三处真实分叉。
+#     外部覆盖请用 NBA_REPO_ROOT（与 Python 侧同名同义）。
+#
+# 🔴 **必须用 `pwd -P`（物理路径）**，不能用 `pwd`（逻辑路径）：
+#     macOS 的 /tmp 是指向 /private/tmp 的符号链接 → 逻辑路径给 /tmp/...，
+#     而 Python 侧 `Path(__file__).resolve()` 给 /private/tmp/... → 两侧不一致。
+if [ -n "${NBA_REPO_ROOT:-}" ]; then
+  PROJ_ROOT="$(cd "$NBA_REPO_ROOT" && pwd -P)"
+else
+  _paths_sh_dir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd -P)"
+  PROJ_ROOT="$(cd "$_paths_sh_dir/.." && pwd -P)"
 fi
 export PROJ_ROOT
 
 # ── 数据盘根 ──────────────────────────────────────────────────────────────
-DATA_ROOT="${NBA_DATA_ROOT:-/Volumes/12T/NBA}"
+# 🔴 解析规则**必须与 Python 侧 common/nba_paths.py 的 _resolve_data_root 一致**：
+#     1. 环境变量 NBA_DATA_ROOT
+#     2. 仓库父目录（**须带特征标记校验** —— 仓库被 clone 到别处时不能误判）
+#     3. 硬编码兜底 /Volumes/12T/NBA
+#   不一致的后果（实测 CI run 42876413458）：CI 上仓库在
+#   /home/runner/work/nba_desktop_omega → Python 侧 DATA_ROOT = 其父目录，
+#   而 shell 侧仍是 /Volumes/12T/NBA → 两侧 PG 目录指向不同位置。
+#
+#   特征标记（与 Python 侧 _DATA_ROOT_MARKERS 同源）：nba_pg / raw_archive / headshots
+_data_root_has_marker() {
+  local d="$1"
+  [ -d "$d/nba_pg" ] || [ -d "$d/raw_archive" ] || [ -d "$d/headshots" ]
+}
+
+if [ -n "${NBA_DATA_ROOT:-}" ]; then
+  DATA_ROOT="$NBA_DATA_ROOT"
+else
+  _repo_parent="$(cd "$PROJ_ROOT/.." 2>/dev/null && pwd -P)"
+  if [ -n "$_repo_parent" ] && _data_root_has_marker "$_repo_parent"; then
+    DATA_ROOT="$_repo_parent"
+  else
+    # 🔴 兜底与 Python 侧一致：仓库父目录（**不是**硬编码 /Volumes/12T/NBA）。
+    #    硬编码会让 CI 上两侧指向不同位置（实测 run 42876413458 失败）。
+    DATA_ROOT="${_repo_parent:-/Volumes/12T/NBA}"
+  fi
+  unset _repo_parent
+fi
 export DATA_ROOT
 
 # ── PG 数据目录（解析顺序必须与 Python 侧一致）────────────────────────────

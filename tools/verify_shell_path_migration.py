@@ -42,9 +42,10 @@ _ENV_VARS = (
 _ABS_RE = re.compile(r"/(?:Users|Volumes)/[^\s\"'`):,;}]+")
 
 
-def _head_version(rel: str) -> str | None:
+def _head_version(rel: str, baseline_sha: str) -> str | None:
+    """取**迁移前基线**版本的源码（不是 HEAD —— HEAD 会随提交滑动）。"""
     p = subprocess.run(
-        ["git", "show", f"HEAD:{rel}"], cwd=REPO_ROOT, capture_output=True, text=True
+        ["git", "show", f"{baseline_sha}:{rel}"], cwd=REPO_ROOT, capture_output=True, text=True
     )
     if p.returncode != 0:
         return None
@@ -86,17 +87,45 @@ def main() -> int:
         if v:
             print(f"    {k:16s} = {v}")
 
+    # 🔴 文件列表必须取「**基线** → 工作区」的差异集，**不能**用 `git diff HEAD`：
+    #    shell 迁移一旦提交，HEAD=新版、diff=空 → 「受检 0 / 差异 0」= **假绿**，
+    #    门禁据此给出「什么都没验证的通过」。
+    #    与 Python 侧（tools/verify_path_migration_equivalence.py）同一口径：
+    #    旧版锚定 tools/path_baseline.txt 的固定基线 ref。
+    baseline_file = REPO_ROOT / "tools" / "path_baseline.txt"
+    baseline = ""
+    try:
+        for ln in baseline_file.read_text(encoding="utf-8").splitlines():
+            ln = ln.strip()
+            if ln and not ln.startswith("#"):
+                baseline = ln
+                break
+    except OSError:
+        baseline = ""
+    if not baseline:
+        print("❌ 无法解析迁移前基线（tools/path_baseline.txt）")
+        return 2
+    base_res = subprocess.run(
+        ["git", "rev-parse", "--verify", f"{baseline}^{{commit}}"],
+        cwd=REPO_ROOT, capture_output=True, text=True,
+    )
+    if base_res.returncode != 0:
+        print(f"❌ 迁移前基线 ref 无法解析: {baseline}")
+        return 2
+    baseline_sha = base_res.stdout.strip()
+
     changed = subprocess.run(
-        ["git", "diff", "--name-only", "HEAD"], cwd=REPO_ROOT,
+        ["git", "diff", "--name-only", baseline_sha], cwd=REPO_ROOT,
         capture_output=True, text=True,
     ).stdout.split()
     sh_files = [f for f in changed if f.endswith(".sh") and (REPO_ROOT / f).exists()]
+    print(f"  迁移前基线 {baseline} ({baseline_sha[:10]})")
 
     checked = same = differ = 0
     details: list[tuple[str, list[str]]] = []
 
     for rel in sh_files:
-        head = _head_version(rel)
+        head = _head_version(rel, baseline_sha)
         if head is None:
             continue
         working = (REPO_ROOT / rel).read_text(encoding="utf-8")
