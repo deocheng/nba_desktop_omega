@@ -73,10 +73,18 @@ class TestRunEndpoint:
 class TestRunEndpointLive:
     def test_run_real_source(self, app_client):
         from backend.services.analytics_builder_engine import ab_queries as Q
-        tables = [t["name"] for t in Q.introspect_tables()]
+        tables = Q.introspect_tables()
         assert tables
+        tbl = tables[0]
+        # 🔴 可视化节点要求 y_fields 非空 + x_field 为真实列（引擎契约，
+        #    见 ab_validation.validate_flow）。旧样本 flow 的 y_fields=[] 是
+        #    为「校验失败」用例准备的，这里按实际表结构自适应填列名。
+        num_cols = [c["name"] for c in tbl["columns"] if c["type"] in ("int", "float")]
+        assert num_cols, f"table {tbl['name']} has no numeric column to visualize"
         flow = _sample_flow()
-        flow["nodes"][0]["params"]["table"] = tables[0]
+        flow["nodes"][0]["params"]["table"] = tbl["name"]
+        flow["nodes"][1]["params"]["x_field"] = tbl["columns"][0]["name"]
+        flow["nodes"][1]["params"]["y_fields"] = [num_cols[0]]
         resp = app_client.post("/api/analytics-builder/run", json={"flow": flow})
         assert resp.status_code == 200
         body = resp.json()
@@ -98,36 +106,43 @@ class TestWorkspaceFlowCRUD:
     def test_flow_create_list_get_update_delete(self, app_client):
         ws_id = self._make_workspace(app_client)
         try:
-            # create
+            # create —— flows 端点走 envelope 契约 {code, data, message}，
+            # 业务字段在 data 下（与 backend/tests 旧副本一致）
             flow = _sample_flow()
             flow["nodes"][0]["params"]["table"] = "fact_player_season"  # may not exist; still stores definition
             resp = app_client.post(f"/api/workspaces/{ws_id}/flows", json={
                 "name": "my-flow", "definition": {"version": "1", **flow}
             })
             assert resp.status_code == 201, resp.text
-            fid = resp.json()["id"]
+            assert resp.json()["code"] == 0
+            fid = resp.json()["data"]["id"]
 
             # list
             resp = app_client.get(f"/api/workspaces/{ws_id}/flows")
             assert resp.status_code == 200
-            assert any(f["id"] == fid for f in resp.json())
+            assert resp.json()["code"] == 0
+            assert any(f["id"] == fid for f in resp.json()["data"])
 
             # get
             resp = app_client.get(f"/api/workspaces/{ws_id}/flows/{fid}")
             assert resp.status_code == 200
-            assert resp.json()["name"] == "my-flow"
-            assert resp.json()["definition_json"] is not None
+            assert resp.json()["code"] == 0
+            assert resp.json()["data"]["name"] == "my-flow"
+            assert resp.json()["data"]["definition"] is not None
 
             # update
             resp = app_client.put(f"/api/workspaces/{ws_id}/flows/{fid}", json={
                 "name": "renamed-flow"
             })
             assert resp.status_code == 200
-            assert resp.json()["name"] == "renamed-flow"
+            assert resp.json()["code"] == 0
+            assert resp.json()["data"]["name"] == "renamed-flow"
 
             # delete
             resp = app_client.delete(f"/api/workspaces/{ws_id}/flows/{fid}")
-            assert resp.status_code == 204
+            assert resp.status_code == 200
+            assert resp.json()["code"] == 0
+            assert resp.json()["data"]["deleted"] is True
             resp = app_client.get(f"/api/workspaces/{ws_id}/flows/{fid}")
             assert resp.status_code == 404
         finally:

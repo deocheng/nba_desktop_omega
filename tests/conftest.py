@@ -239,3 +239,51 @@ def pytest_collection_modifyitems(config: pytest.Config, items) -> None:
         skip = pytest.mark.skip(reason="needs_data: 数据库无数据（空表）— 跳过")
         for it in need_data:
             it.add_marker(skip)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 数据样本选取（2026-11-10）
+# -----------------------------------------------------------------------------
+# 背景：多个 entity 测试硬编码了一个「已知有某季 gamelog」的球员
+# （如 ``greenac01``）。但该 slug 在 fact_player_season_stats 中**近几个赛季
+# 已无行**，2025-26 季（season=2026）的 player_gamelog 里也没有它的记录 →
+# 用例报「聚合为空」失败，而实际是**样本已过期**，不是功能坏了。
+#
+# 本 fixture 改为从库里**动态选取**一个在指定赛季确有 gamelog 且能 JOIN 上
+# dim_games 的球员：断言的是聚合/接口结构，不是「某个特定球员的数据」，
+# 因此不该被任一球员的当前数据状态绑死。
+#
+# JOIN 键与生产代码一致（``gameid = nba_api_id::text``），保证选出的样本
+# 在测试里能拿到完整聚合（game_date / opponent / result 均非空）。
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+@pytest.fixture(scope="session")
+def player_with_gamelog():
+    """返回一个「按赛季挑样本球员」的工厂函数。
+
+    用法::
+
+        def test_x(self, player_with_gamelog):
+            pid = player_with_gamelog(2026)
+            assert pid is not None
+    """
+
+    def _pick(season: int) -> str | None:
+        from backend.core.db import batch_query
+
+        sql = """
+        SELECT g.br_player_id, count(*) AS gp
+        FROM player_gamelog g
+        JOIN dim_games d ON g.gameid = d.nba_api_id::text
+        WHERE g.season = %s
+          AND g.br_player_id IS NOT NULL
+          AND g.br_player_id <> ''
+        GROUP BY g.br_player_id
+        ORDER BY gp DESC, g.br_player_id
+        LIMIT 1
+        """
+        rows = batch_query(sql, (season,))
+        return rows[0]["br_player_id"] if rows else None
+
+    return _pick

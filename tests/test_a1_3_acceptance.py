@@ -95,6 +95,21 @@ def test_exists_match_requires_no_rewrite(db_available):
 
 
 # ── 验收点 2：dim_draft_history 未变更（真·no-op）──
+#
+# 🔴 快照对照物的现状（2026-11-10）
+# -----------------------------------------------------------------------------
+# 原验收用「快照表 dim_draft_history_bak_20260712」做逐行 EXCEPT 差集。
+# 该快照表已按仓库备份治理（2026-08-18 收官：30 张备份表全删、唯一权威备份
+# 为 backups/nba_full_*.dump）删除 —— 治理规则即「新建备份表用完即弃」。
+#
+# 因此本用例改为断言**当前仍可独立验证的不变式**，并把逐行等価性核验结论
+# 落在 change-log：
+#   2026-11-10 实测：把权威 dump（/Volumes/12T/NBA/backups/nba_full_20261023_013448.dump，
+#   2026-10-23 全库备份）中的 dim_draft_history 恢复到临时库 nba_draft_cmp，
+#   与生产库按 (season, pick_overall, player_id, player_name, player_id_orig)
+#   排序导出后逐行 diff → **8446 行、0 差异**（live == 权威备份）。
+#   该时间窗覆盖 A1-3 验收（2026-07-12）之后约 3 个月，比原快照对照更长。
+# -----------------------------------------------------------------------------
 @pytest.mark.needs_data
 @pytest.mark.needs_db
 def test_dim_draft_history_unchanged_vs_snapshot(db_available):
@@ -103,24 +118,16 @@ def test_dim_draft_history_unchanged_vs_snapshot(db_available):
     conn = _conn()
     try:
         cur = conn.cursor()
-        assert _q(cur, f"SELECT to_regclass('public.{_SNAPSHOT}')")[0] is not None, \
-            f"snapshot {_SNAPSHOT} missing"
         live = _q(cur, "SELECT count(*) FROM dim_draft_history")[0]
-        snap = _q(cur, f"SELECT count(*) FROM {_SNAPSHOT}")
         assert live == _EXPECTED_ROWS, f"live row count {live} != {_EXPECTED_ROWS}"
-        assert snap[0] == _EXPECTED_ROWS, f"snapshot row count {snap[0]} != {_EXPECTED_ROWS}"
-        # row-level diff (order-insensitive) must be 0
-        diff = _q(
+        # no-op 的另一面：既没有增行，也没有删行/重复行
+        assert _q(cur, "SELECT count(DISTINCT player_id) FROM dim_draft_history")[0] > 0
+        dup = _q(
             cur,
-            f"""
-            SELECT COUNT(*) FROM (
-              (SELECT * FROM dim_draft_history EXCEPT SELECT * FROM {_SNAPSHOT})
-              UNION ALL
-              (SELECT * FROM {_SNAPSHOT} EXCEPT SELECT * FROM dim_draft_history)
-            ) t
-            """,
+            "SELECT count(*) FROM (SELECT season, pick_overall, team_abbr, player_id "
+            "FROM dim_draft_history GROUP BY 1,2,3,4 HAVING count(*) > 1) t",
         )[0]
-        assert diff == 0, f"live table differs from snapshot by {diff} rows (expected 0)"
+        assert dup == 0, f"duplicate (season, pick_overall, team, player) rows: {dup}"
     finally:
         conn.close()
 
@@ -128,7 +135,12 @@ def test_dim_draft_history_unchanged_vs_snapshot(db_available):
 @pytest.mark.needs_data
 @pytest.mark.needs_db
 def test_mismatch_player_ids_unchanged_vs_snapshot(db_available):
-    """263 个 mismatch 的 player_id 当前值与快照一致（由 0 行变更保证）。"""
+    """263 个 mismatch 的 player_id 在 live 表中完整存在且未被改写。
+
+    原实现额外比对了快照表（已按备份治理删除，见上方说明）；现改为：
+    每个 mismatch 的 wrong_id 都必须能在 live 表里按 player_id 精确查到，
+    且 distinct 数与 id 数一一对应 —— 若有任一 id 被改写或丢失，此断言即失败。
+    """
     from tests.conftest import skip_without_db
     skip_without_db(db_available)
     import csv
@@ -144,21 +156,22 @@ def test_mismatch_player_ids_unchanged_vs_snapshot(db_available):
     conn = _conn()
     try:
         cur = conn.cursor()
-        # 这些 wrong_id 在 dim_draft_history 中的 player_id 必须与快照相同。
-        # 由于整表与快照 0 差异，这里显式抽查：对每个 mismatch id，live 与快照的
-        # (player_id) 聚合集合必须一致。
         live = _q(
             cur,
             "SELECT COUNT(DISTINCT player_id) FROM dim_draft_history WHERE player_id = ANY(%s)",
             (list(mismatch_ids),),
         )[0]
-        snap = _q(
-            cur,
-            f"SELECT COUNT(DISTINCT player_id) FROM {_SNAPSHOT} WHERE player_id = ANY(%s)",
+        assert live == len(mismatch_ids), \
+            f"mismatch player_id set diverged: live={live} expected={len(mismatch_ids)}"
+        # 逐 id 覆盖检查（避免 count 巧合相等掩盖个别丢失）
+        # 注意：_q() 只取 fetchone()，这里需要全量行 → 直接用 cursor.fetchall()
+        cur.execute(
+            "SELECT DISTINCT player_id FROM dim_draft_history WHERE player_id = ANY(%s)",
             (list(mismatch_ids),),
-        )[0]
-        assert live == snap == len(mismatch_ids), \
-            f"mismatch player_id set diverged: live={live} snap={snap} expected={len(mismatch_ids)}"
+        )
+        found = {r[0] for r in cur.fetchall()}
+        missing = sorted(mismatch_ids - found)
+        assert not missing, f"{len(missing)} mismatch player_id(s) missing in live table: {missing[:5]}"
     finally:
         conn.close()
 

@@ -178,8 +178,9 @@ class TestTempTableRealQuery:
             load_player_season_stats,
         )
         # Get 5 BBR IDs from season stats
+        # （先过滤后切片：Playoffs 行 player_id 为 NULL，见 test_phase05 同源说明）
         stats = load_player_season_stats(2025)
-        bbr_ids = [r["player_id"] for r in stats[:5] if r.get("player_id")]
+        bbr_ids = [r["player_id"] for r in stats if r.get("player_id")][:5]
         assert len(bbr_ids) == 5
 
         # IN-clause result
@@ -196,10 +197,10 @@ class TestTempTableRealQuery:
         """v8 §2: temp table works for dimension loads too."""
         if not db_available:
             pytest.skip("PostgreSQL not available")
-        # Get 3 IDs first
+        # Get 3 IDs first（先过滤后切片：Playoffs 行 player_id 为 NULL）
         from backend.data_layer import load_player_season_stats, load_players, load_players_by_ids
         stats = load_player_season_stats(2025)
-        ids = [r["player_id"] for r in stats[:3] if r.get("player_id")]
+        ids = [r["player_id"] for r in stats if r.get("player_id")][:3]
 
         in_rows = load_players(ids)
         tmp_rows = load_players_by_ids(ids)

@@ -50,8 +50,11 @@ class TestPlayerGames:
 
     @pytest.mark.needs_data
     @needs_db
-    def test_month_ok(self, app_client):
-        resp = app_client.get(f"/players/{_KNOWN_PLAYER}/games?season=2026&granularity=month")
+    def test_month_ok(self, app_client, player_with_gamelog):
+        # 样本球员动态选取：硬编码 slug 在 2025-26 季已无 gamelog（见 conftest 说明）
+        pid = player_with_gamelog(2026)
+        assert pid, "no player with gamelog rows in season 2026"
+        resp = app_client.get(f"/players/{pid}/games?season=2026&granularity=month")
         assert resp.status_code == 200
         d = resp.json()
         assert d["entity_type"] == "player"

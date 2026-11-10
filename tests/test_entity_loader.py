@@ -80,8 +80,11 @@ class TestTeamSeasons:
 class TestPlayerGamesAggregated:
     @pytest.mark.needs_data
     @needs_db
-    def test_month_grouping_structure(self):
-        agg = load_player_games_aggregated(_KNOWN_PLAYER, 2026, "month")
+    def test_month_grouping_structure(self, player_with_gamelog):
+        # 样本球员动态选取：硬编码 slug 在 2025-26 季已无 gamelog（见 conftest 说明）
+        pid = player_with_gamelog(2026)
+        assert pid, "no player with gamelog rows in season 2026"
+        agg = load_player_games_aggregated(pid, 2026, "month")
         assert "groups" in agg and "totals" in agg
         assert agg["totals"]["gp"] > 0
         for g in agg["groups"]:
@@ -92,8 +95,10 @@ class TestPlayerGamesAggregated:
 
     @pytest.mark.needs_data
     @needs_db
-    def test_week_grouping_non_empty(self):
-        agg = load_player_games_aggregated(_KNOWN_PLAYER, 2026, "week")
+    def test_week_grouping_non_empty(self, player_with_gamelog):
+        pid = player_with_gamelog(2026)
+        assert pid, "no player with gamelog rows in season 2026"
+        agg = load_player_games_aggregated(pid, 2026, "week")
         assert len(agg["groups"]) > 0
 
     @needs_db

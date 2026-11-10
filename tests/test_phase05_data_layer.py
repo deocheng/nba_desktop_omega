@@ -178,8 +178,13 @@ class TestRealBatchQuery:
             pytest.skip("PostgreSQL not available")
         from backend.data_layer import load_player_gamelog, load_player_season_stats
         # Get BBR player_ids from fact_player_season_stats (guaranteed non-null)
+        #
+        # 🔴 过滤必须先于切片（2026-11-10 修正）：原写法 `stats[:3] if ...`
+        #    先切前 3 行再过滤，而该表 Playoffs 行的 player_id 为 NULL
+        #    （历史装载缺口），无 ORDER BY 时前几行恰是 PO 行 → 过滤后为空。
+        #    现改为「先全局过滤出有 player_id 的行，再取前 N 个」。
         stats = load_player_season_stats(2025)
-        sample_bbr_ids = [r["player_id"] for r in stats[:3] if r.get("player_id")]
+        sample_bbr_ids = [r["player_id"] for r in stats if r.get("player_id")][:3]
         assert len(sample_bbr_ids) == 3, "Need 3 BBR player_ids for filter test"
         # player_gamelog uses br_player_id column for BBR IDs
         filtered = load_player_gamelog(2025, player_ids=sample_bbr_ids)
@@ -199,9 +204,10 @@ class TestRealBatchQuery:
         if not db_available:
             pytest.skip("PostgreSQL not available")
         # Pull 3 player_ids from season stats first
+        # （先过滤后切片：Playoffs 行 player_id 为 NULL，见上方说明）
         from backend.data_layer import load_player_season_stats, load_players
         stats = load_player_season_stats(2025)
-        ids = [r["player_id"] for r in stats[:3]]
+        ids = [r["player_id"] for r in stats if r.get("player_id")][:3]
         players = load_players(ids)
         assert len(players) == 3
         assert all("player_id" in p for p in players)
