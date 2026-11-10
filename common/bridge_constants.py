@@ -28,8 +28,20 @@ ESPN_ARCHIVE_TMPL = "raw_archive/espn/{date}/{event}.json"
 
 # PostgreSQL 连接串（PG 5433 / nba / postgres，口令从 DB_PASSWORD / PGPASSWORD
 # 注入，禁止硬编码；与 br_fill_pbp.M.DB 一致读双变量兜底）
+#
+# 🔴 主机/端口/库名/用户**必须跟随 env**（口径与 backend.core.config 完全一致）：
+#   早期版本把 host=localhost port=5433 写死在这条 DSN 里，而探活口径走的是
+#   config.DB_HOST / config.DB_PORT（读 env）。两者一旦分叉，就会出现
+#   「探活说连得上、实际连到另一台实例」——最难排查的一类假绿/假红。
+#   典型触发场景：CI 用一次性 postgres 指向非默认实例，或本地用 PG_PORT 覆盖。
+#   默认值与历史硬编码逐字相同（localhost / 5433 / nba / postgres），
+#   生产 .env 的取值也正是这四个 → 线上行为零变化。
+_DB_HOST = os.environ.get("DB_HOST", "localhost")
+_DB_PORT = os.environ.get("DB_PORT", "5433")
+_DB_NAME = os.environ.get("DB_NAME", "nba")
+_DB_USER = os.environ.get("DB_USER", "postgres")
 _PW = os.environ.get("DB_PASSWORD") or os.environ.get("PGPASSWORD", "")
-PG_DSN = f"dbname=nba user=postgres host=localhost port=5433 password={_PW}"
+PG_DSN = f"dbname={_DB_NAME} user={_DB_USER} host={_DB_HOST} port={_DB_PORT} password={_PW}"
 
 # 项目根目录（common/ 的父目录）
 COMMON_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -87,8 +99,15 @@ def espn_archive_path(date_str: str, event: str) -> str:
 
 def get_pg_conn():
     """获取一个 psycopg2 连接。口令在调用时从环境变量解析
-    （DB_PASSWORD / PGPASSWORD），模块导入时已 load_dotenv()。"""
+    （DB_PASSWORD / PGPASSWORD），模块导入时已 load_dotenv()。
+    连接目标同样跟随 env（DB_HOST/DB_PORT/DB_NAME/DB_USER），与 PG_DSN 同源。"""
     import psycopg2
     _pw = os.environ.get("DB_PASSWORD") or os.environ.get("PGPASSWORD", "")
-    _dsn = f"dbname=nba user=postgres host=localhost port=5433 password={_pw}"
+    _dsn = (
+        f"dbname={os.environ.get('DB_NAME', 'nba')} "
+        f"user={os.environ.get('DB_USER', 'postgres')} "
+        f"host={os.environ.get('DB_HOST', 'localhost')} "
+        f"port={os.environ.get('DB_PORT', '5433')} "
+        f"password={_pw}"
+    )
     return psycopg2.connect(_dsn)

@@ -5,6 +5,8 @@ mocking engine core logic, so we hit the real DB instead of faking it).
 """
 from __future__ import annotations
 
+from datetime import date
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -52,6 +54,7 @@ def test_clutch_query_accepts_valid_metric():
 
 
 # ── Live integration (skipped if no DB) ──
+@pytest.mark.needs_data
 def test_get_clutch_players_live(db_available):
     if not db_available:
         pytest.skip("PostgreSQL not available")
@@ -70,6 +73,7 @@ def test_get_clutch_players_live(db_available):
             assert r["dribble_shots"] is not None
 
 
+@pytest.mark.needs_data
 def test_get_seasons_live(db_available):
     if not db_available:
         pytest.skip("PostgreSQL not available")
@@ -78,7 +82,14 @@ def test_get_seasons_live(db_available):
     assert all(isinstance(s, int) for s in seasons)
     # games table spans NBA history (first season 1946-47 -> stored as 1947);
     # play_by_play only reaches back to 2001, but get_seasons reads games.
-    assert min(seasons) >= 1946 and max(seasons) <= 2026
+    #
+    # 🔴 上界**不能写死年份**：dim_games.season 用「赛季结束年」口径
+    #    （2026-27 赛季 → season=2027），写死 "max <= 2026" 会在每个新赛季
+    #    开始的当天失效（2026-11 实测：库里已有 2027 赛季的 145 场，
+    #    硬编码上界直接让本用例变红）。改为按当前日期动态推导。
+    _now = date.today()
+    _current_season = _now.year + 1 if _now.month >= 7 else _now.year
+    assert min(seasons) >= 1946 and max(seasons) <= _current_season
 
 
 def test_router_clutch_players_live(db_available):
