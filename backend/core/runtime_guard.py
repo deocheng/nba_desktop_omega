@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import importlib
 import logging
+import os
+import sys
 from dataclasses import dataclass, field
 from typing import Callable
 
@@ -90,7 +92,25 @@ def _check_no_forbidden_patterns() -> GuardResult:
     AST-scan the whole backend tree.
     """
     import backend.core.db as db_mod
-    src = open(db_mod.__file__, encoding="utf-8").read()
+
+    # 🔴 PyInstaller frozen 模式下源码在 PYZ 归档里，磁盘上没有 .py 文件，
+    #    db_mod.__file__ 指向一个不存在的 _MEIPASS 路径 → 旧实现抛
+    #    FileNotFoundError，被 run_startup_checks 兜成 ok=False，
+    #    于是打包版的 /health 永远显示 degraded（实测 2026-11-11）。
+    #    静态源码约束已由构建前的 CI ruff + 质量门禁承担，运行时明确标
+    #    skipped（ok=True + detail 说明），而不是误报失败。
+    src_path = getattr(db_mod, "__file__", None)
+    if getattr(sys, "frozen", False) or not src_path or not os.path.exists(src_path):
+        return GuardResult(
+            True,
+            detail={
+                "scanned": None,
+                "skipped": "source not on disk (frozen build); enforced by CI lint/quality gate",
+            },
+        )
+
+    with open(src_path, encoding="utf-8") as fh:
+        src = fh.read()
     violations = []
     for bad in ("eval(", "exec(", "f\"SELECT", "f'SELECT"):
         if bad in src:

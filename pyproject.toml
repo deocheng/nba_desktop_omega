@@ -16,6 +16,9 @@ dependencies = [
 
 [project.optional-dependencies]
 test = ["pytest>=8.0", "httpx>=0.27"]
+# 打包成本地 app（PyInstaller one-file）。生产依赖里不含它，避免拖累部署体积。
+# 构建入口：bash scripts/build_app.sh ；详见 docs/app-build.md
+build = ["pyinstaller>=6.11,<7"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

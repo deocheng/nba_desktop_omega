@@ -1,50 +1,59 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""NBACore Studio v8 — PyInstaller spec.
+"""NBACore Studio v8 — PyInstaller spec (one-file local web app).
 
-Builds a single-file executable with backend + frontend + logos.
-Usage: pyinstaller nbacore.spec
+Builds a single-file executable that starts uvicorn (FastAPI) and opens the
+bundled static frontend in the default browser. PostgreSQL stays **external**:
+the app degrades gracefully (``/health`` reports ``database_connected=false``)
+when no database is reachable.
+
+Usage:
+    .venv/bin/python -m PyInstaller --noconfirm nbacore.spec
+or simply:
+    bash scripts/build_app.sh
+
+🔴 维护铁律（2026-11-11 落地时踩过的坑）
+------------------------------------------
+1. **不要用 ``Path.cwd()`` 定位仓库根** —— 从别的目录调用 spec 时 cwd 不是仓库根。
+   用 PyInstaller 注入的 ``SPECPATH``（spec 文件所在目录）。
+2. **不要手写 hiddenimports 清单** —— 旧 spec 只列了 7 个 router，
+   而 ``backend/app.py`` 实际 include 26 个；手写清单必然随新增路由过时。
+   改用 ``collect_submodules("backend")`` 自动收集。
+3. **backend 依赖 3 个顶层模块**（旧 spec 完全没声明）：
+   ``common.nba_paths`` / ``common.season_type_norm`` / ``viz.theme``。
+   只显式收这 3 个，不要 ``collect_submodules("common")`` —— 那会把
+   ``common.browser`` 连带 Playwright / undetected-chromedriver 拖进包里。
+4. **别传 PyInstaller 6 已移除的参数**：``cipher``、``win_no_prefer_redirects``、
+   ``win_private_assemblies`` 在 6.x 会直接 TypeError。
 """
-
 from pathlib import Path
 
-project_root = Path.cwd()
+from PyInstaller.utils.hooks import collect_submodules
 
-# ── Data files to bundle ──
+# PyInstaller 把 spec 所在目录注入为 SPECPATH；保留 cwd 兜底以防版本差异。
+project_root = Path(globals().get("SPECPATH", ".")).resolve()
+
+# ── 随包携带的数据文件（(源, 目标目录) 均相对 bundle root）──
 datas = [
     (str(project_root / "frontend"), "frontend"),
     (str(project_root / "NBAlogo"), "NBAlogo"),
+    # viz.theme 的令牌快照；compat_vars() 会读它
+    (str(project_root / "viz" / "theme_tokens.json"), "viz"),
+    # 首次启动的连接配置模板（真实 .env / 口令绝不随包分发）
+    (str(project_root / ".env.example"), "."),
+    # 结构 DDL：便于在目标机初始化外部 PG（仅结构，不含数据）
+    (str(project_root / "db" / "schema.sql"), "db"),
 ]
 
-# Collect backend package
+# ── 自动收集 backend 全部子模块，排除测试模块（否则把 pytest 拖进包）──
 hiddenimports = [
-    "backend",
-    "backend.app",
-    "backend.core.config",
-    "backend.core.db",
-    "backend.core.logging",
-    "backend.core.runtime_guard",
-    "backend.api.schemas",
-    "backend.api.routers.players",
-    "backend.api.routers.metrics",
-    "backend.api.routers.vs",
-    "backend.api.routers.batch",
-    "backend.api.routers.context",
-    "backend.api.routers.export",
-    "backend.api.routers.monitor",
-    "backend.services.metric_engine",
-    "backend.services.metric_engine.metrics.basic",
-    "backend.services.metric_engine.metrics.advanced",
-    "backend.services.metric_engine.metrics.composite",
-    "backend.services.context_engine",
-    "backend.services.context_engine.similar_players",
-    "backend.services.context_engine.role_evolution",
-    "backend.services.context_engine.trend_analysis",
-    "backend.services.export_service",
-    "backend.data_layer.schema",
-    "backend.data_layer.schema_validator",
-    "backend.data_layer.batch_loader",
-    "backend.data_layer.temp_loader",
-    "backend.data_layer.joins",
+    m for m in collect_submodules("backend")
+    if ".tests" not in m and not m.endswith("tests")
+]
+# backend 实际引用的 3 个顶层模块（纯标准库，不会牵连爬虫依赖）
+hiddenimports += [
+    "common.nba_paths",
+    "common.season_type_norm",
+    "viz.theme",
 ]
 
 a = Analysis(
@@ -57,17 +66,14 @@ a = Analysis(
     hooksconfig={},
     runtime_hooks=[],
     excludes=[
-        "tkinter",
-        "matplotlib",
-        "scipy",
-        "IPython",
-        "jupyter",
-        "notebook",
+        # GUI / 科学计算（原 spec 已有）
+        "tkinter", "matplotlib", "scipy", "IPython", "jupyter", "notebook",
+        # 测试
         "pytest",
+        # 爬虫工具箱：backend 不 import，排除以显著减小体积
+        "playwright", "playwright_stealth", "selenium",
+        "undetected_chromedriver", "curl_cffi", "bs4", "lxml",
     ],
-    win_no_prefer_redirects=False,
-    win_private_assemblies=False,
-    cipher=None,
     noarchive=False,
 )
 
