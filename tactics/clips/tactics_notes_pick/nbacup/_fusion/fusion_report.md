@@ -1,0 +1,84 @@
+# 融合判定报告
+
+- KEEP(自动剪): 19
+- EXCLUDE(不剪): 0
+- HUMAN_REVIEW(交老程): 59
+
+- [KEEP] far=234.0 close=245.0 sb=0.0 qwen=None conf=1.0 :: sb_frac=0.00<0.5→特写无记分牌=进攻镜头语言
+- [KEEP] far=1121.0 close=1137.0 sb=0.0 qwen=None conf=1.0 :: sb_frac=0.00<0.5→特写无记分牌=进攻镜头语言
+- [KEEP] far=1172.0 close=1185.0 sb=0.0 qwen=None conf=1.0 :: sb_frac=0.00<0.5→特写无记分牌=进攻镜头语言
+- [KEEP] far=1382.0 close=1393.0 sb=0.0 qwen=None conf=1.0 :: sb_frac=0.00<0.5→特写无记分牌=进攻镜头语言
+- [KEEP] far=1514.0 close=1523.0 sb=0.0 qwen=None conf=1.0 :: sb_frac=0.00<0.5→特写无记分牌=进攻镜头语言
+- [KEEP] far=1718.0 close=1729.0 sb=0.0 qwen=None conf=1.0 :: sb_frac=0.00<0.5→特写无记分牌=进攻镜头语言
+- [KEEP] far=2389.0 close=2401.0 sb=0.0 qwen=None conf=1.0 :: sb_frac=0.00<0.5→特写无记分牌=进攻镜头语言
+- [KEEP] far=2389.0 close=2405.0 sb=0.0 qwen=None conf=1.0 :: sb_frac=0.00<0.5→特写无记分牌=进攻镜头语言
+- [KEEP] far=2389.0 close=2409.0 sb=0.0 qwen=None conf=1.0 :: sb_frac=0.00<0.5→特写无记分牌=进攻镜头语言
+- [KEEP] far=2645.0 close=2654.0 sb=0.0 qwen=None conf=1.0 :: sb_frac=0.00<0.5→特写无记分牌=进攻镜头语言
+- [KEEP] far=2786.0 close=2806.0 sb=0.0 qwen=None conf=1.0 :: sb_frac=0.00<0.5→特写无记分牌=进攻镜头语言
+- [KEEP] far=2994.0 close=3012.0 sb=0.0 qwen=None conf=1.0 :: sb_frac=0.00<0.5→特写无记分牌=进攻镜头语言
+- [KEEP] far=2994.0 close=3014.0 sb=0.0 qwen=None conf=1.0 :: sb_frac=0.00<0.5→特写无记分牌=进攻镜头语言
+- [KEEP] far=3058.0 close=3075.0 sb=0.0 qwen=None conf=1.0 :: sb_frac=0.00<0.5→特写无记分牌=进攻镜头语言
+- [KEEP] far=3058.0 close=3078.0 sb=0.0 qwen=None conf=1.0 :: sb_frac=0.00<0.5→特写无记分牌=进攻镜头语言
+- [KEEP] far=3287.0 close=3297.0 sb=0.0 qwen=None conf=1.0 :: sb_frac=0.00<0.5→特写无记分牌=进攻镜头语言
+- [KEEP] far=3287.0 close=3299.0 sb=0.0 qwen=None conf=1.0 :: sb_frac=0.00<0.5→特写无记分牌=进攻镜头语言
+- [KEEP] far=3287.0 close=3305.0 sb=0.0 qwen=None conf=1.0 :: sb_frac=0.00<0.5→特写无记分牌=进攻镜头语言
+- [KEEP] far=3423.0 close=3443.0 sb=0.0 qwen=None conf=1.0 :: sb_frac=0.00<0.5→特写无记分牌=进攻镜头语言
+- [REVIEW] far=49.0 close=64.0 sb=0.75 qwen=None conf=0.0 :: sb_frac=0.75≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=69.0 close=85.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=69.0 close=87.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=130.0 close=138.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=209.0 close=224.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=209.0 close=226.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=234.0 close=248.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=413.0 close=422.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=413.0 close=425.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=413.0 close=430.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=444.0 close=452.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=444.0 close=458.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=444.0 close=462.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=486.0 close=496.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=535.0 close=545.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=671.0 close=680.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=744.0 close=754.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=744.0 close=758.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=839.0 close=849.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=916.0 close=930.0 sb=0.8 qwen=None conf=0.0 :: sb_frac=0.80≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=1069.0 close=1083.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=1069.0 close=1085.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=1121.0 close=1131.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=1150.0 close=1165.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=1150.0 close=1168.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=1172.0 close=1183.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=1263.0 close=1278.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=1294.0 close=1308.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=1353.0 close=1367.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=1418.0 close=1432.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=1453.0 close=1464.0 sb=0.67 qwen=None conf=0.0 :: sb_frac=0.67≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=1514.0 close=1525.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=1514.0 close=1529.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=1554.0 close=1562.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=1627.0 close=1638.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=1627.0 close=1641.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=1627.0 close=1646.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=1718.0 close=1733.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=1756.0 close=1765.0 sb=0.67 qwen=None conf=0.0 :: sb_frac=0.67≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=1756.0 close=1767.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=1756.0 close=1769.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=1771.0 close=1781.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=1771.0 close=1791.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=1848.0 close=1859.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=1885.0 close=1893.0 sb=0.5 qwen=None conf=0.0 :: sb_frac=0.50≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=1885.0 close=1897.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=2005.0 close=2020.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=2087.0 close=2099.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=2087.0 close=2105.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=2205.0 close=2216.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=2319.0 close=2327.0 sb=0.5 qwen=None conf=0.0 :: sb_frac=0.50≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=2359.0 close=2370.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=2359.0 close=2372.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=2389.0 close=2398.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=2621.0 close=2633.0 sb=0.75 qwen=None conf=0.0 :: sb_frac=0.75≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=2621.0 close=2640.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=2907.0 close=2915.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=2907.0 close=2921.0 sb=1.0 qwen=None conf=0.0 :: sb_frac=1.00≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程
+- [REVIEW] far=2994.0 close=3010.0 sb=0.5 qwen=None conf=0.0 :: sb_frac=0.50≥0.5→高 sb 无区分力(活球特写/吹停皆有)→交老程

@@ -1,0 +1,89 @@
+{
+  "description": "RelateAnything native vocabulary mapping for half-court basketball tactics",
+  "_source": "老程《半场端到端处理与词表映射规范》§二（2026-10-02）",
+  "_evidence_layer": "下列 strength/blockers 字段由本项目实测回填，来源 vocab/basketball_tactics.json → native_mapping（2026-09-23 单帧实测，马刺vs尼克斯 Q3 t=150s，10 球员+1 球）。映射本身遵从老程规范，证据等级不得删除。",
+
+  "native_vocabulary_bundle": [
+    "defending",
+    "defending against",
+    "tackling",
+    "hitting",
+    "watching",
+    "beside",
+    "to the right of",
+    "behind",
+    "in front of"
+  ],
+
+  "tactical_mapping": {
+    "defending": {
+      "target_action": "on_ball_defense",
+      "description": "持球对位防守",
+      "strength": "core",
+      "evidence": "count_in_top40=10, score_max=0.3643",
+      "blocker": "不在官方 243 词表内（full_vocabulary 域外词）⇒ 无官方精度背书；score 高只说明该帧被激活，不等于语义正确。R3 实测：defending 对持球人的富集仅 1.4–1.8×，特异性未证成。"
+    },
+    "defending against": {
+      "target_action": "off_ball_denial",
+      "description": "无球严防/协防盯人",
+      "strength": "core",
+      "evidence": "count_in_top40=2, score_max=0.2537",
+      "blocker": "同 defending：域外词，无官方背书。"
+    },
+    "tackling": {
+      "target_action": "physical_contest",
+      "description": "禁区抗衡/身体对抗",
+      "strength": "core",
+      "evidence": "count_in_top40=3, score_max=0.3335",
+      "blocker": "域外词，无官方背书。"
+    },
+    "hitting": {
+      "target_action": "ball_handler_touch",
+      "description": "触球/控球识别（可关联持球人）",
+      "strength": "core",
+      "evidence": "count_in_top40=4, score_max=0.2484；obj=BALL 时与「几何最近球」两路互证",
+      "blocker": "无"
+    },
+    "watching": {
+      "target_action": "off_ball_vision",
+      "description": "无球注视/视野观察",
+      "strength": "WEAK",
+      "evidence": "count_in_top40=16（40 条里占 16，接近默认谓词），score_max=0.3224",
+      "blocker": "实测判为 weak_signal：出现频次过高、区分度弱。**不得**作为独立战术判据，只可做辅助特征。"
+    },
+    "beside": {
+      "target_action": "potential_screen_position",
+      "description": "临近站位（时序累积可判掩护）",
+      "strength": "WEAK",
+      "evidence": "count_in_top40=1, score_max=0.181；官方 thresholds.json best_f1=0.196 (support=1406)",
+      "blocker": "🔴 **本条与项目既有结论直接冲突**：A4.61–63 已证伪「掩护特异性纯几何不可解」（与防守接触难分）；R3 明确单帧关系无法区分「正在做掩护」与「恰好站位重叠」，且官方 f1 仅 0.196。⇒ 「beside + 时序累积」不得宣称可判掩护，只能作为**候选位**供人工复核。推进掩护判定的前置条件是【ID 稳定化】+【非空间参照（球衣颜色/人工标注）】。"
+    },
+    "to the right of": {
+      "target_action": "geometric_fallback",
+      "description": "空间方位（几何兜底）",
+      "strength": "aux",
+      "evidence": "count_in_top40=1, score_max=0.1236",
+      "blocker": "纯几何，无战术语义。"
+    },
+    "behind": {
+      "target_action": "geometric_fallback",
+      "description": "空间方位（几何兜底）",
+      "strength": "aux",
+      "evidence": "本帧未观测",
+      "blocker": "纯几何，无战术语义。"
+    },
+    "in front of": {
+      "target_action": "geometric_fallback",
+      "description": "空间方位（几何兜底）",
+      "strength": "aux",
+      "evidence": "本帧未观测",
+      "blocker": "纯几何，无战术语义。"
+    }
+  },
+
+  "_adjudication_note": {
+    "from_project_record": "R1 已实锤：注入 28 条篮球**长句式**自定义谓词后，top-k 与仅 9 条通用词完全一致（max 0.0860）⇒ 自定义长句式全废。",
+    "revision_20260923_2": "修正为「长句式废、**官方裸短语有效**」。推理时一律用 relsgg.vocabulary.DEFAULT_PREDICATES（35 条官方裸短语），篮球语义只在「官方谓词 → 战术语义」这一层做映射 —— 本文件正是该层。",
+    "threshold_caution": "官方 thresholds.json 的 regime 是 GT 框 + pair_weight=0；本系统是 YOLO 检测框 + pair_weight=1，**非同一工况**，阈值不可直接搬用（官方推荐工作点 ≈0.98，本工况 max 仅 0.51）。"
+  }
+}

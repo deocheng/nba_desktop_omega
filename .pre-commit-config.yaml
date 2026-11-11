@@ -21,10 +21,13 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
+      # 2026-11-11 tactics/ 迁入：这批是**原件**，其中 .md 行尾双空格是
+      # Markdown 有意的硬换行语法，trailing-whitespace hook 会把它删掉并破坏文档。
+      # 迁入原件不做格式重排；新增文件由 ruff / 质量门禁约束。
       - id: trailing-whitespace
-        exclude: ^(raw_archive|backups|reports/_pre_strip_backup)/
+        exclude: ^(raw_archive|backups|reports/_pre_strip_backup|tactics)/
       - id: end-of-file-fixer
-        exclude: ^(raw_archive|backups|reports/_pre_strip_backup)/
+        exclude: ^(raw_archive|backups|reports/_pre_strip_backup|tactics)/
       - id: check-yaml
       - id: check-json
         exclude: ^(raw_archive|backups|fiba_scraper)/

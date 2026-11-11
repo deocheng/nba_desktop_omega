@@ -4,6 +4,7 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 .pytest_tmp/
+.pytest_tmp_t/
 .venv/
 venv/
 
@@ -196,6 +197,21 @@ external_crawler/**/.chrome_app_profile/
 #    这里为 oneoff 下的 .py 开例外；根目录新产出的同名脚本仍按原规则忽略。
 #    放在文件末尾 —— gitignore「最后一条匹配者生效」，故不影响上面的 *.html。
 !scripts/oneoff/*.py
+
+# ── tactics/ 迁入的战术分析代码（2026-11-11）─────────────────────────────
+# 🔴 上方「一次性脚本不入库」规则组（build_*.py / analyze_*.py / gen_*.py /
+#    diag_*.py / _dbg_*.py / _split_*.py / _check_*.py 等）会命中 tactics/
+#    下大量历史脚本：engine 365 个 .py 里约半数是 _diag_ / gen_ / build_ 前缀。
+#    这些是**项目源码**，不是根目录随手产物 → 必须为它们开例外。
+#    放在文件末尾，利用 gitignore「最后一条匹配者生效」；
+#    与 !scripts/oneoff/*.py 同理，否则迁移后提交时脚本会从版本库消失。
+!tactics/**/*.py
+!tactics/**/*.sh
+!tactics/**/*.md
+!tactics/**/*.yaml
+!tactics/**/*.yml
+!tactics/**/*.toml
+!tactics/**/*.json
 
 # ── 可恢复删除的本地备份容器（不入库）────────────────────────────────
 .trash/

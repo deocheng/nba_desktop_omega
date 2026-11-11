@@ -1,0 +1,1341 @@
+{
+  "meta": {
+    "name": "tactical_vocab_export",
+    "version": "0.1.0",
+    "generated": "2026-10-16",
+    "source": "篮球术语表 basketball_glossary.json 的「战术体系」分类（101 条）",
+    "aligns_with": "engine/tactic_primitives_ext.py（detect_primitives 扩展） + vocab/basketball_tactics.json（tactical_events）",
+    "design_rules": [
+      "每条战术 = (id, cn, category, ref_primitives, reachable, reason, source)。",
+      "reachable ∈ {current, needs_predicate, extensible, blocked, na}。",
+      "current=现有/扩展原语可直接判定；needs_predicate=需 Mage-VL predicate 聚合（predicate 已在 vocab 则技术可达）；",
+      "extensible=核心可达但某子类(predicate/球判别)未实现；blocked=纯序列/角度复合或站位类，当前不可达（呼应 tactic_primitives_ext 已证伪结论）；",
+      "na=理念/策略，非单战术动作。",
+      "诚实边界：不把 WEDGE/STAGGER/FLARE/ZONE_23/INBOUND/SHORT_ROLL/CUT.BACKDOOR/PASS.POCKET 填成可达。"
+    ]
+  },
+  "atom_primitives": {
+    "SCREEN": {
+      "subtypes": [
+        "DOWN",
+        "CROSS",
+        "STS",
+        "GHOST",
+        "EXIT",
+        "TOUCH"
+      ],
+      "source": "原 detect_primitives + tactic_primitives_ext.label_screen_subtypes",
+      "status": "current"
+    },
+    "PASS": {
+      "subtypes": [],
+      "source": "tactic_primitives_ext.detect_pass",
+      "status": "current",
+      "note": "已在 2026-10-03 扩展实现；PASS.POCKET 未实现"
+    },
+    "DRIVE": {
+      "subtypes": [],
+      "source": "tactic_primitives_ext.detect_drive",
+      "status": "current"
+    },
+    "ROLL": {
+      "subtypes": [
+        "SHORT"
+      ],
+      "source": "tactic_primitives_ext.detect_roll",
+      "status": "current",
+      "note": "SHORT_ROLL 因缺可证伪阈值，tactic_primitives_ext 声明 blocked"
+    },
+    "EXCHANGE": {
+      "subtypes": [],
+      "source": "tactic_primitives_ext.detect_exchange",
+      "status": "current"
+    },
+    "CUT": {
+      "subtypes": [
+        "BACKDOOR"
+      ],
+      "source": "原 detect_primitives",
+      "status": "current",
+      "note": "CUT.BACKDOOR 需更细判别，tactic_primitives_ext 声明 blocked"
+    },
+    "HANDOFF": {
+      "subtypes": [],
+      "source": "原 detect_primitives",
+      "status": "current",
+      "note": "与球近距离相关的判别；PASS.POCKET 未实现"
+    },
+    "WEDGE": {
+      "subtypes": [],
+      "source": "—",
+      "status": "blocked",
+      "note": "tactic_primitives_ext 显式：WEDGE/STAGGER/FLARE 是序列/角度复合，塞进单事件子类即造假"
+    },
+    "STAGGER": {
+      "subtypes": [],
+      "source": "—",
+      "status": "blocked",
+      "note": "同上：阶梯掩护是多掩护时序序列，纯几何不可判"
+    },
+    "FLARE": {
+      "subtypes": [],
+      "source": "—",
+      "status": "blocked",
+      "note": "同上：外弹掩护是角度复合"
+    },
+    "ZONE_23": {
+      "subtypes": [],
+      "source": "—",
+      "status": "blocked",
+      "note": "tactic_primitives_ext：联防站位需非空间参照，纯几何不可达"
+    },
+    "INBOUND": {
+      "subtypes": [],
+      "source": "—",
+      "status": "blocked",
+      "note": "tactic_primitives_ext：界外球需更细球/角色判别，不可达"
+    }
+  },
+  "events": [
+    {
+      "id": "pick_and_pop",
+      "term": "Pick-and-pop",
+      "cn": "挡拆外切",
+      "category": "挡拆类",
+      "ref_primitives": [
+        "SCREEN.DOWN",
+        "SCREEN.CROSS",
+        "ROLL",
+        "PASS"
+      ],
+      "reachable": "current",
+      "reason": "pick_and_roll 已由 tactical_events 用 predicate 聚合定义；ROLL/PASS 由 tactic_primitives_ext 实现",
+      "source": "",
+      "note": "掩护人外切到中远距离接球投篮。"
+    },
+    {
+      "id": "dribble_handoff_dho",
+      "term": "Dribble handoff (DHO)",
+      "cn": "手递手",
+      "category": "手递手",
+      "ref_primitives": [
+        "HANDOFF",
+        "PASS"
+      ],
+      "reachable": "extensible",
+      "reason": "核心 HANDOFF 已有；PASS.POCKET（极近距离手递手）未实现，列为 extensible",
+      "source": "",
+      "note": "持球人把球交给队友后立刻作掩护，是现代无球体系的枢纽动作。"
+    },
+    {
+      "id": "spain_pick_and_roll",
+      "term": "Spain pick-and-roll",
+      "cn": "西班牙挡拆",
+      "category": "挡拆变体",
+      "ref_primitives": [
+        "SCREEN.DOWN",
+        "ROLL",
+        "PASS"
+      ],
+      "reachable": "blocked",
+      "reason": "Spain P&R 后拆分（ball-screen 后 handler 与 roller 反吊）是序列复合，现有原语只能覆盖前段",
+      "source": "",
+      "note": "挡拆中第三人再为掩护人的防守者设背掩护，制造防守错乱。"
+    },
+    {
+      "id": "horns",
+      "term": "Horns",
+      "cn": "牛角站位",
+      "category": "其他",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "未匹配到可达原语，暂列 blocked，待人工复核",
+      "source": "",
+      "note": "两名内线分立于罚球线两侧，形成两个「角」。"
+    },
+    {
+      "id": "floppy",
+      "term": "Floppy",
+      "cn": "底线交叉掩护",
+      "category": "掩护类",
+      "ref_primitives": [
+        "SCREEN.DOWN",
+        "SCREEN.CROSS"
+      ],
+      "reachable": "current",
+      "reason": "基础掩护 DOWN/CROSS 由原 detect_primitives 产出；子类 STS/GHOST/EXIT/TOUCH 由扩展实现",
+      "source": "",
+      "note": "弱侧连续换向掩护，射手择一侧接球。"
+    },
+    {
+      "id": "zoom_action",
+      "term": "Zoom action",
+      "cn": "折返动作",
+      "category": "其他",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "未匹配到可达原语，暂列 blocked，待人工复核",
+      "source": "",
+      "note": "手递手后立刻接背掩护的组合，现代半场进攻高频起手式。"
+    },
+    {
+      "id": "elevator_screen",
+      "term": "Elevator screen",
+      "cn": "电梯门掩护",
+      "category": "掩护变体",
+      "ref_primitives": [
+        "SCREEN.DOWN",
+        "SCREEN.STS"
+      ],
+      "reachable": "blocked",
+      "reason": "电梯门=两掩护者关门，属序列/角度复合，单事件子类塞不进，须拆为多次 SCREEN+STS",
+      "source": "",
+      "note": "两名掩护人合拢夹住追防者，为射手开出一条通道。"
+    },
+    {
+      "id": "ghost_screen",
+      "term": "Ghost screen",
+      "cn": "幽灵掩护",
+      "category": "掩护变体",
+      "ref_primitives": [
+        "SCREEN.GHOST"
+      ],
+      "reachable": "current",
+      "reason": "GHOST 已由 label_screen_subtypes 实现（两人均非持球人）",
+      "source": "",
+      "note": "掩护人假意上前随即外切或内切，不制造真实身体接触。"
+    },
+    {
+      "id": "short_roll",
+      "term": "Short roll",
+      "cn": "短顺下",
+      "category": "其他",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "未匹配到可达原语，暂列 blocked，待人工复核",
+      "source": "",
+      "note": "掩护人在罚球线附近停步接球，处理局部 4 打 3。"
+    },
+    {
+      "id": "drop_coverage",
+      "term": "Drop coverage",
+      "cn": "沉退防守",
+      "category": "掩护应对",
+      "ref_primitives": [
+        "ix_sag_off"
+      ],
+      "reachable": "needs_predicate",
+      "reason": "drop 由 ix_sag_off（退守禁区）predicate 表达，非原语 type",
+      "source": "",
+      "note": "挡拆中内线退守禁区、优先护框，把中距离让出。"
+    },
+    {
+      "id": "hedge",
+      "term": "Hedge",
+      "cn": "上抢延误",
+      "category": "掩护应对",
+      "ref_primitives": [
+        "ix_screen_set",
+        "SCREEN.DOWN"
+      ],
+      "reachable": "needs_predicate",
+      "reason": "hedge 由掩护者防守人上前封堵表达，predicate 聚合可达",
+      "source": "",
+      "note": "防守掩护人的大个短暂上抢，延误持球人后回位。"
+    },
+    {
+      "id": "ice",
+      "term": "Ice",
+      "cn": "逼底线",
+      "category": "掩护应对",
+      "ref_primitives": [
+        "ix_screen_set"
+      ],
+      "reachable": "needs_predicate",
+      "reason": "ice 由把掩护逼向底线表达，predicate 聚合可达",
+      "source": "",
+      "note": "把挡拆持球人逼向底线一侧、切断中路。"
+    },
+    {
+      "id": "switch_everything",
+      "term": "Switch everything",
+      "cn": "无限换防",
+      "category": "掩护应对",
+      "ref_primitives": [
+        "SCREEN.DOWN",
+        "EXCHANGE",
+        "ix_screen_switch"
+      ],
+      "reachable": "needs_predicate",
+      "reason": "换防=掩护后 1–2 秒内 ix_screen_switch，属 predicate 聚合可达（pnr_switch 已定义）",
+      "source": "",
+      "note": "所有掩护一律交换防守人，现代换防型球队的标志。"
+    },
+    {
+      "id": "iso",
+      "term": "Iso",
+      "cn": "单打",
+      "category": "其他",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "未匹配到可达原语，暂列 blocked，待人工复核",
+      "source": "",
+      "note": "清空一侧，制造一对一的持球单打。"
+    },
+    {
+      "id": "post_up",
+      "term": "Post-up",
+      "cn": "背身单打",
+      "category": "低位类",
+      "ref_primitives": [
+        "ix_post_up"
+      ],
+      "reachable": "needs_predicate",
+      "reason": "post_up 由 ix_post_up predicate 表达（背身单打已定义 tactical_events.post_iso）",
+      "source": "",
+      "note": "低位或腰位背身要位进攻。"
+    },
+    {
+      "id": "motion_offense",
+      "term": "Motion offense",
+      "cn": "移动进攻",
+      "category": "其他",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "未匹配到可达原语，暂列 blocked，待人工复核",
+      "source": "",
+      "note": "以传切与连续跑位为基础的自由进攻体系。"
+    },
+    {
+      "id": "drive_and_kick",
+      "term": "Drive-and-kick",
+      "cn": "突分",
+      "category": "突破类",
+      "ref_primitives": [
+        "DRIVE"
+      ],
+      "reachable": "current",
+      "reason": "DRIVE 由 tactic_primitives_ext 实现（持球人朝筐+速度门）",
+      "source": "",
+      "note": "突破吸引协防后分球外线，hand-checking 禁令之后成为现代三分的主要来源。"
+    },
+    {
+      "id": "triangle_offense",
+      "term": "triangle offense",
+      "cn": "三角进攻",
+      "category": "进攻体系",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "是进攻体系/阵型而非单一战术，需多个原子原语+时序约束组合判定",
+      "source": "",
+      "note": "以低-post 中锋、翼侧前锋、底角后卫构成边线三角为核心的进攻体系（Tex Winter 体系，公牛/湖人王朝标志）。来源 Wikipedia Glossary of basketball terms。"
+    },
+    {
+      "id": "princeton_offense",
+      "term": "princeton offense",
+      "cn": "普林斯顿进攻",
+      "category": "进攻体系",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "是进攻体系/阵型而非单一战术，需多个原子原语+时序约束组合判定",
+      "source": "",
+      "note": "以持续移动、传球、backdoor 切入、无球掩护与团队纪律为核心的进攻（普林斯顿大学定型）。来源 Wikipedia Glossary of basketball terms。"
+    },
+    {
+      "id": "dribble_drive_motion",
+      "term": "dribble drive motion",
+      "cn": "突破分球进攻",
+      "category": "进攻体系",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "是进攻体系/阵型而非单一战术，需多个原子原语+时序约束组合判定",
+      "source": "",
+      "note": "拉开空间、由持球人突入内线终结或分球外线三分的进攻（又称 Memphis Attack）。来源 Wikipedia Glossary of basketball terms。"
+    },
+    {
+      "id": "box_and_one",
+      "term": "box-and-one",
+      "cn": "箱形盯人",
+      "category": "联防/混合防守",
+      "ref_primitives": [
+        "ZONE_23"
+      ],
+      "reachable": "blocked",
+      "reason": "站位类需非空间参照（球衣色/人工标），纯几何不可达（呼应 ZONE_23 不可达）",
+      "source": "",
+      "note": "四人打 box 联防、第五人盯死对方核心的组合防守。来源 Wikipedia Glossary of basketball terms。"
+    },
+    {
+      "id": "pack_line_defense",
+      "term": "pack-line defense",
+      "cn": "收缩包夹防守",
+      "category": "联防/混合防守",
+      "ref_primitives": [
+        "ZONE_23"
+      ],
+      "reachable": "blocked",
+      "reason": "站位类需非空间参照（球衣色/人工标），纯几何不可达（呼应 ZONE_23 不可达）",
+      "source": "",
+      "note": "一人施压持球人、其余四人收缩在三分弧内约 2 英尺的「线」内、限制突破的人盯人体系（Dick Bennett 创、Tony Bennett 推广）。来源 Wikipedia Glossary of basketball terms。"
+    },
+    {
+      "id": "drop_step",
+      "term": "drop step",
+      "cn": "低位背转身",
+      "category": "低位类",
+      "ref_primitives": [
+        "ix_post_up"
+      ],
+      "reachable": "needs_predicate",
+      "reason": "post_up 由 ix_post_up predicate 表达（背身单打已定义 tactical_events.post_iso）",
+      "source": "",
+      "note": "内线接球后收球、一脚向后蹬出至防守人身侧、随即转身用该脚作支点切入篮下。来源 Wikipedia Glossary of basketball terms。"
+    },
+    {
+      "id": "back_screen",
+      "term": "back screen",
+      "cn": "背掩护",
+      "category": "掩护类",
+      "ref_primitives": [
+        "SCREEN.DOWN"
+      ],
+      "reachable": "current",
+      "reason": "back screen 即下掩护变体，SCREEN.DOWN 可达",
+      "source": "",
+      "note": "低位球员上提为外线队友做掩护。来源 Wikipedia Glossary of basketball terms。"
+    },
+    {
+      "id": "cherry_picking",
+      "term": "cherry picking",
+      "cn": "偷跑不回防",
+      "category": "理念/策略",
+      "ref_primitives": [],
+      "reachable": "na",
+      "reason": "属于建队理念或比赛策略，不是可由像素轨迹判定的单一战术动作",
+      "source": "",
+      "note": "一名球员放弃回防、留守对方篮下等待长传轻松得分的策略。来源 Wikipedia Glossary of basketball terms。"
+    },
+    {
+      "id": "amoeba_defense",
+      "term": "amoeba defense",
+      "cn": "阿米巴防守",
+      "category": "联防/混合防守",
+      "ref_primitives": [
+        "ZONE_23"
+      ],
+      "reachable": "blocked",
+      "reason": "站位类需非空间参照（球衣色/人工标），纯几何不可达（呼应 ZONE_23 不可达）",
+      "source": "",
+      "note": "混合盯人与联防要素、阵型流动的防守策略。来源 Wikipedia Glossary of basketball terms。"
+    },
+    {
+      "id": "1_2_1_1_press",
+      "term": "1-2-1-1 Press",
+      "cn": "1-2-1-1 全场紧逼",
+      "category": "其他",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "未匹配到可达原语，暂列 blocked，待人工复核",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "又称 diamond press。发界外球后立即夹击持球人，逼迫失误；即便被破也有时间回防。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "1_2_2_zone",
+      "term": "1-2-2 Zone",
+      "cn": "1-2-2 联防",
+      "category": "联防/混合防守",
+      "ref_primitives": [
+        "ZONE_23"
+      ],
+      "reachable": "blocked",
+      "reason": "站位类需非空间参照（球衣色/人工标），纯几何不可达（呼应 ZONE_23 不可达）",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "弧顶 1 人、两侧肘区各 1 人、两个低位 block 各 1 人，5 人共守三分线。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "1_3_1_zone",
+      "term": "1-3-1 Zone",
+      "cn": "1-3-1 联防",
+      "category": "联防/混合防守",
+      "ref_primitives": [
+        "ZONE_23"
+      ],
+      "reachable": "blocked",
+      "reason": "站位类需非空间参照（球衣色/人工标），纯几何不可达（呼应 ZONE_23 不可达）",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "攻击性联防，靠切断传球线路、预判和拨球制造失误与快攻机会。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "2_3_zone",
+      "term": "2-3 Zone",
+      "cn": "2-3 联防",
+      "category": "联防/混合防守",
+      "ref_primitives": [
+        "ZONE_23"
+      ],
+      "reachable": "blocked",
+      "reason": "站位类需非空间参照（球衣色/人工标），纯几何不可达（呼应 ZONE_23 不可达）",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "最常见联防：罚球线以上 2 人，禁区内横排 3 人。护筐强、外线弱。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "3_2_zone",
+      "term": "3-2 Zone",
+      "cn": "3-2 联防",
+      "category": "联防/混合防守",
+      "ref_primitives": [
+        "ZONE_23"
+      ],
+      "reachable": "blocked",
+      "reason": "站位类需非空间参照（球衣色/人工标），纯几何不可达（呼应 ZONE_23 不可达）",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "外围 3 人、内线 2 人。擅长扑外线投篮，但禁区只有两人保护易被打穿。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "4_out_1_in_motion",
+      "term": "4-Out 1-In Motion",
+      "cn": "四外一内动态进攻",
+      "category": "进攻体系",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "是进攻体系/阵型而非单一战术，需多个原子原语+时序约束组合判定",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "三名球员在三分线外拉开、一名占低位，无位置区分的连续性进攻。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "5_out_motion",
+      "term": "5-Out Motion",
+      "cn": "五外动态进攻",
+      "category": "进攻体系",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "是进攻体系/阵型而非单一战术，需多个原子原语+时序约束组合判定",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "五人全部拉开至外线，无位置区分的连续性进攻，利于球员全面发展与突破空间。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "ball_reversal",
+      "term": "Ball Reversal",
+      "cn": "转移球/反向传导",
+      "category": "理念/策略",
+      "ref_primitives": [],
+      "reachable": "na",
+      "reason": "属于建队理念或比赛策略，不是可由像素轨迹判定的单一战术动作",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "球从一侧快速转移到另一侧，用于调动防守、制造轮转空当。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "blob",
+      "term": "BLOB",
+      "cn": "底线界外球战术",
+      "category": "界外球战术",
+      "ref_primitives": [
+        "INBOUND"
+      ],
+      "reachable": "blocked",
+      "reason": "INBOUND 在 tactic_primitives_ext 显式声明不可达（需更细球/角色判别）",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "Baseline Out of Bounds 的缩写，指沿进攻端底线发界外球时跑的成套战术。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "slob",
+      "term": "SLOB",
+      "cn": "边线界外球战术",
+      "category": "界外球战术",
+      "ref_primitives": [
+        "INBOUND"
+      ],
+      "reachable": "blocked",
+      "reason": "INBOUND 在 tactic_primitives_ext 显式声明不可达（需更细球/角色判别）",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "Sideline Out of Bounds 的缩写，指前场边线发界外球时跑的成套战术。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "cross_screen",
+      "term": "Cross Screen",
+      "cn": "横向掩护",
+      "category": "掩护类",
+      "ref_primitives": [
+        "SCREEN.DOWN",
+        "SCREEN.CROSS"
+      ],
+      "reachable": "current",
+      "reason": "基础掩护 DOWN/CROSS 由原 detect_primitives 产出；子类 STS/GHOST/EXIT/TOUCH 由扩展实现",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "球员横穿球场到另一侧为队友做掩护，多发生在禁区内。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "curl_cut",
+      "term": "Curl Cut",
+      "cn": "卷切",
+      "category": "空切类",
+      "ref_primitives": [
+        "CUT"
+      ],
+      "reachable": "current",
+      "reason": "CUT 判任意球员位移，已有原语；BACKDOOR 子类需更细判别",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "接无球掩护后贴着掩护卷向篮下切入；防守追掩护（trail）时最有效。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "diamond_and_one",
+      "term": "Diamond and One",
+      "cn": "菱形加一盯人",
+      "category": "联防/混合防守",
+      "ref_primitives": [
+        "ZONE_23"
+      ],
+      "reachable": "blocked",
+      "reason": "站位类需非空间参照（球衣色/人工标），纯几何不可达（呼应 ZONE_23 不可达）",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "混合防守：1 人盯防对方最强点，另 4 人布菱形联防。属 junk defense。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "double_screen",
+      "term": "Double Screen",
+      "cn": "双人并列掩护",
+      "category": "掩护类",
+      "ref_primitives": [
+        "SCREEN.DOWN",
+        "SCREEN.CROSS"
+      ],
+      "reachable": "current",
+      "reason": "基础掩护 DOWN/CROSS 由原 detect_primitives 产出；子类 STS/GHOST/EXIT/TOUCH 由扩展实现",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "两名无球球员并排设掩护，拉长切入者防守人的绕行距离。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "down_screen",
+      "term": "Down Screen",
+      "cn": "下掩护",
+      "category": "掩护类",
+      "ref_primitives": [
+        "SCREEN.DOWN",
+        "SCREEN.CROSS"
+      ],
+      "reachable": "current",
+      "reason": "基础掩护 DOWN/CROSS 由原 detect_primitives 产出；子类 STS/GHOST/EXIT/TOUCH 由扩展实现",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "掩护者面朝底线设掩护，队友借掩护向外切出，常用于给投手创造空间。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "drag_screen",
+      "term": "Drag Screen",
+      "cn": "拖拽掩护",
+      "category": "掩护类",
+      "ref_primitives": [
+        "SCREEN.DOWN",
+        "SCREEN.CROSS"
+      ],
+      "reachable": "current",
+      "reason": "基础掩护 DOWN/CROSS 由原 detect_primitives 产出；子类 STS/GHOST/EXIT/TOUCH 由扩展实现",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "由跟进的拖后球员给持球人做的有球掩护；因掩护人的防守者往往失位而高效。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "flare_screen",
+      "term": "Flare Screen",
+      "cn": "外弹掩护",
+      "category": "掩护变体",
+      "ref_primitives": [
+        "SCREEN.EXIT"
+      ],
+      "reachable": "blocked",
+      "reason": "flare 外弹是角度复合（tactic_primitives_ext 声明 FLARE 不可达），EXIT 仅近似",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "无球掩护的一种，掩护后队友向外弹到外围接球投篮，类似 back screen。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "flash",
+      "term": "Flash",
+      "cn": "闪切",
+      "category": "空切类",
+      "ref_primitives": [
+        "CUT"
+      ],
+      "reachable": "current",
+      "reason": "CUT 判任意球员位移，已有原语；BACKDOOR 子类需更细判别",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "快速横穿禁区迎球的切入，趁防守不备最有效。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "flex_cut",
+      "term": "Flex (cut)",
+      "cn": "Flex 切入",
+      "category": "其他",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "未匹配到可达原语，暂列 blocked，待人工复核",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "横掩护后紧接着下掩护的组合动作，各级别都高效。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "flex_offense",
+      "term": "Flex (offense)",
+      "cn": "Flex 进攻",
+      "category": "其他",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "未匹配到可达原语，暂列 blocked，待人工复核",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "连续性进攻，要求极佳空间感；5 名球员须轮流打遍 5 个位置，利于培养球员。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "four_high",
+      "term": "Four High",
+      "cn": "四高位阵型",
+      "category": "其他",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "未匹配到可达原语，暂列 blocked，待人工复核",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "两翼各 1 人、两肘各 1 人、持球者在弧顶的进攻落位。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "four_low",
+      "term": "Four Low",
+      "cn": "四低位阵型",
+      "category": "其他",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "未匹配到可达原语，暂列 blocked，待人工复核",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "两底角各 1 人、两低位 block 各 1 人、持球者在弧顶的进攻落位。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "four_corners_offense",
+      "term": "Four Corners Offense",
+      "cn": "四角拖延进攻",
+      "category": "其他",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "未匹配到可达原语，暂列 blocked，待人工复核",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "引入进攻时限前的拖延战术：一人在中路持球单打，四人分站四角。属历史战术。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "grinnell_offense",
+      "term": "Grinnell Offense",
+      "cn": "格林内尔进攻",
+      "category": "进攻体系",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "是进攻体系/阵型而非单一战术，需多个原子原语+时序约束组合判定",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "Grinnell 学院 Dave Arseneault 打造的极端快节奏进攻，常在进攻时限前 5–7 秒就出手三分。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "hammer",
+      "term": "Hammer",
+      "cn": "Hammer 战术",
+      "category": "其他",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "未匹配到可达原语，暂列 blocked，待人工复核",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "弱侧背掩护，让队友切到底角投空位三分。马刺队最早将其带进 NBA 主流。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "iverson_cut",
+      "term": "Iverson Cut",
+      "cn": "Iverson 切",
+      "category": "其他",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "未匹配到可达原语，暂列 blocked，待人工复核",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "无球球员借肘区两道 stagger 掩护横穿球场到侧翼接球，以 Allen Iverson 命名。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "junk_defense",
+      "term": "Junk Defense",
+      "cn": "混合防守",
+      "category": "联防/混合防守",
+      "ref_primitives": [
+        "ZONE_23"
+      ],
+      "reachable": "blocked",
+      "reason": "站位类需非空间参照（球衣色/人工标），纯几何不可达（呼应 ZONE_23 不可达）",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "人盯人与联防的混合，如 box-and-one、triangle-and-two，用于限制对方核心。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "l_cut",
+      "term": "L-Cut",
+      "cn": "L 形切入",
+      "category": "空切类",
+      "ref_primitives": [
+        "CUT"
+      ],
+      "reachable": "current",
+      "reason": "CUT 判任意球员位移，已有原语；BACKDOOR 子类需更细判别",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "呈 L 形的切入：从低位沿禁区线上提到肘区，再切出到侧翼。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "mover_blocker_offense",
+      "term": "Mover Blocker Offense",
+      "cn": "动/挡进攻",
+      "category": "进攻体系",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "是进攻体系/阵型而非单一战术，需多个原子原语+时序约束组合判定",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "Dick Bennett 创立：部分球员只做「mover」（得分手），部分只做「blocker」（掩护者）。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "open_post",
+      "term": "Open Post",
+      "cn": "空内线",
+      "category": "低位类",
+      "ref_primitives": [
+        "ix_post_up"
+      ],
+      "reachable": "needs_predicate",
+      "reason": "post_up 由 ix_post_up predicate 表达（背身单打已定义 tactical_events.post_iso）",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "无人占据低位要位的状态；教练谈 open post 时通常指 5-out 进攻。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "pick_and_slip",
+      "term": "Pick-and-Slip",
+      "cn": "挡拆顺下偷跑（slip）",
+      "category": "理念/策略",
+      "ref_primitives": [],
+      "reachable": "na",
+      "reason": "属于建队理念或比赛策略，不是可由像素轨迹判定的单一战术动作",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "挡拆变体：掩护者在接触前突然提前顺下（slip），趁防守未及反应接球攻筐。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "pinch_post",
+      "term": "Pinch Post",
+      "cn": "挤压策应位",
+      "category": "低位类",
+      "ref_primitives": [
+        "ix_post_up"
+      ],
+      "reachable": "needs_predicate",
+      "reason": "post_up 由 ix_post_up predicate 表达（背身单打已定义 tactical_events.post_iso）",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "球传到弱侧肘区且该侧无其他球员时的进攻动作，便于直接单打或手递手。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "ram_screen",
+      "term": "Ram Screen",
+      "cn": "夯掩护",
+      "category": "掩护类",
+      "ref_primitives": [
+        "SCREEN.DOWN",
+        "SCREEN.CROSS"
+      ],
+      "reachable": "current",
+      "reason": "基础掩护 DOWN/CROSS 由原 detect_primitives 产出；子类 STS/GHOST/EXIT/TOUCH 由扩展实现",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "无球掩护直接衔接到有球掩护；掩护人的防守者来不及回位协防，因而高效。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "read_and_react_offense",
+      "term": "Read and React Offense",
+      "cn": "阅读反应进攻",
+      "category": "进攻体系",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "是进攻体系/阵型而非单一战术，需多个原子原语+时序约束组合判定",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "Rick Torbett 创立的无位置连续性进攻，球员根据防守阅读自行决策。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "run_and_jump_defense",
+      "term": "Run-and-Jump Defense",
+      "cn": "跑跳紧逼（R&J）",
+      "category": "联防/混合防守",
+      "ref_primitives": [
+        "ZONE_23"
+      ],
+      "reachable": "blocked",
+      "reason": "站位类需非空间参照（球衣色/人工标），纯几何不可达（呼应 ZONE_23 不可达）",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "Dean Smith 1970 年代在北卡创立的全场人盯人紧逼，鼓励跳换与夹击。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "screen_the_screener",
+      "term": "Screen-the-Screener",
+      "cn": "掩护掩护者",
+      "category": "掩护类",
+      "ref_primitives": [
+        "SCREEN.DOWN",
+        "SCREEN.CROSS"
+      ],
+      "reachable": "current",
+      "reason": "基础掩护 DOWN/CROSS 由原 detect_primitives 产出；子类 STS/GHOST/EXIT/TOUCH 由扩展实现",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "球员刚为队友做完掩护，立刻又借另一队友的掩护切出，防守极难应对。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "staggered_screen",
+      "term": "Staggered Screen",
+      "cn": "阶梯掩护",
+      "category": "掩护变体",
+      "ref_primitives": [
+        "SCREEN.DOWN"
+      ],
+      "reachable": "blocked",
+      "reason": "阶梯掩护是多掩护时序序列，纯几何/单事件不可判（tactic_primitives_ext 已声明）",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "两人朝同一方向但前后错开地为一名队友设无球掩护。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "triangle_and_two",
+      "term": "Triangle and Two",
+      "cn": "三角加二盯人",
+      "category": "联防/混合防守",
+      "ref_primitives": [
+        "ZONE_23"
+      ],
+      "reachable": "blocked",
+      "reason": "站位类需非空间参照（球衣色/人工标），纯几何不可达（呼应 ZONE_23 不可达）",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "混合防守：2 人盯防对方两名核心，另 3 人布三角联防。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "ucla_cut",
+      "term": "UCLA Cut",
+      "cn": "UCLA 切",
+      "category": "空切类",
+      "ref_primitives": [
+        "CUT"
+      ],
+      "reachable": "current",
+      "reason": "CUT 判任意球员位移，已有原语；BACKDOOR 子类需更细判别",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "外围球员传球给侧翼后，借高位（肘区）掩护切向强侧低位。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "ucla_screen",
+      "term": "UCLA Screen",
+      "cn": "UCLA 掩护",
+      "category": "掩护类",
+      "ref_primitives": [
+        "SCREEN.DOWN",
+        "SCREEN.CROSS"
+      ],
+      "reachable": "current",
+      "reason": "基础掩护 DOWN/CROSS 由原 detect_primitives 产出；子类 STS/GHOST/EXIT/TOUCH 由扩展实现",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "使外围球员完成 UCLA 切的背掩护，设在肘区高位。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "v_cut",
+      "term": "V-Cut",
+      "cn": "V 形切入",
+      "category": "空切类",
+      "ref_primitives": [
+        "CUT"
+      ],
+      "reachable": "current",
+      "reason": "CUT 判任意球员位移，已有原语；BACKDOOR 子类需更细判别",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "最常见的外围摆脱切入：先向内切，急停变向外弹接球。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "zipper_cut",
+      "term": "Zipper Cut",
+      "cn": "拉链切入",
+      "category": "空切类",
+      "ref_primitives": [
+        "CUT"
+      ],
+      "reachable": "current",
+      "reason": "CUT 判任意球员位移，已有原语；BACKDOOR 子类需更细判别",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "球员从低位直线拉到三分线外的槽位区。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "set_play",
+      "term": "Set Play",
+      "cn": "成套战术",
+      "category": "理念/策略",
+      "ref_primitives": [],
+      "reachable": "na",
+      "reason": "属于建队理念或比赛策略，不是可由像素轨迹判定的单一战术动作",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "预先编排的固定套路，用于暂停后、开场、节末或进攻停滞时，通常只跑一次，随后衔接主进攻。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "quick_hitter",
+      "term": "Quick Hitter",
+      "cn": "速成战术",
+      "category": "理念/策略",
+      "ref_primitives": [],
+      "reachable": "na",
+      "reason": "属于建队理念或比赛策略，不是可由像素轨迹判定的单一战术动作",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "快速打成、追求即刻得分的短套路，与主进攻体系相对。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "continuity_offense",
+      "term": "Continuity Offense",
+      "cn": "连续性进攻",
+      "category": "进攻体系",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "是进攻体系/阵型而非单一战术，需多个原子原语+时序约束组合判定",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "可反复循环跑动的进攻体系（如 Flex、5-out motion），无固定终点。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "delay_offense",
+      "term": "Delay Offense",
+      "cn": "拖延进攻",
+      "category": "其他",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "未匹配到可达原语，暂列 blocked，待人工复核",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "领先方为消耗时间而打的控球进攻；现代 NBA 因 24 秒时限而少见。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "press_breaker",
+      "term": "Press Breaker",
+      "cn": "破紧逼",
+      "category": "破紧逼",
+      "ref_primitives": [
+        "PRESS_BREAK"
+      ],
+      "reachable": "blocked",
+      "reason": "需先识别全场紧逼（trapping 事件），属序列复合",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "专门应对全场紧逼的进攻布置，通常依赖多次传球与中路接应。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "high_low_offense_1_4_high",
+      "term": "High Low Offense (1-4 High)",
+      "cn": "高低位进攻（1-4 高位）",
+      "category": "进攻体系",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "是进攻体系/阵型而非单一战术，需多个原子原语+时序约束组合判定",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "以高位策应+低位攻击为核心的进攻体系。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "european_ball_screen_continuity",
+      "term": "European Ball Screen Continuity",
+      "cn": "欧洲式连续挡拆",
+      "category": "挡拆类",
+      "ref_primitives": [
+        "SCREEN.DOWN",
+        "SCREEN.CROSS",
+        "ROLL",
+        "PASS"
+      ],
+      "reachable": "current",
+      "reason": "pick_and_roll 已由 tactical_events 用 predicate 聚合定义；ROLL/PASS 由 tactic_primitives_ext 实现",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "以连续有球掩护为主体的进攻体系，欧洲联赛标志性打法。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "michigan_offense",
+      "term": "Michigan Offense",
+      "cn": "密歇根进攻",
+      "category": "进攻体系",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "是进攻体系/阵型而非单一战术，需多个原子原语+时序约束组合判定",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "简洁的人盯人进攻，各级别通用。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "duke_motion_offense",
+      "term": "Duke Motion Offense",
+      "cn": "杜克动态进攻",
+      "category": "进攻体系",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "是进攻体系/阵型而非单一战术，需多个原子原语+时序约束组合判定",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "杜克大学使用的动态进攻体系。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "north_carolina_motion_offense",
+      "term": "North Carolina Motion Offense",
+      "cn": "北卡动态进攻",
+      "category": "进攻体系",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "是进攻体系/阵型而非单一战术，需多个原子原语+时序约束组合判定",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "北卡大学使用的动态进攻体系，强调二次突破与节奏。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "open_post_motion_offense",
+      "term": "Open Post Motion Offense",
+      "cn": "空位策应动态进攻",
+      "category": "低位类",
+      "ref_primitives": [
+        "ix_post_up"
+      ],
+      "reachable": "needs_predicate",
+      "reason": "post_up 由 ix_post_up predicate 表达（背身单打已定义 tactical_events.post_iso）",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "以内线空位策应为核心的动态进攻体系。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "5_out_cutters",
+      "term": "5 Out Cutters",
+      "cn": "五外切入进攻",
+      "category": "其他",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "未匹配到可达原语，暂列 blocked，待人工复核",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "五人外拉的切入型动态进攻，可作拖延进攻或主进攻，一天即可教会。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "1_3_1_cutters",
+      "term": "1-3-1 Cutters",
+      "cn": "1-3-1 切入进攻",
+      "category": "联防/混合防守",
+      "ref_primitives": [
+        "ZONE_23"
+      ],
+      "reachable": "blocked",
+      "reason": "站位类需非空间参照（球衣色/人工标），纯几何不可达（呼应 ZONE_23 不可达）",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "适合青少年与高中队的切入型进攻。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "umass_zone_offense",
+      "term": "Umass Zone Offense",
+      "cn": "麻省大学破联防",
+      "category": "联防/混合防守",
+      "ref_primitives": [
+        "ZONE_23"
+      ],
+      "reachable": "blocked",
+      "reason": "站位类需非空间参照（球衣色/人工标），纯几何不可达（呼应 ZONE_23 不可达）",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "经典的破区域联防套路之一。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "tennessee_shuffle",
+      "term": "Tennessee Shuffle",
+      "cn": "田纳西洗牌",
+      "category": "进攻体系",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "是进攻体系/阵型而非单一战术，需多个原子原语+时序约束组合判定",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "经典的连续性进攻套路之一。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "yo_yo_zone_offense",
+      "term": "Yo Yo (zone offense)",
+      "cn": "Yo Yo 破联防",
+      "category": "联防/混合防守",
+      "ref_primitives": [
+        "ZONE_23"
+      ],
+      "reachable": "blocked",
+      "reason": "站位类需非空间参照（球衣色/人工标），纯几何不可达（呼应 ZONE_23 不可达）",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "简洁的破联防进攻，各级别通用。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "chin_series",
+      "term": "Chin Series",
+      "cn": "Chin 系列",
+      "category": "其他",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "未匹配到可达原语，暂列 blocked，待人工复核",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "以低位「chin」（下巴位）要位起手的战术系列，可对人盯人也可对联防。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "zipper_action",
+      "term": "Zipper (action)",
+      "cn": "Zipper 起手",
+      "category": "其他",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "未匹配到可达原语，暂列 blocked，待人工复核",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "以低位球员拉到弧顶槽位起手的战术动作，常接手递手或挡拆。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "stagger_action",
+      "term": "Stagger (action)",
+      "cn": "阶梯掩护起手",
+      "category": "掩护变体",
+      "ref_primitives": [
+        "SCREEN.DOWN"
+      ],
+      "reachable": "blocked",
+      "reason": "阶梯掩护是多掩护时序序列，纯几何/单事件不可判（tactic_primitives_ext 已声明）",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "两名球员前后错开设掩护，为投手创造横切接球机会。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "45_54",
+      "term": "45/54",
+      "cn": "45/54 战术",
+      "category": "其他",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "未匹配到可达原语，暂列 blocked，待人工复核",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "以落位编号（4 号位到 5 号位掩护 / 反向）命名的成套战术。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "hit_back",
+      "term": "Hit Back",
+      "cn": "Hit Back 战术",
+      "category": "其他",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "未匹配到可达原语，暂列 blocked，待人工复核",
+      "source": "basketballforcoaches.com《250+ Basketball Terms》(教练视角)",
+      "note": "回传反打型套路，利用防守追防方向做反向进攻。（来源：basketballforcoaches.com《250+ Basketball Terms》(教练视角)）"
+    },
+    {
+      "id": "2_for_1",
+      "term": "2-for-1",
+      "cn": "两攻一防（2换1）",
+      "category": "理念/策略",
+      "ref_primitives": [],
+      "reachable": "na",
+      "reason": "属于建队理念或比赛策略，不是可由像素轨迹判定的单一战术动作",
+      "source": "underarmour.com《The Ultimate Glossary of Basketball Terms》",
+      "note": "节末策略：通过管理进攻时限与比赛时钟的差值，在时间耗尽前比对手多拿一次进攻机会。（来源：underarmour.com《The Ultimate Glossary of Basketball Terms》）"
+    },
+    {
+      "id": "fishhook_cut",
+      "term": "Fishhook Cut",
+      "cn": "鱼钩切入",
+      "category": "空切类",
+      "ref_primitives": [
+        "CUT"
+      ],
+      "reachable": "current",
+      "reason": "CUT 判任意球员位移，已有原语；BACKDOOR 子类需更细判别",
+      "source": "underarmour.com《The Ultimate Glossary of Basketball Terms》",
+      "note": "呈鱼钩状的弧形切入，用来与防守者拉开距离。（来源：underarmour.com《The Ultimate Glossary of Basketball Terms》）"
+    },
+    {
+      "id": "inside_cut",
+      "term": "Inside Cut",
+      "cn": "内切",
+      "category": "空切类",
+      "ref_primitives": [
+        "CUT"
+      ],
+      "reachable": "current",
+      "reason": "CUT 判任意球员位移，已有原语；BACKDOOR 子类需更细判别",
+      "source": "underarmour.com《The Ultimate Glossary of Basketball Terms》",
+      "note": "从禁区外切入到禁区以内的动作。（来源：underarmour.com《The Ultimate Glossary of Basketball Terms》）"
+    },
+    {
+      "id": "nellie_ball",
+      "term": "Nellie Ball",
+      "cn": "尼尔森篮球",
+      "category": "其他",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "未匹配到可达原语，暂列 blocked，待人工复核",
+      "source": "underarmour.com《The Ultimate Glossary of Basketball Terms》",
+      "note": "以教练 Don Nelson 命名的风格：快节奏、快速传导、重速度与得分，常为阵容偏小的球队采用。（来源：underarmour.com《The Ultimate Glossary of Basketball Terms》）"
+    },
+    {
+      "id": "one_on_one",
+      "term": "One-on-One",
+      "cn": "一对一",
+      "category": "理念/策略",
+      "ref_primitives": [],
+      "reachable": "na",
+      "reason": "属于建队理念或比赛策略，不是可由像素轨迹判定的单一战术动作",
+      "source": "underarmour.com《The Ultimate Glossary of Basketball Terms》",
+      "note": "进攻球员与其防守者单挑、无其他防守者协防的局面。（来源：underarmour.com《The Ultimate Glossary of Basketball Terms》）"
+    },
+    {
+      "id": "match_up_zone",
+      "term": "Match-Up Zone",
+      "cn": "匹配联防",
+      "category": "联防/混合防守",
+      "ref_primitives": [
+        "ZONE_23"
+      ],
+      "reachable": "blocked",
+      "reason": "站位类需非空间参照（球衣色/人工标），纯几何不可达（呼应 ZONE_23 不可达）",
+      "source": "underarmour.com《The Ultimate Glossary of Basketball Terms》",
+      "note": "兼具联防与人盯人属性的混合防守，按需临时对位盯人，可迷惑进攻。（来源：underarmour.com《The Ultimate Glossary of Basketball Terms》）"
+    },
+    {
+      "id": "ucla_offense",
+      "term": "UCLA (offense)",
+      "cn": "UCLA 进攻",
+      "category": "其他",
+      "ref_primitives": [],
+      "reachable": "blocked",
+      "reason": "未匹配到可达原语，暂列 blocked，待人工复核",
+      "source": "underarmour.com《The Ultimate Glossary of Basketball Terms》",
+      "note": "John Wooden 在 UCLA 推广的进攻：大量人与球的移动、掩护与高位策应。（来源：underarmour.com《The Ultimate Glossary of Basketball Terms》）"
+    },
+    {
+      "id": "moreyball",
+      "term": "Moreyball",
+      "cn": "魔球篮球",
+      "category": "理念/策略",
+      "ref_primitives": [],
+      "reachable": "na",
+      "reason": "属于建队理念或比赛策略，不是可由像素轨迹判定的单一战术动作",
+      "source": "underarmour.com《The Ultimate Glossary of Basketball Terms》",
+      "note": "以效率为名只投三分与攻筐的体系，由火箭总经理 Daryl Morey 推广，分析派奉为圭臬。（来源：underarmour.com《The Ultimate Glossary of Basketball Terms》）"
+    },
+    {
+      "id": "pace_and_space",
+      "term": "pace-and-space",
+      "cn": "提速拉开",
+      "category": "理念/策略",
+      "ref_primitives": [],
+      "reachable": "na",
+      "reason": "属于建队理念或比赛策略，不是可由像素轨迹判定的单一战术动作",
+      "source": "theringer.com《The Modern NBA Dictionary》(2019-10-14, Haley O'Shaughnessy)",
+      "note": "现代进攻理念：上大量射手拉开空间并提速。（来源：theringer.com《The Modern NBA Dictionary》(2019-10-14, Haley O'Shaughnessy)）"
+    },
+    {
+      "id": "positionless_basketball",
+      "term": "positionless basketball",
+      "cn": "无位置篮球",
+      "category": "理念/策略",
+      "ref_primitives": [],
+      "reachable": "na",
+      "reason": "属于建队理念或比赛策略，不是可由像素轨迹判定的单一战术动作",
+      "source": "theringer.com《The Modern NBA Dictionary》(2019-10-14, Haley O'Shaughnessy)",
+      "note": "各位置在身高、技能上的传统标准被打破。（来源：theringer.com《The Modern NBA Dictionary》(2019-10-14, Haley O'Shaughnessy)）"
+    },
+    {
+      "id": "small_ball",
+      "term": "small ball",
+      "cn": "小球阵容",
+      "category": "理念/策略",
+      "ref_primitives": [],
+      "reachable": "na",
+      "reason": "属于建队理念或比赛策略，不是可由像素轨迹判定的单一战术动作",
+      "source": "theringer.com《The Modern NBA Dictionary》(2019-10-14, Haley O'Shaughnessy)",
+      "note": "上更矮的阵容，让对手的大个子在防守端被错位针对。动词：go small。（来源：theringer.com《The Modern NBA Dictionary》(2019-10-14, Haley O'Shaughnessy)）"
+    },
+    {
+      "id": "spacing",
+      "term": "spacing",
+      "cn": "空间",
+      "category": "理念/策略",
+      "ref_primitives": [],
+      "reachable": "na",
+      "reason": "属于建队理念或比赛策略，不是可由像素轨迹判定的单一战术动作",
+      "source": "theringer.com《The Modern NBA Dictionary》(2019-10-14, Haley O'Shaughnessy)",
+      "note": "多名射手同时在场把防守拉到外围，从而为持球人创造攻筐通道的结果。spread the floor 即空间好。（来源：theringer.com《The Modern NBA Dictionary》(2019-10-14, Haley O'Shaughnessy)）"
+    }
+  ]
+}

@@ -8,7 +8,14 @@ from __future__ import annotations
 import os
 from typing import Optional, Union
 
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    # python-dotenv 不是本项目的硬依赖（口令也可能直接由环境注入）。
+    # 缺失时降级为 no-op，绝不能让整个 common 包因一个可选依赖而不可导入
+    # —— 质量门禁 / 路径校验器都只做静态检查，不该被 .env 加载器卡死。
+    def load_dotenv(*_args, **_kwargs):
+        return False
 
 from common.nba_paths import ARCHIVE_ROOT as _NBA_ARCHIVE_ROOT
 

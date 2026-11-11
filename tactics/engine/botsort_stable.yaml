@@ -1,0 +1,30 @@
+# BoT-SORT —— 抑制 ID 碎片化（针对转播片段「摇镜 + 球员频繁进出画面」场景）
+#
+# 背景（实测）：sas_* 转播片段用默认 botsort.yaml 跑出 256 个 track_id（场上仅 ~10 人），
+#   track_id 中位寿命仅 10 帧(≈1s) ⇒ 逐球员战术聚合（速度/空切）不可靠。
+#   切镜检测已证否「镜头切换」成因（三段均 0 处硬切，MAD 分布平滑）⇒ 主因是
+#   **摇镜导致球员短暂出框/遮挡 + 检测断续** 使轨迹被判丢失并重开。
+#
+# 调参方向（保守，以不丢真实球员为前提）：
+#   new_track_thresh 0.25 → 0.60   更难生成新轨迹，抑制碎片
+#   track_buffer     30  → 90     丢失后保留更久，短暂遮挡可恢复同一 ID
+#   track_high_thresh 0.25 → 0.30  一阶段匹配更严格
+# 其余保持默认；gmc=sparseOptFlow 保留（对移动镜头有补偿作用）；不开 ReID（本地无权重）。
+#
+# ⚠️ 风险：track_buffer 过大有 ID switch 风险。故改动后必须复核「每帧球员数」
+#   是否仍在 ~10–13（若骤降说明真实球员被吞），以及中位寿命是否显著提升。
+
+tracker_type: botsort
+track_high_thresh: 0.30
+track_low_thresh: 0.10
+new_track_thresh: 0.60
+track_buffer: 90
+match_thresh: 0.80
+fuse_score: True
+
+gmc_method: sparseOptFlow
+
+proximity_thresh: 0.5
+appearance_thresh: 0.8
+with_reid: False
+model: auto

@@ -2,6 +2,89 @@
 
 All changes to LOCKED phases must be recorded here (v8 §1 Change Request mechanism).
 
+## 2026-11-11 — 战术分析项目迁入与代码治理（Task #38–#43）
+
+**Status**: `tactics/` **570 文件入库**（458 `.py`）；入库后独立复验
+门禁 **42/42**（受检 `.py` 652 → 1113）、ruff **0 违规**、
+治理回归 **7/7** + 路径 parity **3/3**、全量回归 **805 passed / 1 skipped / 0 failed**。
+`.py` 语法 **458/458**、绝对路径字面量 **0**、路径语义等价 **454/454**。
+
+### 一、迁移形态
+
+代码 / 数据分离：代码层 `REPO_ROOT/tactics/` 入库；43G 素材、模型权重、`.venv`、
+第三方目录留在数据盘。数据盘原位置换**同名软链**指回 `tactics/`，历史绝对路径运行时
+依然有效，读写落点不变。备份 `.trash/tactics_pre_migration_20261111/` 560 文件
+相对路径集合与 md5 全部一致。新增 `tactics/README.md` 作为目录映射与运行契约。
+
+### 二、🔴 事故复盘：一次「修完」把 443 个文件改坏了
+
+上一轮用**行级正则**批量改写硬编码路径，工具自报「全部处理、违规数下降」，
+实测却是：迁移前备份 **458/458 可 `ast.parse`**，治理后只剩 **15/458**，
+`ruff check .` 从 502 爆到 **22237 个 invalid-syntax**。
+
+根因（旧 `tools/fix_tactics_paths.py`）：
+
+1. 用行级正则猜 docstring 边界 → import 被注进 docstring 内部；
+2. 同一 helper 重复注入两次；
+3. 把 docstring 里的中文全角冒号 `：` 全部替换成半角（破坏文档）；
+4. 删路径字面量却留下空括号 `（）`；
+5. 留下未闭合 `"""`，把整段原代码包成字符串。
+
+另外，「f-string 里的全角冒号会导致语法错误」这个前提是**假的**——备份 458 个文件
+全部可解析，那轮批量替换纯属基于错误前提的多余破坏。
+
+**处置**：坏状态快照 → `.trash/tactics_broken_snapshot_20261111_2210/`；
+从备份还原 459 个改动文件 → 458/458 可解析；重写治理器后重跑。
+
+🔴 沉淀为红线：**工具自报「违规 0 / 改完」不等于没坏**，批量改写后必须拿迁移前备份
+逐文件 `ast.parse` 对照，并做语义等价校验。
+
+### 三、治理落地（路线 ③：真治理 + Tier-2 兜底，未采用 legacy 全豁免）
+
+`tools/fix_tactics_paths.py` 重写为 **tokenize / AST 感知**，不变量：
+
+| 不变量 | 实现 |
+|---|---|
+| 只改字符串字面量 / 注释 | 不动中文标点、缩进、代码结构；不再补 `__main__` 守卫 |
+| 代码路径 | `str(data_file("相对"))` / `str(tactics_data_file(...))` / `str(repo_file(...))` / `str(workspace_file(...))` / `str(Path.home() / ...)` |
+| 文档路径 | 前缀换占位符 `<DATA_ROOT>` 等，保持可读性且让 11a 全文扫描零命中 |
+| 隐式拼接组 | 长路径拆成相邻字符串时**整组**处理，首段生成表达式、后续用 `+` 连接 |
+| 双校验 | 改后逐文件 `ast.parse` + **每条路径表达式求值比对**；任一失败即整文件丢弃 |
+| 幂等 | `--check` rc=0；已有 bootstrap 不重复注入 |
+
+bootstrap 保证脚本从任意 cwd / 数据盘软链启动时能 import `common.nba_paths`，
+且 `sys.path.insert` 必先于该 import（由回归测试锁死）。
+
+**实修** ruff 915 项（I001 820 / F541 51 / W292 40 / F811 / F821 / F601×2），
+而非豁免：其中 4 个是真实缺陷（重复 import、重复字典键、`self` 未定义、
+函数内 `import x; y = ...` 同行语句）。
+
+### 四、门禁与环境适配
+
+- `common/bridge_constants.py` 强依赖 `dotenv`，而系统 python3 与 `.venv` **均无该包**
+  → `common` 包整体不可导入，一次拖垮门禁 2 项（`workspace/entry.py --check`、
+  11b 路径等价校验）。改为 `try/except ImportError` 降级 no-op 后恢复 42/42。
+  **可选依赖不得成为包的硬门槛。**
+- 门禁 11a `PATH_TOOL_EXEMPT` 增列 `tools/fix_tactics_paths.py`
+  （RULES 表本身是「绝对路径前缀 → helper」的输入，与 `migrate_hardcoded_paths.py` 同性质）。
+- `pyproject.toml` 增 `"tactics/**"` Tier-2 白名单（与其它子项目同口径）；
+  **当前实测 0 违规**，该条目只为将来新增脚本兜底，未给现存违规开绿灯。
+- 新增 `tests/test_tactics_governance.py`（7 项）：全文件可解析、零路径字面量、
+  治理器幂等、bootstrap 单例与顺序、`Path` 不被滥用、备份无丢失、ruff 零违规。
+  🔴 全程 **AST 静态解析，绝不 import tactics/**（17% 脚本无守卫，import 即写盘）。
+- `.gitignore` 增 `.pytest_tmp_t/`；`.trash/` 已被所有扫描器排除。
+
+### 五、未结项 / 失败边界
+
+1. **12/13 个 `tactics/*.sh` 仍含硬编码绝对路径**（多为 `cd <数据根>/action_analysis`）。
+   门禁 11c 只扫主仓根 + `external_crawler/`，当前**不覆盖** `tactics/`；这些脚本依赖
+   数据盘软链，改写收益低于破坏运行的风险 → 保持原状，另行立项。
+2. **`__main__` 守卫未强制补齐**：补守卫会改变「import 即执行」的既有语义，
+   属独立议题；先以探测禁令 + 回归测试兜住。
+3. 复评分（`code_quality_reassessment_20261111.md`）是治理前的旧分数，尚未按新基线重评。
+
+---
+
 ## 2026-11-11 — 打包启动自检与可观测性补齐（Task #36 收官）
 
 **Status**: 契约测试 **11/11**；全量回归 **798 passed / 1 skipped / 0 failed**；

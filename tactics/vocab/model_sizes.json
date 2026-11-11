@@ -1,0 +1,58 @@
+{
+  "_comment": "HF API tree 实测取得于 2026-09-23（API 超时时的兜底尺寸/校验表）",
+  "repo": "maelic/relsgg-vits16plus",
+  "files": {
+    ".gitattributes": {
+      "size": 1519,
+      "sha256": null
+    },
+    "README.md": {
+      "size": 6557,
+      "sha256": null
+    },
+    "calibration.json": {
+      "size": 763,
+      "sha256": null
+    },
+    "config.json": {
+      "size": 164,
+      "sha256": null
+    },
+    "model.pth": {
+      "size": 257111219,
+      "sha256": "5d281bf0d89f2bbfd72ff5a14f9a40ce12534e790b0402e2ca970539c7bcc294"
+    },
+    "predicate_bank.npz": {
+      "size": 469258,
+      "sha256": "708f812d6579eab1be85b3378b79e376453c2d4f65b4fad9bcebb9f5bf05da06"
+    },
+    "predicate_embeddings.npz": {
+      "size": 18151247,
+      "sha256": "e85ce8690df07771d0db8139281e4b364fce79423973e7ab2ef41fcffef332f4"
+    },
+    "relateanything.json": {
+      "size": 1634,
+      "sha256": null
+    },
+    "relateanything.onnx": {
+      "size": 207881414,
+      "sha256": "b8b6a047c5e0771a897a5015c2ffb09d8fe5e3ffa0651e1e61af0e8436a3617a"
+    },
+    "text_student.pt": {
+      "size": 44968057,
+      "sha256": "e0317830b68ea51e6711fc90d4a35954d0528e5bd78a8d5afd966601ce4ed119"
+    },
+    "thresholds.json": {
+      "size": 54252,
+      "sha256": null
+    },
+    "tokenizer.json": {
+      "size": 3642073,
+      "sha256": null
+    },
+    "tokenizer_config.json": {
+      "size": 351,
+      "sha256": null
+    }
+  }
+}

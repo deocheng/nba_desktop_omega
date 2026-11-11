@@ -39,8 +39,11 @@ PROJ = Path(__file__).resolve().parent.parent
 PATHS_SH = PROJ / "common" / "paths.sh"
 NBA_PATHS_PY = PROJ / "common" / "nba_paths.py"
 
-#: 三项必须一致的解析结果（顺序固定）
-PARITY_KEYS = ("PG_DATA_DIR", "PROJ_ROOT", "DATA_ROOT")
+#: 五项必须一致的解析结果（顺序固定）
+#: 后两项是 2026-11-11 战术分析项目迁入后新增的派生常量，
+#: 必须与 Python 侧同源，否则 shell 脚本会指向另一份代码/数据。
+PARITY_KEYS = ("PG_DATA_DIR", "PROJ_ROOT", "DATA_ROOT",
+               "TACTICS_CODE_ROOT", "TACTICS_DATA_ROOT")
 
 #: 会影响路径解析的环境变量 —— 两侧都必须**清空**后才可比
 ENV_KEYS = ("NBA_REPO_ROOT", "NBA_DATA_ROOT", "NBA_PG_DATA_DIR",
@@ -61,7 +64,7 @@ def _clean_env() -> dict[str, str]:
 
 
 def _shell_resolve(cwd: Path) -> list[str]:
-    """在给定目录里实跑 common/paths.sh，拿三项解析值。
+    """在给定目录里实跑 common/paths.sh，拿五项解析值。
 
     🔴 必须 source **该目录内**的 ``paths.sh``（模拟目录里复制过去的那份），
     而不是全局常量 —— 否则两侧测的根本不是同一份代码，会得出
@@ -71,8 +74,9 @@ def _shell_resolve(cwd: Path) -> list[str]:
     local_sh = cwd / "common" / "paths.sh"
     sh_path = local_sh if local_sh.exists() else PATHS_SH
     probe = (
-        '. "' + str(sh_path) + '"; printf "%s|%s|%s" '
-        '"$PG_DATA_DIR" "$PROJ_ROOT" "$DATA_ROOT"'
+        '. "' + str(sh_path) + '"; printf "%s|%s|%s|%s|%s" '
+        '"$PG_DATA_DIR" "$PROJ_ROOT" "$DATA_ROOT" '
+        '"$TACTICS_CODE_ROOT" "$TACTICS_DATA_ROOT"'
     )
     p = subprocess.run(["bash", "-c", probe], cwd=str(cwd),
                        capture_output=True, text=True, env=_clean_env(), check=True)
@@ -80,11 +84,12 @@ def _shell_resolve(cwd: Path) -> list[str]:
 
 
 def _python_resolve(cwd: Path) -> list[str]:
-    """在给定目录里实跑 common/nba_paths.py，拿三项解析值。"""
+    """在给定目录里实跑 common/nba_paths.py，拿五项解析值。"""
     code = (
         "import sys; sys.path.insert(0, " + repr(str(cwd)) + ")\n"
         "from common import nba_paths as np\n"
-        "print('|'.join([str(np.PG_DATA_DIR), str(np.REPO_ROOT), str(np.DATA_ROOT)]))\n"
+        "print('|'.join([str(np.PG_DATA_DIR), str(np.REPO_ROOT), str(np.DATA_ROOT),"
+        " str(np.TACTICS_CODE_ROOT), str(np.TACTICS_DATA_ROOT)]))\n"
     )
     env = _clean_env()
     p = subprocess.run([sys.executable, "-c", code], cwd=str(cwd),
@@ -95,7 +100,8 @@ def _python_resolve(cwd: Path) -> list[str]:
 def _assert_parity(cwd: Path, label: str) -> None:
     sh = _shell_resolve(cwd)
     py = _python_resolve(cwd)
-    assert len(sh) == 3 and len(py) == 3, f"{label}: 解析结果数量异常"
+    n = len(PARITY_KEYS)
+    assert len(sh) == n and len(py) == n, f"{label}: 解析结果数量异常"
     for key, s, p in zip(PARITY_KEYS, sh, py):
         assert s == p, (
             f"{label}: {key} 不一致\n"

@@ -19,6 +19,8 @@
 #   WORKSPACE_ROOT  NBA_WORKSPACE_ROOT       ~/WorkBuddy/<会话>            WORKSPACE_ROOT
 #   ARCHIVE_ROOT    NBA_ARCHIVE_ROOT         $DATA_ROOT/raw_archive       ARCHIVE_ROOT
 #   HEADSHOTS_ROOT  NBA_HEADSHOTS_ROOT       $DATA_ROOT/headshots         HEADSHOTS_ROOT
+#   TACTICS_CODE_ROOT（派生）                $PROJ_ROOT/tactics           TACTICS_CODE_ROOT
+#   TACTICS_DATA_ROOT（派生）                $DATA_ROOT/action_analysis   TACTICS_DATA_ROOT
 #
 # 🔴 **PG 数据目录的解析顺序必须与 Python 侧完全一致**，否则：
 #    同一台机器上，shell 启动的 PG 与 Python 读到的 PG 会指向**不同目录**
@@ -101,7 +103,11 @@ export PG_DATA_DIR
 # ── 其他资产根 ────────────────────────────────────────────────────────────
 ARCHIVE_ROOT="${NBA_ARCHIVE_ROOT:-$DATA_ROOT/raw_archive}"
 HEADSHOTS_ROOT="${NBA_HEADSHOTS_ROOT:-$DATA_ROOT/headshots}"
-export ARCHIVE_ROOT HEADSHOTS_ROOT
+# 战术分析项目：代码根在仓库内（git 管理），数据根在外置盘（大素材不入库）
+# 🔴 与 Python 侧 nba_paths.TACTICS_CODE_ROOT / TACTICS_DATA_ROOT 同源同规则
+TACTICS_CODE_ROOT="$PROJ_ROOT/tactics"
+TACTICS_DATA_ROOT="$DATA_ROOT/action_analysis"
+export ARCHIVE_ROOT HEADSHOTS_ROOT TACTICS_CODE_ROOT TACTICS_DATA_ROOT
 
 # ── 会话工作区 ────────────────────────────────────────────────────────────
 # 默认取 ~/WorkBuddy 下**最近修改**的会话目录（与人工习惯一致）。

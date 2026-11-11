@@ -173,6 +173,16 @@ ARCHIVE_ROOT: Path = DATA_ROOT / "raw_archive"
 #: 头像缓存根
 HEADSHOTS_ROOT: Path = DATA_ROOT / "headshots"
 
+#: 战术分析项目（2026-11-11 迁入主仓库，见 docs/change-log.md 当日条目）
+#:
+#: 🔴 **代码与数据分离**：代码根在仓库内（纳入 git / ruff / 质量门禁）；
+#: 数据根仍在外置盘（action_work 21G、bonsai 13G、clips 9G、reports 982M、
+#: backups 1.8G、.venv 与模型权重），**绝不入库**。
+#: 数据盘原目录对迁走的代码文件保留同名软链指回 tactics/，
+#: 因此历史脚本里的绝对路径在运行时仍然有效，迁移不改变任何读写落点。
+TACTICS_CODE_ROOT: Path = REPO_ROOT / "tactics"
+TACTICS_DATA_ROOT: Path = DATA_ROOT / "action_analysis"
+
 #: 仓库内虚拟环境解释器（Python 3.12）
 VENV_PYTHON: Path = REPO_ROOT / ".venv" / "bin" / "python"
 
@@ -207,6 +217,16 @@ def analysis_file(*parts: str) -> Path:
 def data_file(*parts: str) -> Path:
     """数据盘根内的路径：data_file("raw_archive", "br_players_shooting")"""
     return DATA_ROOT.joinpath(*parts)
+
+
+def tactics_code_file(*parts: str) -> Path:
+    """战术分析**代码**路径（仓库内）：tactics_code_file("engine", "tacboard.py")"""
+    return TACTICS_CODE_ROOT.joinpath(*parts)
+
+
+def tactics_data_file(*parts: str) -> Path:
+    """战术分析**数据**路径（外置盘）：tactics_data_file("action_work", "x.json")"""
+    return TACTICS_DATA_ROOT.joinpath(*parts)
 
 
 def node_binary() -> str | None:
@@ -257,6 +277,8 @@ def describe() -> str:
         f"  PG 数据目录   : {PG_DATA_DIR}  [{'存在' if PG_DATA_DIR.exists() else '缺失'}]",
         f"  BR 归档根     : {ARCHIVE_ROOT}  [{'存在' if ARCHIVE_ROOT.exists() else '缺失'}]",
         f"  头像缓存根    : {HEADSHOTS_ROOT}  [{'存在' if HEADSHOTS_ROOT.exists() else '缺失'}]",
+        f"  战术代码根    : {TACTICS_CODE_ROOT}  [{'存在' if TACTICS_CODE_ROOT.exists() else '缺失'}]",
+        f"  战术数据根    : {TACTICS_DATA_ROOT}  [{'存在' if TACTICS_DATA_ROOT.exists() else '缺失'}]",
         f"  venv 解释器   : {VENV_PYTHON}  [{'存在' if VENV_PYTHON.exists() else '缺失'}]",
     ]
     return "\n".join(lines)

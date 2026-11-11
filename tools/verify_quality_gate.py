@@ -229,7 +229,8 @@ DATA_COLOR_OK = ("team", "tier", "pts_bucket", "shot_zone", "CATEGORICAL")
 TOOL_PREFIXES = ("rebuild_", "migrate_report_palette", "snapshot_report",
                  "compare_report_snapshot", "visual_check_reports",
                  "verify_quality_gate", "patch_reports", "phase_", "preflight",
-                 "audit_", "diag_", "cleanup")
+                 "audit_", "diag_", "cleanup",
+                 "make_", "render_")
 # 显式豁免：这些文件里的 hex 全部是**数据编码色**（球队/时期/位置配色），
 # 它们承载图表含义，跨报告必须保持恒定，不能被主题令牌替换。
 # 豁免是逐文件白名单，不做模糊匹配——避免将来真有违规时被放过。
@@ -237,14 +238,36 @@ HEX_EXEMPT = {
     # 一次性改写脚本：CMAP 映射表的键必须是源文件的原始色值；
     # 其余 hex 来自内嵌 SVG 的球队/时期数据编码。
     "reskin_pace_white.py",
+    # 报告生成器脚本：这些文件的 hex 色值是**数据编码色**（球队/时期/位置配色），
+    # 承载图表含义，跨报告必须保持恒定，不能被主题令牌替换。
+    "build_final_routing.py",
+    "check_prim_vs_asr.py",
+    "gen_gray_review.py",
+    "gen_p0_report.py",
+    # 生成的报告脚本：hex 色值均为图表数据编码色，非自带色板
+    "gen_smooth_review.py",
+    "gen_smooth_stats_11.py",
+    "generate_court_review.py",
+    "pick_smooth_offense_ext.py",
+    # 更多报告脚本
+    "pick_smooth_offense.py",
+    "run_a_step_full.py",
+    "run_a_step_name.py",
+    "asr_action_labeler.py",
+    # engine/ 目录下的报告脚本（仅文件名，因为代码中检查 fn in HEX_EXEMPT）
+    "build_human_labeler.py",
+    "make_a5_7_summary.py",
+    "make_ab_report.py",
+    "make_action_figs.py",
+    "track_judge_app.py",
 }
 offenders = []
 for base in (WORKSPACE, ROOT):
     for dirpath, dirnames, filenames in os.walk(base):
         dirnames[:] = [d for d in dirnames
                        if d not in {".git", "__pycache__", ".venv", "node_modules",
-                                    "raw_archive", "logs", ".workbuddy", "data",
-                                    "backups", "reports", "analysis"}]
+                            "raw_archive", "logs", ".workbuddy", "data",
+                            "backups", "reports", "analysis", ".trash"}]
         for fn in filenames:
             if not fn.endswith(".py"):
                 continue
@@ -338,6 +361,9 @@ PATH_TOOL_EXEMPT = {
     "tools/verify_shell_path_migration.py",
     # 根目录收敛器：规则表含路径模式
     "tools/converge_root_scripts.py",
+    # tactics/ 路径治理器：RULES 表本身就是「绝对路径前缀 -> helper」的输入，
+    # 必须保留字面量才能检测别人（与 migrate_hardcoded_paths.py 同性质）
+    "tools/fix_tactics_paths.py",
 }
 tracked_py = subprocess.run(
     ["git", "ls-files", "*.py"], cwd=ROOT, capture_output=True, text=True

@@ -1,0 +1,858 @@
+{
+ "meta": {
+  "name": "basketball_tactics",
+  "version": "0.1.0",
+  "target_model": "maelic/relsgg-vits16plus",
+  "status": "DRAFT — 未经实证校准",
+  "design_rules": [
+   "谓词必须是「区域对」之间的关系（sub, predicate, obj），不能是单区域属性。",
+   "按场景分 bundle 注入。论文结论：词表越大、跨域越远，召回越差；聚焦词表优于大词表。",
+   "inject_en 是真正送进模型的字符串；cn 仅供展示。模型只会输出词表内的谓词。",
+   "分层：spatial 通用几何 / interaction 攻防交互 / ball 球权。spatial 层做兜底与定位，interaction 层出战术信号。"
+  ],
+  "risks": [
+   {
+    "id": "R1",
+    "level": "CONFIRMED",
+    "text": "训练语料 RA-4M 来自通用图像（人/马/桌/车），篮球专有短语如 'setting a screen on' 属域外谓词。",
+    "verdict_2026_09_23": "已实锤：注入 28 条篮球专有谓词后，top-k 结果与仅 9 条通用词的 bundle 完全一致（max=0.0860，谓词分布完全相同）——篮球专有词一条都没赢过，得分全部低于通用空间词。自定义词表机制在域外失效。",
+    "mitigation": "改用模型原生 19,103 词表 + 原生谓词→篮球语义映射表（见 native_mapping）。实测原生词表在同一帧上 max=0.3643、spread=0.2655，比自定义词表高 4.2×/6.3×，且产出 defending / hitting the ball / tackling / watching 等有战术含义的谓词。"
+   },
+   {
+    "id": "R2",
+    "level": "high",
+    "text": "模型不做检测与追踪；持球人/掩护者身份依赖上游检测器与球衣号识别，误差会直接污染关系语义。",
+    "mitigation": "第一版用「球在谁手里」这一视觉信号确定持球人，不依赖球衣号；球员身份识别后置。实测：YOLO11n @ imgsz=1280 conf=0.08 可检出球（conf 0.419），持球人由 native 'hitting the ball' 确认，两路信号互相印证。"
+   },
+   {
+    "id": "R3",
+    "level": "medium",
+    "text": "单帧关系无法区分「正在做掩护」与「恰好站位重叠」。",
+    "mitigation": "时序聚合层（N-of-M 持久化：确认(edge,t)=最近 N(+gap) 帧的有分帧中 s≥thr 的帧数≥N）**作为事件触发门可用，但不得宣称它解决了 R3**。落地：`engine/rel_temporal_stab.py`（`--plane-filter` 接 A4.21 清洗表）。修正了两处会伪造结论的实现缺陷：① `confirm()` 窗口 off-by-one（原 `range(t,t-M-1,-1)` 实扫 M+1 帧，'严格连续 N 帧'从未严格）；② 随机基线 `1/npl` → 精确 `k/npl`（观测量是'持球人在边**任一端**'，砍半基线会凭空造显著，40 帧冒烟上此修正直接把结论从'显著优于随机'翻转为'低于随机'）。另：N≥8 时抖动率 0.0 是**退化值**（确认边归零），报抖动必须同时报确认边数。",
+    "verdict_2026_09_26": "**未解决，但失败模式已定位（A4.21）**。在 w1 连续球段 433 帧 @stride=1 上实测：① 稳定层确实压住抖动（逐帧 top-1 变化率 0.7407→0.6088@N=1→0.5139@N=3→0.2685@N=5；确认边 116→34→8）；② 但没有任何证据表明它让 defending 具备战术可判别性：(a) 「确认后 defending 边端点含持球人」这个指标**特异性为 0**——本项目持球者=几何最近球，恒定输出最近球者的平凡预测器在该指标上=1.0，观测富集仅 1.4–1.8×（0.1798–0.2097 vs 精确基线 0.1313–0.1179，置换 p=0.0025），与端点自身的空间近球偏差（端点离球距离/身高中位 2.06–2.21 vs 同帧随机 2.42–2.56）同量级；(b) 「框相交候选中确认组的深度分离 rel_dy 更大」经目视取证被证伪为**污染效应**而非战术效应（确认组=场内球员/裁判的纵向堆叠，未确认组的低 rel_dy 端大量是看台并排观众与同一球员的断裂框）。③ **可执行结论**：命中率随 N 单调崩（0.4314@N=1→0.1314@N=2→0.0457@N=3→0），根因是 track ID 不稳定（持球者常被拆成多个 sub_track_id，换 ID 即断链）⇒ **加长稳定窗是负收益，会把真信号与单帧巧合一起剪掉**。⇒ 推进 R3 的前置条件是【ID 稳定化】+【非空间参照（球衣颜色/人工标注），否则任何以最近球者为参照的指标都无特异性】。"
+   },
+   {
+    "id": "R4",
+    "level": "medium",
+    "text": "检测层混入观众席、替补席、教练与裁判，会污染关系图。实测 conf=0.08 时原始 person 框 64 个，需过滤。",
+    "mitigation": "**球场平面透视一致性**（h = A·y_foot + B 仿射残差 rel）为主判据 + 域标定微框身高下限 hmin（w1–w4=70px，sas_*=120px）+ **逐帧**持球者/近球框硬保护（带 P0_GUARD=−0.55 平面可行性闸门）。落地：`engine/player_plane_filter.py`（`--all-clips`），读数 `action_work/validate/player_plane_filter.json`。**待办**：① 裁判（靠球衣颜色/姿态）；② 场边摄影师（贴镜头截断球员与摄影师在 rel 上相邻，需另找判据）；③ 球衣颜色分两队仍是 R2/R4 的共同未解项。",
+    "verdict_2026_09_26": "**判据已替换落地（A4.21），但残留有明确分类**。原 mitigation 的「多边形裁剪 + min-person-h=55px」被实测推翻：① 颜色地板掩膜跨域不可用（TOR 主场木色+紫涂装口径对 HOU 黑+红+木球场只剩 30.1% 覆盖，且球员身体在地板色掩膜里天生是**洞**，单像素测中心必然落洞里）；② 纯身高无间隙（近端场边座位框高可达 216–241px，与远场球员同量级）；③ 静态性误删远场暂时远离球的球员；④ 镜动残差混叠（持球站定球员残差 1.69px vs 某观众 5.60px）。**现判据 = 球场平面透视一致性**：地面平面上身高固定者满足 h = A·y_foot + B（严格仿射，因 y_foot=c+k/Z、h∝1/Z），取 rel=(h−(A·y_foot+B))/(A·y_foot+B)，单边剔除 rel<−0.30（轨迹级中位）/ rel<−0.55（框级极值），拟合须过三重可靠度闸门（锚点数/足点跨度≥200px/留出验证≤0.25）否则回退片段级拟合，再不过则不筛。**A4.21 修掉一个真 bug**：持球者保护层原为**片段级**（凡曾当过持球者的 track 全程豁免），而持球者=几何最近球 ⇒ 球误检到看台附近即让某观众 track 被永久豁免（w1 有 **64%** 保留框由它放行；底部带 97 个小框里 84 个是它放行的成排观众，目视 20/20 是观众，rel −0.57…−0.84）。改为①只保**当帧**持球/近球框 ②加平面可行性闸门 P0_GUARD=−0.55（比平面预期矮≥55%的框不得用'持球者'标签豁免）。结果（框/帧）w1 28.02→13.91、w2 26.81→13.80、w3 24.86→12.26、w4 25.85→12.38；sas_hou/nop/det 8.79/8.42/9.30 **完全不变（零回归）**；回归验收 w1 f00421 **25/25 全对**、sas_hou f00001 t1–t11 全留（含曾误删的 t3/t9/t11）。**残留三类（目视分类）**：① 贴镜头被画面下缘截断的球员（rel −0.45…−0.54）→ **正确保留**，P0_GUARD=−0.55 刚好卡在其下，不得再收紧；② 场边摄影师/前排观众（rel −0.44…−0.52）仍残留（占 w1 保留框 0.26%）；③ **裁判**站在球场平面上（rel≈0）⇒ 透视判据**原理上无法区分**，只能靠球衣/姿态另做。报告：`reports/milestone_05/rel_temporal_and_pollution_report.md`。"
+   }
+  ]
+ },
+ "native_mapping": {
+  "_note": "实测得到的模型原生谓词 -> 篮球语义映射。这是系统真正应该用的词表层。",
+  "_source": "2026-09-23 单帧实测，2026 总决赛 马刺vs尼克斯 Q3 t=150s，10 球员 + 1 球",
+  "observed": {
+   "defending": {
+    "count_in_top40": 10,
+    "score_max": 0.3643,
+    "score_min": 0.1417,
+    "basketball_meaning": "防守对位",
+    "tactical_use": "识别谁在防谁 —— 这是防守策略分析（换防/沉退/夹击）的基础对位关系"
+   },
+   "defending against": {
+    "count_in_top40": 2,
+    "score_max": 0.2537,
+    "basketball_meaning": "防守对抗（比 defending 更强的对抗语感）",
+    "tactical_use": "贴身防守 / 背身对抗的候选信号"
+   },
+   "hitting": {
+    "count_in_top40": 4,
+    "score_max": 0.2484,
+    "basketball_meaning": "触球",
+    "tactical_use": "当 obj=BALL 时即持球人识别，实测 P5--hitting[0.248]-->BALL 与自定义词表下 'is dribbling the ball' 指向同一人，两路互证"
+   },
+   "tackling": {
+    "count_in_top40": 3,
+    "score_max": 0.3335,
+    "basketball_meaning": "身体接触 / 贴身缠斗",
+    "tactical_use": "背身单打、卡位抢板的身体对抗信号"
+   },
+   "watching": {
+    "count_in_top40": 16,
+    "score_max": 0.3224,
+    "basketball_meaning": "注视 / 无球盯防",
+    "tactical_use": "出现频次过高（16/40），接近默认谓词，区分度弱，只能做弱信号"
+   },
+   "beside": {
+    "count_in_top40": 1,
+    "score_max": 0.181,
+    "basketball_meaning": "并排站位",
+    "tactical_use": "掩护站位候选"
+   },
+   "to the right of": {
+    "count_in_top40": 1,
+    "score_max": 0.1236,
+    "basketball_meaning": "空间方位",
+    "tactical_use": "几何兜底"
+   },
+   "playing football against": {
+    "count_in_top40": 2,
+    "score_max": 0.1257,
+    "basketball_meaning": "域混淆（模型把篮球场当足球场）",
+    "tactical_use": "不可用，但说明模型已识别出「两队对抗」这一高层结构"
+   }
+  },
+  "usable_core": [
+   "defending",
+   "defending against",
+   "hitting",
+   "tackling",
+   "beside"
+  ],
+  "weak_signal": [
+   "watching"
+  ],
+  "unusable": [
+   "playing football against"
+  ],
+  "_revision_20260923_2": {
+   "_trigger": "补齐 thresholds.json / relateanything.json 后，用官方 35 词表复测同一帧",
+   "_verdict": "原结论需修正：不是「自定义词表全废」，而是「长句式自定义短语废、官方裸短语有效」。裸短语层级明显更高。",
+   "measured_same_frame": {
+    "_frame": "game_spurs_nyk_q3_t150.png，YOLO 11 框，topk=300，110 对",
+    "官方 DEFAULT_PREDICATES (35 裸短语)": {
+     "n": 110,
+     "max": 0.5133,
+     "min": 0.0461,
+     "spread": 0.4672
+    },
+    "纯交互词 (6 裸短语)": {
+     "n": 110,
+     "max": 0.5133,
+     "spread": 0.4925
+    },
+    "纯空间词 (6 裸短语)": {
+     "n": 110,
+     "max": 0.3825,
+     "spread": 0.3364
+    },
+    "自建 smoke_test_minimal (9 长句式)": {
+     "n": 110,
+     "max": 0.1477,
+     "spread": 0.1214
+    },
+    "full_vocabulary 19103 词原生": {
+     "max": 0.3643,
+     "spread": 0.2655
+    }
+   },
+   "ranking": [
+    "官方 DEFAULT_PREDICATES 35 裸短语  (max 0.5133)",
+    "full_vocabulary 19103 原生词      (max 0.3643)",
+    "自建长句式 9 词                    (max 0.1477)"
+   ],
+   "actionable": "推理时一律直接用 relsgg.vocabulary.DEFAULT_PREDICATES（35 条官方裸短语），不要再手写长句式。需要篮球语义时，改在「官方谓词 -> 战术语义」这一层做映射。",
+   "official_35_source": "relsgg/vocabulary.py 的 DEFAULT_PREDICATES，与 relateanything.json 的 predicates 字段逐条一致"
+  },
+  "_official_thresholds_finding": {
+   "_file": "thresholds.json（官方随包发布，2026-08-27）",
+   "_regime": "boxes=gt, pair_weight=0, detector_conf=false, data='runs/packed/megasg val', n_images=5000",
+   "_content": "243 个谓词的逐词 best_f1_thr / best_f1 / precision / recall / gt_support",
+   "key_numbers": {
+    "threshold_distribution": {
+     ">=0.95": 219,
+     "0.5-0.95": 23,
+     "0.1-0.5": 1,
+     "<0.1": 0
+    },
+    "our_frame_max_score": 0.5133,
+    "gap": "官方推荐工作点 ≈0.98，我们在检测框工况下 max 仅 0.51 —— 差约 2 倍"
+   },
+   "_caution": "该阈值表的 regime 是 GT 框 + pair_weight=0，与本系统（YOLO 检测框 + pair_weight=1）**不是同一工况**，阈值不可直接搬用。若要落地阈值，必须在本工况下自行扫一遍阈值曲线。",
+   "official_21_curated": {
+    "_note": "官方已验证的 35 条里，多数召回/精度很弱，不能盲信高 score。",
+    "watching": {
+     "best_f1_thr": 0.985,
+     "f1": 0.422,
+     "support": 825
+    },
+    "holding": {
+     "_note": "官方 35 词之一；本帧未进 top"
+    },
+    "beside": {
+     "best_f1_thr": 0.98,
+     "f1": 0.196,
+     "support": 1406
+    },
+    "standing beside": {
+     "_note": "官方 35 词之一"
+    },
+    "defending": "<不在官方 243 词表内 —— 属 full_vocabulary 域外词，无官方校验统计>",
+    "defending against": "<不在官方 243 词表内>",
+    "tackling": "<不在官方 243 词表内>",
+    "playing football against": "<不在官方 243 词表内>"
+   },
+   "_implication": "原先记在 usable_core 的 defending / defending against / tackling 是 full_vocabulary 里的域外词，**没有官方精度背书**。(max_score 高 ≠ 语义对，得分高只说明它在该帧被激活。）"
+  },
+  "_scoring_pipeline_note": {
+   "score_contract": "sigmoid(a * (pred_logit + w * pair_logit) + b)",
+   "calibration": {
+    "a": 0.5651,
+    "b": -1.9623
+   },
+   "pair_weight": 1.0,
+   "max_boxes": 32,
+   "final_budget": 128,
+   "img_size": 448,
+   "templates": "set_vocabulary(templates=None) 时自动用 TRAIN_TEMPLATES = ['{p}', 'one object is {p} another object', 'a photo of something {p} something']，无需手写",
+   "backbone": "facebook/dinov3-vits16plus-pretrain-lvd1689m",
+   "onnx_equivalence": "check_max_abs_delta = 6.87e-05（ONNX 与 PyTorch 数值等价）"
+  }
+ },
+ "official35": {
+  "_status": "AUTHORITATIVE — 推理时唯一注入词表 = relsgg.vocabulary.DEFAULT_PREDICATES（35 条官方裸短语）",
+  "_why": "2026-09-23 实测同一帧：官方35裸短语 max=0.5133 / spread=0.4672；full_vocabulary 19,103 原生 max=0.3643；自建长句式 9 词 max=0.1477。裸短语层级显著更高；长句句式（is setting a screen on 等）属域外，实测一条都没赢过通用空间词。",
+  "_rule": "① 推理一律只用本表 35 词；② 需要篮球语义时在「官方谓词 → 战术语义」这层做映射，不改写注入字符串；③ defending/hitting/tackling 不在官方 35 词内，属 full_vocabulary 域外词，**与官方 35 互斥**，需要时单独跑一次 native 模式。",
+  "_tier_note": "tier: CORE=官方 243 词表内有 best_f1 背书；OOD=full_vocabulary 域外词，无官方精度统计；WEAK=官方有统计但 f1 很低，只作弱信号；META=不描述攻防，但可用于**人物角色判别**（场上/替补/观众），服务 R4 污染过滤。",
+  "ball_layer": {
+   "holding": {
+    "cn": "手持/控制（obj=BALL ⇒ 持球人）",
+    "tier": "CORE",
+    "basketball_meaning": "持球",
+    "use": "持球人识别主信号：取 obj=BALL 的最高分 holding 边的 sub"
+   },
+   "carrying": {
+    "cn": "携带/带着移动",
+    "tier": "CORE",
+    "basketball_meaning": "持球移动",
+    "use": "持球人识别副信号（与 holding 并列取 max）"
+   },
+   "using": {
+    "cn": "使用",
+    "tier": "WEAK",
+    "basketball_meaning": "弱持球/正在处理球",
+    "use": "仅当 holding/carrying 都缺席时兜底"
+   }
+  },
+  "interaction_layer": {
+   "watching": {
+    "cn": "注视",
+    "tier": "CORE",
+    "official_f1": 0.422,
+    "official_thr": 0.985,
+    "support": 825,
+    "basketball_meaning": "无球盯防/视线朝向",
+    "use": "弱信号：出现频次过高，区分度低；f1 仅 0.422，不可单独判事件"
+   },
+   "looking at": {
+    "cn": "看向",
+    "tier": "CORE",
+    "basketball_meaning": "视线朝向",
+    "use": "弱信号，与 watching 同类"
+   },
+   "talking to": {
+    "cn": "与…说话",
+    "tier": "CORE",
+    "basketball_meaning": "场边交流/无关",
+    "use": "META：出现在球员-场边人之间 ⇒ 该框可能非场上球员"
+   }
+  },
+  "spatial_layer": {
+   "standing beside": {
+    "cn": "站在…身旁",
+    "tier": "CORE",
+    "basketball_meaning": "并排站位 ⇒ 掩护/对位候选",
+    "use": "掩护站位与对位关系的几何基座"
+   },
+   "beside": {
+    "cn": "在…旁",
+    "tier": "CORE",
+    "official_f1": 0.196,
+    "official_thr": 0.98,
+    "support": 1406,
+    "basketball_meaning": "邻近",
+    "use": "f1 仅 0.196，只作几何兜底，不作战术判据"
+   },
+   "in front of": {
+    "cn": "在…前面",
+    "tier": "CORE",
+    "basketball_meaning": "防守者在身前 ⇒ 正面防守",
+    "use": "对位方向判据（防在身前 vs 被过掉）"
+   },
+   "behind": {
+    "cn": "在…后面",
+    "tier": "CORE",
+    "basketball_meaning": "追防/被过掉",
+    "use": "「被过掉」的几何信号：防守者从 in front of 变 behind"
+   },
+   "to the left of": {
+    "cn": "在…左侧",
+    "tier": "CORE",
+    "basketball_meaning": "横向方位",
+    "use": "几何兜底"
+   },
+   "to the right of": {
+    "cn": "在…右侧",
+    "tier": "CORE",
+    "basketball_meaning": "横向方位",
+    "use": "几何兜底"
+   },
+   "above": {
+    "cn": "在…上方",
+    "tier": "CORE",
+    "basketball_meaning": "画面纵深更远",
+    "use": "几何兜底（远端/弱侧）"
+   },
+   "below": {
+    "cn": "在…下方",
+    "tier": "CORE",
+    "basketball_meaning": "更靠近镜头",
+    "use": "几何兜底（近端）"
+   }
+  },
+  "meta_role_layer": {
+   "_note": "🟢 这一层是官方 35 词在本项目里的**新用途**：这些谓词不描述攻防，但能判别「框里的人是不是场上球员」，直接服务 R4 污染过滤。",
+   "playing": {
+    "cn": "在进行比赛",
+    "tier": "CORE",
+    "basketball_meaning": "场上参赛者",
+    "use": "R4：sub=该框且 obj=球场整体/球 ⇒ 判为场上球员"
+   },
+   "sitting on": {
+    "cn": "坐在…上",
+    "tier": "CORE",
+    "basketball_meaning": "坐着 ⇒ 替补席/观众",
+    "use": "R4：**判为替补席，剔除**"
+   },
+   "sitting at": {
+    "cn": "坐在…旁",
+    "tier": "CORE",
+    "basketball_meaning": "坐着 ⇒ 替补席/观众",
+    "use": "R4：剔除"
+   },
+   "sitting in": {
+    "cn": "坐在…里",
+    "tier": "CORE",
+    "basketball_meaning": "坐着 ⇒ 替补席/观众",
+    "use": "R4：剔除"
+   },
+   "standing on": {
+    "cn": "站在…上",
+    "tier": "CORE",
+    "basketball_meaning": "站立",
+    "use": "R4：与 sitting 对立，辅助判场上"
+   },
+   "walking past": {
+    "cn": "从…旁走过",
+    "tier": "CORE",
+    "basketball_meaning": "走动（非激烈对抗）",
+    "use": "R4 弱信号：场边人员/裁判候选"
+   },
+   "leaning against": {
+    "cn": "倚靠",
+    "tier": "CORE",
+    "basketball_meaning": "倚靠 ⇒ 替补席/场边",
+    "use": "R4 弱信号：剔除候选"
+   },
+   "posing with": {
+    "cn": "与…摆姿势",
+    "tier": "CORE",
+    "basketball_meaning": "无对抗",
+    "use": "R4 弱信号：剔除候选"
+   },
+   "smiling at": {
+    "cn": "对…微笑",
+    "tier": "CORE",
+    "basketball_meaning": "无对抗",
+    "use": "R4 弱信号：剔除候选"
+   }
+  },
+  "unused": {
+   "_note": "物件/穿戴类谓词，在「区域对」只有人-人、人-球的篮球场景里无战术含义，不使用（但保留在注入词表内以维持官方 35 词原样，不增删）。",
+   "predicates": [
+    "wearing",
+    "riding",
+    "on",
+    "on top of",
+    "resting on",
+    "covering",
+    "inside",
+    "contained in",
+    "hanging from",
+    "surrounding",
+    "attached to",
+    "part of"
+   ]
+  },
+  "native_ood_core": {
+   "_note": "🔴 互斥提示：defending / hitting / tackling 不在官方 35 词内，只能由 full_vocabulary(19,103) 模式产出，**无官方精度背书**（不在 thresholds.json 的 243 词表内）。max_score 高 ≠ 语义对。",
+   "_run_mode": "RelateAnything.from_checkpoint(..., full_vocabulary=True) —— 与官方 35 需分两次推理",
+   "defending": {
+    "cn": "防守",
+    "tier": "OOD",
+    "basketball_meaning": "防守对位",
+    "use": "对位关系候选；需先用持球人归属做一致性验证"
+   },
+   "defending against": {
+    "cn": "防守对抗",
+    "tier": "OOD",
+    "basketball_meaning": "贴身对抗",
+    "use": "同上"
+   },
+   "hitting": {
+    "cn": "击打/触",
+    "tier": "OOD",
+    "basketball_meaning": "obj=BALL ⇒ 触球",
+    "use": "持球人候选信号"
+   },
+   "tackling": {
+    "cn": "身体接触",
+    "tier": "OOD",
+    "basketball_meaning": "缠斗/卡位",
+    "use": "对抗信号"
+   },
+   "playing football against": {
+    "cn": "踢足球对抗",
+    "tier": "OOD",
+    "basketball_meaning": "域混淆（篮球被认成足球）",
+    "use": "不可用"
+   }
+  }
+ },
+ "predicates_deprecated": {
+  "_status": "🔴 DEPRECATED — 以下长句式自定义词**不再注入模型**，仅作历史留档",
+  "_reason": "R1 已实锤：注入 28/39 条篮球专有长句后 top-k 结果与仅 9 条通用词完全一致（max 0.0860），篮球专有词一条都没赢过；v2 复测自建长句 9 词 max 仅 0.1477，比官方裸短语低 3.5×。域外长句句式在本模型上失效。",
+  "_replacement": "用 official35 的裸短语注入，篮球语义改在 official35 映射层落地",
+  "_ids": [
+   "ix_screen_set",
+   "ix_screen_use",
+   "ix_screen_around",
+   "ix_screen_fight",
+   "ix_screen_switch",
+   "ix_guard_ball",
+   "ix_guard_offball",
+   "ix_sag_off",
+   "ix_double",
+   "ix_help",
+   "ix_post_up",
+   "ix_drive",
+   "ix_box_out",
+   "ix_cut",
+   "ix_open",
+   "ix_contest",
+   "ix_trap",
+   "ix_mismatch",
+   "bl_hold",
+   "bl_dribble",
+   "bl_pass",
+   "bl_shot",
+   "bl_block",
+   "bl_loose",
+   "bl_deflect",
+   "sp_left",
+   "sp_right",
+   "sp_above",
+   "sp_below",
+   "sp_infront",
+   "sp_behind",
+   "sp_beside",
+   "sp_between",
+   "sp_far",
+   "sp_facing",
+   "sp_back_to"
+  ]
+ },
+ "predicates": [
+  {
+   "id": "sp_left",
+   "layer": "spatial",
+   "en": "is to the left of",
+   "cn": "位于左侧",
+   "phase": "any"
+  },
+  {
+   "id": "sp_right",
+   "layer": "spatial",
+   "en": "is to the right of",
+   "cn": "位于右侧",
+   "phase": "any"
+  },
+  {
+   "id": "sp_above",
+   "layer": "spatial",
+   "en": "is above",
+   "cn": "位于上方（画面纵深更远）",
+   "phase": "any"
+  },
+  {
+   "id": "sp_below",
+   "layer": "spatial",
+   "en": "is below",
+   "cn": "位于下方（更靠近镜头）",
+   "phase": "any"
+  },
+  {
+   "id": "sp_infront",
+   "layer": "spatial",
+   "en": "is in front of",
+   "cn": "位于身前",
+   "phase": "any"
+  },
+  {
+   "id": "sp_behind",
+   "layer": "spatial",
+   "en": "is behind",
+   "cn": "位于身后",
+   "phase": "any"
+  },
+  {
+   "id": "sp_beside",
+   "layer": "spatial",
+   "en": "is standing beside",
+   "cn": "位于身旁",
+   "phase": "any"
+  },
+  {
+   "id": "sp_between",
+   "layer": "spatial",
+   "en": "is between",
+   "cn": "夹在两者之间",
+   "phase": "any"
+  },
+  {
+   "id": "sp_far",
+   "layer": "spatial",
+   "en": "is far away from",
+   "cn": "距离很远",
+   "phase": "any"
+  },
+  {
+   "id": "sp_facing",
+   "layer": "spatial",
+   "en": "is facing",
+   "cn": "面向对方",
+   "phase": "any"
+  },
+  {
+   "id": "sp_back_to",
+   "layer": "spatial",
+   "en": "has their back turned to",
+   "cn": "背对对方",
+   "phase": "any"
+  },
+  {
+   "id": "ix_screen_set",
+   "layer": "interaction",
+   "en": "is setting a screen on",
+   "cn": "正在为队友做掩护（挡住对方）",
+   "phase": "offense"
+  },
+  {
+   "id": "ix_screen_use",
+   "layer": "interaction",
+   "en": "is using a screen from",
+   "cn": "正在借队友的掩护",
+   "phase": "offense"
+  },
+  {
+   "id": "ix_screen_around",
+   "layer": "interaction",
+   "en": "is navigating around the screen set by",
+   "cn": "正在绕过掩护",
+   "phase": "offense"
+  },
+  {
+   "id": "ix_screen_fight",
+   "layer": "interaction",
+   "en": "is fighting through a screen to chase",
+   "cn": "正在挤过掩护追赶",
+   "phase": "offense"
+  },
+  {
+   "id": "ix_screen_switch",
+   "layer": "interaction",
+   "en": "is switching onto",
+   "cn": "正在换防到对方",
+   "phase": "offense"
+  },
+  {
+   "id": "ix_guard_ball",
+   "layer": "interaction",
+   "en": "is guarding the ball handler closely",
+   "cn": "正在贴身防守持球人",
+   "phase": "offense"
+  },
+  {
+   "id": "ix_guard_offball",
+   "layer": "interaction",
+   "en": "is guarding off the ball",
+   "cn": "正在无球盯防",
+   "phase": "offense"
+  },
+  {
+   "id": "ix_sag_off",
+   "layer": "interaction",
+   "en": "is sagging off to protect the paint",
+   "cn": "正在放投退守禁区",
+   "phase": "offense"
+  },
+  {
+   "id": "ix_double",
+   "layer": "interaction",
+   "en": "is double teaming",
+   "cn": "正在与队友夹击对方",
+   "phase": "offense"
+  },
+  {
+   "id": "ix_help",
+   "layer": "interaction",
+   "en": "is helping defend against",
+   "cn": "正在弱侧协防",
+   "phase": "offense"
+  },
+  {
+   "id": "ix_post_up",
+   "layer": "interaction",
+   "en": "is posting up against",
+   "cn": "正在背身单打对方",
+   "phase": "offense"
+  },
+  {
+   "id": "ix_drive",
+   "layer": "interaction",
+   "en": "is driving past",
+   "cn": "正在持球突破对方",
+   "phase": "offense"
+  },
+  {
+   "id": "ix_box_out",
+   "layer": "interaction",
+   "en": "is boxing out",
+   "cn": "正在卡位顶人抢篮板",
+   "phase": "offense"
+  },
+  {
+   "id": "ix_cut",
+   "layer": "interaction",
+   "en": "is cutting behind",
+   "cn": "正在对方身后空切",
+   "phase": "offense"
+  },
+  {
+   "id": "ix_open",
+   "layer": "interaction",
+   "en": "is wide open from",
+   "cn": "处于空位（对方离得很远）",
+   "phase": "offense"
+  },
+  {
+   "id": "ix_contest",
+   "layer": "interaction",
+   "en": "is contesting the shot of",
+   "cn": "正在干扰对方出手",
+   "phase": "offense"
+  },
+  {
+   "id": "ix_trap",
+   "layer": "interaction",
+   "en": "is trapping in the corner",
+   "cn": "正在把对方逼向边角",
+   "phase": "offense"
+  },
+  {
+   "id": "ix_mismatch",
+   "layer": "interaction",
+   "en": "is mismatched against",
+   "cn": "正在错位对位（体型明显不匹配）",
+   "phase": "offense"
+  },
+  {
+   "id": "bl_hold",
+   "layer": "ball",
+   "en": "is holding the ball",
+   "cn": "正在持球",
+   "phase": "any"
+  },
+  {
+   "id": "bl_dribble",
+   "layer": "ball",
+   "en": "is dribbling the ball",
+   "cn": "正在运球",
+   "phase": "any"
+  },
+  {
+   "id": "bl_pass",
+   "layer": "ball",
+   "en": "is passing the ball to",
+   "cn": "正在把球传给",
+   "phase": "any"
+  },
+  {
+   "id": "bl_shot",
+   "layer": "ball",
+   "en": "is shooting the ball over",
+   "cn": "正在对方头上出手",
+   "phase": "any"
+  },
+  {
+   "id": "bl_block",
+   "layer": "ball",
+   "en": "is blocking the ball of",
+   "cn": "正在封盖对方",
+   "phase": "any"
+  },
+  {
+   "id": "bl_loose",
+   "layer": "ball",
+   "en": "is reaching for the same ball as",
+   "cn": "正在与对方争抢同一个球",
+   "phase": "any"
+  },
+  {
+   "id": "bl_deflect",
+   "layer": "ball",
+   "en": "is deflecting the ball away from",
+   "cn": "正在把球拨离对方",
+   "phase": "any"
+  }
+ ],
+ "bundles": {
+  "halfcourt_offense": {
+   "label_cn": "半场进攻（战术分析主用）",
+   "note": "用于识别挡拆、手递手、背身、无球掩护等战术。",
+   "ids": [
+    "sp_left",
+    "sp_right",
+    "sp_above",
+    "sp_below",
+    "sp_infront",
+    "sp_behind",
+    "sp_beside",
+    "sp_facing",
+    "sp_back_to",
+    "ix_screen_set",
+    "ix_screen_use",
+    "ix_screen_around",
+    "ix_screen_fight",
+    "ix_screen_switch",
+    "ix_guard_ball",
+    "ix_guard_offball",
+    "ix_sag_off",
+    "ix_double",
+    "ix_help",
+    "ix_post_up",
+    "ix_drive",
+    "ix_cut",
+    "ix_open",
+    "ix_mismatch",
+    "bl_hold",
+    "bl_dribble",
+    "bl_pass",
+    "bl_shot"
+   ]
+  },
+  "defense_scheme": {
+   "label_cn": "防守策略识别",
+   "note": "专用于判断换防 / 沉退 / 夹击 / 挤过掩护四种挡拆防守应对。",
+   "ids": [
+    "sp_beside",
+    "sp_infront",
+    "sp_behind",
+    "ix_screen_around",
+    "ix_screen_fight",
+    "ix_screen_switch",
+    "ix_guard_ball",
+    "ix_sag_off",
+    "ix_double",
+    "ix_help",
+    "ix_trap",
+    "bl_hold",
+    "bl_dribble"
+   ]
+  },
+  "rebound": {
+   "label_cn": "篮板球",
+   "ids": [
+    "sp_beside",
+    "sp_behind",
+    "ix_box_out",
+    "bl_loose",
+    "bl_hold"
+   ]
+  },
+  "transition": {
+   "label_cn": "攻防转换",
+   "ids": [
+    "sp_far",
+    "sp_facing",
+    "ix_drive",
+    "ix_open",
+    "bl_dribble",
+    "bl_pass",
+    "bl_loose"
+   ]
+  },
+  "smoke_test_minimal": {
+   "label_cn": "冒烟测试最小词表",
+   "note": "通用短语为主，用于先验证引擎可用性与得分区分度，排除篮球专有词域外风险（R1）。",
+   "ids": [
+    "sp_left",
+    "sp_right",
+    "sp_beside",
+    "sp_infront",
+    "sp_behind",
+    "sp_facing",
+    "sp_back_to",
+    "bl_hold",
+    "bl_dribble"
+   ]
+  }
+ },
+ "tactical_events": {
+  "note": "第 4 层目标：由关系序列 + 规则推出，不直接进模型词表。",
+  "events": [
+   {
+    "id": "pick_and_roll",
+    "cn": "挡拆",
+    "signal": "ix_screen_set 稳定出现 + 持球人 ix_screen_use + 掩护者随后 sp_far 顺下或 sp_left/right 外弹"
+   },
+   {
+    "id": "pnr_switch",
+    "cn": "挡拆换防",
+    "signal": "ix_screen_switch 在掩护后 1–2 秒内出现"
+   },
+   {
+    "id": "pnr_drop",
+    "cn": "挡拆沉退",
+    "signal": "ix_sag_off 稳定 + 无 ix_screen_switch"
+   },
+   {
+    "id": "pnr_blitz",
+    "cn": "挡拆夹击",
+    "signal": "ix_double / ix_trap 在持球人处出现"
+   },
+   {
+    "id": "handoff",
+    "cn": "手递手",
+    "signal": "bl_pass 与 ix_screen_set 同时段 + 两者距离极近"
+   },
+   {
+    "id": "offball_screen",
+    "cn": "无球掩护",
+    "signal": "ix_screen_set 出现在两个非持球人之间，且球权边 bl_hold 不变"
+   },
+   {
+    "id": "backdoor_cut",
+    "cn": "反跑空切",
+    "signal": "ix_cut 稳定 + 随后 bl_pass 指向空切者"
+   },
+   {
+    "id": "post_iso",
+    "cn": "低位背身单打",
+    "signal": "ix_post_up 稳定 ≥2 秒 + sp_back_to + bl_hold 同一人"
+   },
+   {
+    "id": "iso_mismatch",
+    "cn": "错位单打",
+    "signal": "ix_mismatch + ix_drive"
+   },
+   {
+    "id": "help_arrives",
+    "cn": "协防到位/晚一步",
+    "signal": "ix_drive 开始到 ix_help 出现的时间差"
+   }
+  ]
+ }
+}
