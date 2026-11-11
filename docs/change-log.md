@@ -88,7 +88,12 @@ gitignore 对已跟踪文件无效 → 旧位置的删除会入库、新位置�
 - 根目录仍有 **27 个从未入库**的一次性脚本（被上述 `.gitignore` 规则组命中，
   收敛器基于 `git ls-files` 选文件故未覆盖）。其中 `build_fct_pbp_shots.py` 是
   fct_pbp_shots 派生 ETL 的重建脚本，长期不入库属隐患，待独立一轮处理。
-- `nba_subtitle_tool/srt2ass.py` 是无关未跟踪文件，不纳入任何提交。
+- `nba_subtitle_tool/` 是独立的「NBA 视频语音识别 → 中文字幕」子项目，与
+  本数据仓库/分析项目无关。**2026-11-11 已按主理人授权移除其源码层**（19 个已入库
+  + 未跟踪的 `srt2ass.py` + `.DS_Store`，共 21 个文件），11G 的 `models/` / `output/` /
+  `work/` 素材原封保留；源码备份在仓库内 `.trash/nba_subtitle_tool_src_20261111/`
+  （已 gitignore），可随时恢复。`pyproject.toml` 中对应的 ruff 豁免段已一并删除。
+  `.gitignore` 里 3 条素材忽略规则保留 —— 素材仍在磁盘，仍需防止被误跟踪。
 
 ## 2026-11-10 — 路径治理：消除硬编码绝对路径（语义等价 85/85，门禁 37 → 39 项）
 
