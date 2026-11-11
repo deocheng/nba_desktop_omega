@@ -155,3 +155,18 @@ def test_runtime_guard_scans_source_when_available(monkeypatch):
     guard = runtime_guard.run_startup_checks()["no_forbidden_patterns"]
     assert guard["ok"] is True, guard
     assert guard["detail"].get("scanned") == "backend.core.db"
+
+
+def test_main_prints_startup_selfcheck():
+    """EXE 启动横幅必须给出 DB 前置条件自检（只打印，不改 router 行为）。
+
+    无凭据 / 无 PG 时用户双击只看到 /health degraded，控制台应直接说明原因。
+    自检必须走轻量 TCP 探测，不能在启动前创建连接池。
+    """
+    src = MAIN.read_text(encoding="utf-8")
+    assert "_startup_probe" in src
+    assert "is_port_open()" in src, "启动自检应走轻量 TCP 探测"
+    assert "DB_PASSWORD" in src, "必须提示口令是否配置"
+    assert "reconfigure(line_buffering=True)" in src, \
+        "frozen 下 stdout 是块缓冲，自检横幅必须强制行缓冲才能实时落盘"
+    assert "init_pool()" not in src, "启动前不要创建连接池（凭据缺失会拖慢/抛异常）"

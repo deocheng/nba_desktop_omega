@@ -2,10 +2,47 @@
 
 All changes to LOCKED phases must be recorded here (v8 §1 Change Request mechanism).
 
+## 2026-11-11 — 打包启动自检与可观测性补齐（Task #36 收官）
+
+**Status**: 契约测试 **11/11**；全量回归 **798 passed / 1 skipped / 0 failed**；
+门禁 **42/42**；ruff **0 违规**；冻结产物最终冒烟 **PASS**。
+
+上一节落地后补完 Task #36 剩下的「启动前自检」，并修掉一个实测暴露的可观测性缺陷。
+
+### 改动
+
+- `main.py`：新增 `_startup_probe()`，启动横幅打印 `Mode` / `DB port`（`is_port_open()`
+  轻量 TCP 探测，1.5s 超时、无需凭据）/ `DB secret`（只报是否配置，不打印值），
+  给出 `[OK]` / `[WARN] 端口可达但未提供口令` / `[WARN] 端口不可达` 三种结论。
+  **不改任何 router 行为、不创建连接池**，真实凭据校验仍由 lifespan `/health` 承担。
+- `main.py`：`sys.stdout.reconfigure(line_buffering=True)` 强制行缓冲。
+- `tests/test_packaging_spec.py`：第 11 项锁住自检存在、走轻量探测、含行缓冲、
+  且启动前不创建连接池。
+
+### 实测与归因
+
+| 场景 | 结果 |
+|---|---|
+| 无凭据启动 | 横幅 `DB secret: NOT SET` + `[WARN] 端口可达但未提供口令`；日志 `fe_sendauth: no password supplied`；`/health degraded` |
+| 带凭据启动（干净端口 5601） | 横幅 `DB secret: configured` + `[OK]`；`/`、`/app/`、`/docs`、`/openapi.json`、`/teams`、`/health` 全 200；`/teams` 30 支 active；`/health status=ok`、3 guard 全过 |
+
+🔴 **frozen stdout 块缓冲**：首轮无凭据冒烟日志里只剩走 stderr 的 uvicorn/app 日志，
+启动横幅整段消失。解析 `build/nbacore/NBACore.pkg` 的 CArchive 确认入口脚本确实含
+`DB secret` / `_startup_probe`（排除「增量构建没打进新代码」），定位为 stdout 缓冲；
+加强制行缓冲后横幅实时可见。
+
+🔴 **冒烟脚本时序假象**：一轮带凭据冒烟出现 `/health degraded` + `/teams 500`，
+但同进程日志为 `DB pool initialized` 且无任何请求日志 —— 是 kill 旧进程后端口释放窗口里
+curl 打到了正在 shutdown 的无凭据残留进程。改用「`http=200` **且** `status=ok`」作就绪判据、
+`pkill -x NBACore` 彻底清进程、换干净端口后复验全绿。**产物本身无缺陷**，
+属测试脚本自身撒谎（与 §19 一致性测试同类教训）。
+
+---
+
 ## 2026-11-11 — App 打包链路落地（Task #34–#37）
 
-**Status**: 冻结产物构建 + 冒烟 **PASS**；打包契约测试 **10/10**；质量门禁 **42/42**；
-ruff **0 违规**；全量回归 **797 passed / 1 skipped / 0 failed**。
+**Status**: 冻结产物构建 + 冒烟 **PASS**；打包契约测试 **11/11**；质量门禁 **42/42**；
+ruff **0 违规**；全量回归 **798 passed / 1 skipped / 0 failed**。
 
 ### 一、评估结论（前置提交 `bb6f44b`）
 
@@ -24,7 +61,7 @@ ruff **0 违规**；全量回归 **797 passed / 1 skipped / 0 failed**。
 | `pyproject.toml` | 新增 `[project.optional-dependencies] build = ["pyinstaller>=6.11,<7"]` |
 | `scripts/build_app.sh` | 新建；source `common/paths.sh`（零硬编码路径）、自检打包资源、按需装 build extras、`--noconfirm` 构建 |
 | `backend/core/runtime_guard.py` | frozen / 源码不在磁盘时返回 `ok=True` + 明确 `skipped`，不再把 `/health` 拖成 degraded |
-| `tests/test_packaging_spec.py` | 新建 **10 项**静态契约测试（含 frozen 双向行为、AST 参数检查） |
+| `tests/test_packaging_spec.py` | 新建 **11 项**静态契约测试（含 frozen 双向行为、AST 参数检查） |
 | `docs/app-build.md` | 新建：构建 / 运行 / 凭据注入 / 已知限制 / 维护铁律 / 冒烟证据 |
 
 `main.py` / `backend/app.py` / `backend/core/config.py` 未改核心逻辑（已有 `_MEIPASS` 适配）。
@@ -32,7 +69,7 @@ ruff **0 违规**；全量回归 **797 passed / 1 skipped / 0 failed**。
 
 ### 三、实测证据
 
-- 构建：PyInstaller 6.22.3 → `dist/NBACore`，macOS arm64，**45,644,896 字节 / 43 MiB**；
+- 构建：PyInstaller 6.22.3 → `dist/NBACore`，macOS arm64，**约 43 MiB**（one-file 每次构建字节数略有浮动）；
   增量重建日志 `Building because backend/core/runtime_guard.py changed`（缓存正确失效）。
 - 冻结产物带凭据启动（`SERVER_PORT=5599`，`DB_PASSWORD` 走 env、不落盘）：
   `/`、`/app/`、`/docs`、`/openapi.json`、`/teams`、`/health` **全部 200**；

@@ -39,8 +39,8 @@ bash scripts/build_app.sh
 .venv/bin/python -m PyInstaller --noconfirm nbacore.spec
 ```
 
-产物：`dist/NBACore`（macOS/Linux 无扩展名，Windows 为 `NBACore.exe`）。
-`dist/`、`build/` 已在 `.gitignore` 中，不会入库。
+产物：`dist/NBACore`（macOS/Linux 无扩展名，Windows 为 `NBACore.exe`），约 **43 MiB**
+（one-file 每次构建字节数略有浮动）。`dist/`、`build/` 已在 `.gitignore` 中，不会入库。
 
 > 🔴 **不要给构建命令加 `--clean`**：它会递归删除 PyInstaller 全局缓存
 > （`~/Library/Application Support/pyinstaller/bincache*`，>50 文件），在本机受限环境下
@@ -67,9 +67,11 @@ bash scripts/build_app.sh
    one-file 首次解压启动约 **30s**（设 `PYTHONUNBUFFERED=1` 才能实时看到日志；
    启动初期 `http=000` / 空日志不等于崩溃）。
 
-## 启动自检（frozen 实测 2026-11-11）
+## 启动自检
 
-产物 `dist/NBACore`（macOS arm64，45,644,896 字节 / 43 MiB），带凭据启动后的实测：
+### 运行时 guard（`/health`）
+
+产物 `dist/NBACore`（macOS arm64，约 43 MiB），带凭据启动后的实测：
 
 | 检查项 | 结果 |
 |---|---|
@@ -84,6 +86,30 @@ bash scripts/build_app.sh
 导致打包版 `/health` **永远显示 degraded**。现改为「frozen 或源码不存在时返回
 `ok=True` + 明确 `skipped` 原因」，静态源码约束交由**构建前的 CI ruff + 质量门禁**承担；
 非 frozen（源码在磁盘）时扫描照常执行。双向行为都由回归测试锁住。
+
+### 启动横幅自检（`main.py`）
+
+进程一启动就在控制台打印 `Mode`（frozen / source）、`DB port`（轻量 TCP 探测，
+1.5s 超时、无需凭据）、`DB secret`（**是否配置口令，不打印值**），并给出三种结论：
+
+```
+  Mode:      frozen (bundled)
+  DB port:   localhost:5433 (reachable)
+  DB secret: NOT SET
+  [WARN] 端口可达但未提供口令 —— 请设 DB_PASSWORD，或在 exe 同目录放 .env
+```
+
+```
+  DB secret: configured
+  [OK]   数据库前置条件齐备，连接结果以 /health 为准
+```
+
+它**不改任何 router 行为**，也不创建连接池（真实凭据校验仍由 lifespan 的 `/health` 承担），
+解决的是「双击后只看到 degraded、却不知道为什么」的可诊断性问题。
+
+🔴 frozen 下 stdout 重定向到文件是**块缓冲**：横幅会一直憋在缓冲区，日志里只剩走
+stderr 的 uvicorn / app 日志（实测 2026-11-11）。`main.py` 用
+`sys.stdout.reconfigure(line_buffering=True)` 强制行缓冲，回归测试锁住这一点。
 
 > 无凭据（或未配 PG）时 `/health` 的 degraded 与数据端点报错属**预期降级**，
 > 不是打包回归；分发前请把第 2 步做实。
@@ -106,7 +132,7 @@ CORS 白名单写死 `http://127.0.0.1:5577` / `http://localhost:5577`，且**�
 `datas` 也漏了 backend 依赖的 `common.nba_paths` / `common.season_type_norm` / `viz.theme`。
 这类失修不会让 CI 变红，只会在用户机器上表现为「某些页面打不开」。
 
-现在由 `tests/test_packaging_spec.py`（**10 项**，CI 可跑、不需要装 PyInstaller）守住：
+现在由 `tests/test_packaging_spec.py`（**11 项**，CI 可跑、不需要装 PyInstaller）守住：
 
 1. spec 必须用 `collect_submodules("backend")` 自动收集，**禁止手写 router 清单**；
 2. `backend/app.py` 里每个 `include_router` 的模块都必须可导入；
@@ -118,7 +144,8 @@ CORS 白名单写死 `http://127.0.0.1:5577` / `http://localhost:5577`，且**�
 7. 构建脚本必须 source `common/paths.sh` 且无硬编码绝对路径；
 8. `pyproject.toml` 必须声明 `build` extras；
 9. **frozen 下 `runtime_guard` 源码扫描必须跳过并标明 skipped**，不得把 `/health` 拖成 degraded；
-10. **非 frozen 时源码扫描必须照常执行**（`detail.scanned == "backend.core.db"`）。
+10. **非 frozen 时源码扫描必须照常执行**（`detail.scanned == "backend.core.db"`）；
+11. **启动横幅自检必须存在**（轻量 TCP 探测 + 口令配置提示 + 行缓冲），且启动前不创建连接池。
 
 新增 router 时**不需要改 spec**（自动收集），但建议跑一次
 `pytest tests/test_packaging_spec.py` 确认可导入。
@@ -127,7 +154,7 @@ CI 只跑上述静态契约测试；**产物构建由本地/发布流程执行**
 
 ## 与既有文件的关系
 
-- `main.py`：EXE 入口，未改动逻辑；`_MEIPASS` 资源定位与自检信息在此。
+- `main.py`：EXE 入口；`_MEIPASS` 资源定位 + 启动横幅自检（DB 前置条件、行缓冲）。
 - `backend/app.py` / `backend/core/config.py`：已内建 frozen 适配，无需为打包改造。
 - `backend/core/runtime_guard.py`：本轮为 frozen 模式加了源码扫描跳过分支。
 - `build.ps1` / `start.bat` / `start.ps1`：**Windows 旧构建脚本**，仍可用但不会自动同步 spec；
