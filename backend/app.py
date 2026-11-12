@@ -47,6 +47,7 @@ from backend.api.routers import (
     metrics,
     monitor,
     players,
+    studio,
     system,
     tactics,
     teams,
@@ -162,6 +163,8 @@ def create_app() -> FastAPI:
     app.include_router(tactics.router)
     app.include_router(video_library.router)
     app.include_router(analytics_builder.router)
+    # Studio 编排层（战术视频分析流水线）：与 /tactics 战术板是不同子系统
+    app.include_router(studio.router)
 
     # Phase 4: mount frontend static files (Layer 4 — pure render)
     import sys

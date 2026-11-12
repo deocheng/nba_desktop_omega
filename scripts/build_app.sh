@@ -27,7 +27,7 @@ if ! "$PY" -c 'import PyInstaller' 2>/dev/null; then
 fi
 
 # 打包前校验 spec datas 声明的资源都在，避免打出缺资源的空壳
-for f in frontend NBAlogo viz/theme_tokens.json .env.example db/schema.sql main.py nbacore.spec; do
+for f in frontend NBAlogo viz/theme_tokens.json .env.example db/schema.sql studio/manifest.json main.py nbacore.spec; do
   if [ ! -e "$PROJ_ROOT/$f" ]; then
     echo "[ERROR] 缺少打包资源: $f" >&2
     exit 1

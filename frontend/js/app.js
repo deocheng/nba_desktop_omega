@@ -113,6 +113,7 @@ function nav(page) {
   if (page === 'tactics') loadTacticsPage();
   if (page === 'clutch-replay') loadClutchReplayPage();
   if (page === 'video-library') loadVideoLibraryPage();
+  if (page === 'studio') loadStudioPage();
   if (page === 'cba') loadCbaPage();
   if (page === 'draft') loadDraftPage();
   setTimeout(resizeAllCharts, 50);
@@ -171,6 +172,13 @@ function loadClutchReplayPage() {
 function loadVideoLibraryPage() {
   if (window.VideoLibrary && typeof window.VideoLibrary.renderList === 'function') {
     window.VideoLibrary.renderList('videoLibraryRoot');
+  }
+}
+
+// ── Studio Workbench Page (战术流水线编排) ──
+function loadStudioPage() {
+  if (window.Studio && typeof window.Studio.render === 'function') {
+    window.Studio.render('studioRoot');
   }
 }
 

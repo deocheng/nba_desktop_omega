@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "title": "NBACore Studio — 能力目录",
+  "note": "这是编排顺序与参数的唯一来源：不再由 AI 或对话上下文记忆。script 一律相对 TACTICS_CODE_ROOT，产物一律相对 TACTICS_DATA_ROOT。planned 项只展示形态，未获主理人视觉签核，Runner 一律拒绝执行。",
+  "steps": [
+    {
+      "id": "probe.cli_help",
+      "kind": "probe",
+      "status": "active",
+      "title": "CLI 自检（只读）",
+      "description": "对标准库脚本执行 --help，验证解释器、代码根与子进程序列可用；不读不写任何数据产物。",
+      "script": "engine/_diag_ballfp.py",
+      "args": ["--help"],
+      "params": [],
+      "inputs": [],
+      "outputs": [],
+      "requires": ["tactics_code", "python"],
+      "writes_data": false,
+      "timeout_sec": 30
+    },
+    {
+      "id": "pipeline.corpus_cba",
+      "kind": "pipeline",
+      "status": "planned",
+      "title": "C→B→A 语料标注（待签核）",
+      "description": "占位条目：真实脚本顺序、参数与产物口径需主理人视觉签核后填写，未经签核不得标为 active。",
+      "script": null,
+      "args": [],
+      "params": [],
+      "inputs": [],
+      "outputs": [],
+      "requires": ["tactics_code", "tactics_data", "python", "video_root"],
+      "writes_data": true,
+      "timeout_sec": 1800
+    }
+  ],
+  "pipelines": [
+    {
+      "id": "pipeline.cba_placeholder",
+      "status": "planned",
+      "title": "语料标注链路（占位）",
+      "steps": [],
+      "note": "steps 故意留空：不猜测 C→B→A 的实际脚本顺序。签核后在此填入已 active 的 step id，由 Runner 按序执行。"
+    }
+  ]
+}

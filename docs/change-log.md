@@ -2,6 +2,68 @@
 
 All changes to LOCKED phases must be recorded here (v8 §1 Change Request mechanism).
 
+## 2026-11-12 — 整仓大一统桌面 app：架构定稿 + Studio 编排层 P0（Task #54 / #55）
+
+**触发**：主理人「我想开发成独立的程序，而不是现在这样需要依赖 ai 的代码包或者说给技能提供支持的代码包」，
+并在三种范围里选 **整仓大一统桌面 app**。诊断结论：缺的不是框架，是**编排层** ——
+脚本顺序、参数、中间产物、下一步判断原先全靠 AI / 人在对话里记，没有一行代码承载。
+
+**Status**：架构文档 + P0 骨架落地；门禁 **42/42**、ruff **0**、前端 **7/7**、
+全量 pytest **817 passed / 1 skipped**（基线 805 + 新增 12）、
+本地 uvicorn 端到端冒烟 **144 路由**、`/app/` 含工作台导航、只读 probe job **rc=0**、未签核步骤 **blocked**。
+
+### 一、架构边界（`docs/unified-desktop-app-architecture.md`）
+
+- **一个进程 / 一个端口 / 一个入口**：沿用 `main.py` → uvicorn → `create_app()` → `/app/`，
+  不新起服务、不出现第二个端口。现有 26 个 router 一行未改，只新增 `studio.router`。
+- **三域命名空间**：`/tactics/*` 继续是战术板 + PBP 回放；**新增 `/studio/*` 是战术视频分析流水线编排层**。
+  两者同名不同子系统，不得混挂。
+- **编排层四件套**：Manifest（顺序唯一来源）→ Pipeline DAG → Runner（只走 subprocess CLI）
+  → 产物浏览器 + Capabilities 降级矩阵。AI 退为可选增强，去掉它程序照常跑完全流程。
+- **桌面形态**：v1 沿用已验证的 PyInstaller one-file「本地 Web app」；
+  不内嵌 PG / 43G 战术产物 / 6TB 素材 / 模型权重。WebView 外壳列为 P4 可选项。
+- 🔴 **两个 frozen 陷阱（本轮新发现，必须写进契约）**：
+  ① `common/nba_paths.py` 用 `__file__.parents` 推断仓库根，frozen 下会漂到解包目录
+  → 打包版必须经 `.env` / 环境变量显式给 `NBA_REPO_ROOT`、`NBA_DATA_ROOT`；
+  ② `sys.executable` 在 one-file 下是 exe 本身，不是 Python 解释器
+  → Runner 解释器解析顺序为 `STUDIO_PYTHON` > 非 frozen 的 `sys.executable` > frozen 未配置则能力置灰。
+
+### 二、P0 落地清单
+
+| 文件 | 作用 |
+|---|---|
+| `docs/unified-desktop-app-architecture.md` | 架构、命名空间、降级矩阵、打包契约、P0–P4 阶段 |
+| `studio/manifest.json` | 1 个 active 只读 probe + 1 个 planned 步骤 + 空 steps 的占位 pipeline |
+| `backend/services/studio_engine/{manifest,capabilities,runner}.py` | 目录校验 / 资产探测 / plan + job 状态机 |
+| `backend/api/routers/studio.py` | 7 个 `/studio/*` 端点，统一 `{code,data,message}` 信封 |
+| `frontend/js/components/studio.js` + `index.html` + `app.js` | 「工作台 Studio」侧栏页，零构建 IIFE |
+| `nbacore.spec` / `scripts/build_app.sh` | `datas` 与构建预检均加入 `studio/manifest.json` |
+| `tests/test_studio_contract.py` | 12 项契约回归 |
+
+### 三、P0 放行规则（防误触 43G 数据）
+
+- 只有 `status=active && kind=probe && writes_data=false` 且依赖齐备的步骤可真执行；
+  其余一律 `blocked`，**不写盘、不报错、不启动子进程**。
+- 唯一 active 步骤是 `engine/_diag_ballfp.py --help`（本机实跑 rc=0、119 字节，
+  顶层仅依赖标准库、有 `__main__` 守卫）。
+- `plan` 只生成命令；`submit(execute=false)` 只留计划；子进程 `cwd=REPO_ROOT`、
+  清空继承的 `PYTHONPATH`（避免 sitecustomize broker 拦截 `open()`）、`shell=False`。
+- `tactics/` **只以子进程 CLI 调用，绝不 import**（78 个无守卫脚本的探测禁令）；
+  该不变量由 `test_runner_never_dynamically_imports_tactics` 静态锁死。
+- C→B→A 语料标注的真实顺序 / 参数 / 产物口径属主理人**视觉签核前置**内容，
+  本轮只留 `planned` 占位，**未编造为 active**。
+
+### 四、验证与边界
+
+- 新增 `.py` 全文零绝对路径字面量（门禁 11a + 专项测试双重覆盖）；ruff Tier-1 干净；
+  新 router 可被 `test_packaging_spec.py` 自动收集并导入，且不引入新第三方依赖。
+- 端到端实跑：144 路由（137 → 144）、`/health` 200、`/app/` 200、`/studio/*` 全 200；
+  probe job `status=ok / rc=0`，planned job `status=blocked`。
+- **诚实边界**：P0 只交付契约、只读探测与工作台骨架；真实流水线执行（P1）、
+  DAG 断点续跑（P2）、产物浏览器（P3）、打包 frozen 引导与可选 WebView（P4）尚未实现。
+  `tactics/*.sh` 硬编码路径、`__main__` 守卫、旧复评分重评、工作区 `scripts_registry.py --check`
+  缺口仍是各自独立未结项，未并入本阶段。
+
 ## 2026-11-11 — 战术分析项目迁入与代码治理（Task #38–#43）
 
 **Status**: `tactics/` **570 文件入库**（458 `.py`）；入库后独立复验

@@ -42,6 +42,8 @@ datas = [
     (str(project_root / ".env.example"), "."),
     # 结构 DDL：便于在目标机初始化外部 PG（仅结构，不含数据）
     (str(project_root / "db" / "schema.sql"), "db"),
+    # Studio 能力目录：编排顺序与参数的唯一来源，必须随包分发
+    (str(project_root / "studio" / "manifest.json"), "studio"),
 ]
 
 # ── 自动收集 backend 全部子模块，排除测试模块（否则把 pytest 拖进包）──
