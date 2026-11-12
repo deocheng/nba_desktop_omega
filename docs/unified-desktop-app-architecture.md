@@ -146,15 +146,16 @@
 | 字段 | 含义 | 约束 |
 |---|---|---|
 | `id` | 稳定标识 | 全表唯一 |
-| `kind` | `probe` / `pipeline` | P0 只允许 `probe` 真执行 |
+| `kind` | `probe` / `task` / `pipeline` | 只有只读 `probe` / `task` 可真执行 |
 | `title` / `description` | UI 文案 | — |
-| `script` | 相对 `TACTICS_CODE_ROOT` 的路径 | **禁止 `..`、禁止绝对路径** |
+| `script` | 相对 `script_root` 的路径 | **禁止 `..`、禁止绝对路径** |
+| `script_root` | `tactics_code`（默认）/ `studio_fixtures` | 脚本允许出现的根，加载器逐个校验不越界 |
 | `args` | 固定参数模板 | 字符串数组，支持 `{param}` 占位 |
-| `params` | 参数 schema | `name / type / default / required` |
-| `inputs` / `outputs` | 产物 glob（相对 `TACTICS_DATA_ROOT`） | 供 DAG 连线与断点续跑 |
+| `params` | 参数 schema | `name / type(str,int,float,bool) / default / required / choices`，Runner 强校验 |
+| `inputs` / `outputs` | 产物 glob（相对 job 隔离目录） | `outputs` 跑完逐一校验；供 DAG 连线与断点续跑 |
 | `requires` | 依赖的 capability key | 缺失即置灰 |
-| `writes_data` | 是否写数据盘 | `true` 的步骤必须显式确认 |
-| `timeout_sec` | 超时 | 默认 300 |
+| `writes_data` | 是否写数据盘 | `true` 的步骤必须显式确认；`active` 一律禁止 |
+| `timeout_sec` | 超时 | 逐步骤声明 |
 | `status` | `active` / `planned` | `planned` 只展示顺序，不可运行 |
 
 🔴 **顺序与参数一旦写进 Manifest，就不再是 AI 的记忆**。
@@ -170,26 +171,29 @@
 
 ```
 plan(step_id, params)
-  → 查 manifest → 校验参数类型 → 校验 script 落在 TACTICS_CODE_ROOT 内
+  → 查 manifest → 参数 schema 类型校验 → 校验 script 落在声明的 script_root 内
   → 拼 argv = [interpreter, script_abs, ...rendered_args]
   → 返回 {cmd, cwd, env_delta, blocked_reason}      # 不执行
 
 submit(step_id, params, execute)
   → kind/requires/写盘权限校验 → 不通过则 job.status = "blocked"（不报错、不写盘）
-  → 通过则起子线程：subprocess.run(..., timeout, capture_output, text=True)
-  → stdout/stderr 合并写入 job.logs，并落 <TACTICS_DATA_ROOT>/studio/jobs/<id>.log
-  → rc=0 → "ok"；非 0 / 超时 → "failed"
+  → 为每个 job 建隔离目录（数据根不可写则退回系统临时目录）
+  → 起子线程：subprocess.Popen(stdout=PIPE, stderr=STDOUT, text=True)
+  → pump 线程逐行读，边跑边追加 log.txt（取消/崩溃后日志也不丢）
+  → proc.wait(timeout=...)；超时 kill，取消 terminate
+  → 归因 spawn_error / timeout / cancelled / nonzero_exit / missing_outputs
+  → 校验 outputs glob → "ok"
 ```
 
 强制不变量：
 
 - **只 `subprocess`，不 `import` / `importlib` / `runpy`**（78 个无守卫脚本的探测禁令）。
-- `cwd` 固定 `REPO_ROOT`；`env` 注入 `NBA_REPO_ROOT` / `NBA_DATA_ROOT`，
+- `cwd` 固定 `REPO_ROOT`；`env` 注入 `NBA_REPO_ROOT` / `NBA_DATA_ROOT` / `STUDIO_JOB_DIR`，
   并**清空继承的 `PYTHONPATH`**（避免 WorkBuddy sitecustomize broker 在子进程里拦截 `open()`）。
-- 脚本路径用 `tactics_code_file()` 解析，产物路径用 `tactics_data_file()`；
+- 脚本路径按 `script_root` 解析，产物路径用 `tactics_data_file()`；
   **源码里不得出现任何绝对路径字面量**（门禁 11a 全文扫描）。
-- 参数渲染只做白名单字符串替换，不拼 shell、`shell=False`（防命令注入）。
-- P0 默认 `execute=false`；只有 `kind=probe && writes_data=false` 的 step 允许真跑。
+- 参数渲染只做白名单替换 + schema 强校验，不拼 shell、`shell=False`（防命令注入）。
+- `execute=false` 默认只留计划；只有 `kind ∈ {probe,task} && !writes_data` 的 active step 允许真跑。
 
 ### 3.4 Capabilities — 降级矩阵
 
@@ -206,9 +210,11 @@ submit(step_id, params, execute)
 
 ### 3.5 Job 状态机与产物浏览器
 
-`pending → running → ok | failed | blocked`。JobStore 内存态 + 日志落盘；
-`GET /studio/jobs`、`GET /studio/jobs/{id}` 供前端轮询（P0 用轮询，P1 再上 SSE / WebSocket）。
-`GET /studio/artifacts` 只列 `TACTICS_DATA_ROOT` 白名单内的文件，**复用
+`preview | pending → running → ok | failed | cancelled | blocked`。
+每个终态带 `error_kind` + `hint` + `rc` + `outputs_found`，前端可直接显示原因与建议。
+JobStore 内存态 + 流式日志落盘；`GET /studio/jobs`、`GET /studio/jobs/{id}` 供前端轮询
+（SSE / WebSocket 留待 P2），`POST /studio/jobs/{id}/cancel` 终止子进程且保留日志。
+`GET /studio/artifacts` 只列 job 隔离目录内的文件，**复用
 `backend/api/routers/video_library.py:get_media` 的 `Path.relative_to(root)` 目录穿越防御**，
 绝不根据请求参数拼接任意路径。
 
@@ -267,8 +273,8 @@ Runner 的解释器解析顺序：
 
 | 阶段 | 内容 | 完成判据 |
 |---|---|---|
-| **P0 · 契约与骨架** | Manifest schema + Capabilities + Plan/Job API + `/studio` 前端工作台 + 回归测试；只放行 `probe` 步骤 | 门禁 42/42、ruff 0、全量 pytest 全绿；UI 能列出能力、生成计划、实跑一个只读 `--help` 并看到日志 |
-| **P1 · Runner 实跑** | 3 个安全脚本垂直切片、日志落盘、超时/取消、参数校验、失败原因归因 | 无需 AI 即可在 UI 跑完一条 3 步链路 |
+| **P0 · 契约与骨架** ✅ `e6b6805` | Manifest schema + Capabilities + Plan/Job API + `/studio` 前端工作台 + 回归测试；只放行 `probe` 步骤 | 门禁 42/42、ruff 0、全量 pytest 全绿；UI 能列出能力、生成计划、实跑一个只读 `--help` 并看到日志 |
+| **P1 · Runner 实跑** ✅ 本轮 | 1 个真实只读战术脚本 + 3 个参数化 fixture 步骤；参数 schema 强校验、流式日志落盘、产物校验、超时 kill、取消、5 类失败归因 | 无需 AI 即可在 UI 跑完参数化只读任务并看到归因/产物；端到端实测 145 路由全通 |
 | **P2 · Pipeline DAG** | 多步编排、产物校验、断点续跑、失败重跑、SSE 实时日志 | 主理人签核后的 C→B→A 链路可从 UI 一键运行 |
 | **P3 · 产物浏览器** | 按 job/step 分组产物、预览/下载、与录像库 / 战术板联动 | 产物可直接在同一窗口查看 |
 | **P4 · 打包与外壳** | spec datas 契约、frozen 路径引导、构建冒烟、可选 WebView 窗口 | 打包版双击可用且明确提示外部依赖状态 |
@@ -278,7 +284,7 @@ Runner 的解释器解析顺序：
 ```
 python tools/verify_quality_gate.py        # PASS=42 FAIL=0
 ruff check .                               # All checks passed
-pytest -q                                  # 基线 805 passed / 1 skipped
+pytest -q                                  # P1 后 826 passed / 1 skipped
 node --test frontend/tests/*.test.js       # 前端契约
 bash scripts/build_app.sh                  # P4 起，构建 + /health + /app/ 冒烟
 ```
@@ -287,7 +293,12 @@ bash scripts/build_app.sh                  # P4 起，构建 + /health + /app/ �
 
 ## 7. 诚实边界 / 明确不做
 
-- 本文**不代表已经实现**上述全部能力；P0 只交付契约、只读探测与工作台骨架。
+- **P0 / P1 已实现**（对应提交 `e6b6805` 与本轮 P1）；**P2–P4 尚未实现**。
+  P1 里 3 个参数化 `task` 步骤使用 `studio/fixtures/studio_probe.py` 作为**契约验证载体**，
+  不是战术分析任务；真实接入的只有 1 个 AST 判定零写盘的只读脚本 `engine/_rel_confound.py`。
+- 🔴 **P1 口径按证据收窄**：AST 扫描 55 个「顶层仅标准库 + 有守卫 + argparse」脚本，
+  仅 1 个完全无写盘调用，其余都会写 `action_analysis/` 或 `tactics/reports/`。
+  跑它们等于触碰未签核的数据产物，与红线冲突，故不拿真实脚本凑数。
 - 「独立程序」在本设计里指**双击即用、不依赖 AI/终端、自含编排知识**；
   不等于**离线自包含**：PG、43G 产物、6TB 素材、模型权重仍是外部资产。
 - 真实战术步骤的顺序、参数与产物口径需要主理人视觉签核后才会转成 `active`；
@@ -298,15 +309,17 @@ bash scripts/build_app.sh                  # P4 起，构建 + /health + /app/ �
 
 ---
 
-## 8. 阶段 0 落地清单（本轮同步交付）
+## 8. 落地清单（P0 `e6b6805` + P1 本轮）
 
 | 文件 | 作用 |
 |---|---|
-| `docs/unified-desktop-app-architecture.md` | 本文 |
-| `studio/manifest.json` | 能力目录：1 个 `active` 只读 probe + `planned` 步骤/流水线示例 |
-| `backend/services/studio_engine/` | `manifest.py` / `capabilities.py` / `runner.py` |
-| `backend/api/routers/studio.py` | `/studio/*` 薄路由 |
+| `docs/unified-desktop-app-architecture.md` | 本文（P1 后已更新 §3 / §6 / §7） |
+| `studio/manifest.json` | 能力目录：5 个 `active` 只读步骤（1 probe + 1 真实 task + 3 fixture task）+ `planned` 占位 |
+| `backend/services/studio_engine/` | `manifest.py`（script_root / 参数 schema / outputs 校验）、`capabilities.py`、`runner.py`（Popen 流式 / 取消 / 归因） |
+| `backend/api/routers/studio.py` | `/studio/*` 8 个端点（P1 新增 `POST /jobs/{id}/cancel`） |
 | `backend/app.py` | 仅新增 2 行（import + include_router） |
-| `frontend/js/components/studio.js` + `index.html` + `app.js` | 工作台页面与导航 |
-| `nbacore.spec` | `datas` 增加 `studio/manifest.json` |
-| `tests/test_studio_contract.py` | 契约回归测试（禁止 import tactics、计划不执行、blocked 不写盘） |
+| `studio/fixtures/studio_probe.py` | 纯标准库契约 fixture，只写 job 隔离目录 |
+| `frontend/js/components/studio.js` + `index.html` + `app.js` | 工作台页面、参数输入、取消按钮、产物/归因展示 |
+| `nbacore.spec` / `scripts/build_app.sh` | `datas` 与构建预检覆盖 manifest + fixtures |
+| `tests/test_studio_contract.py` | 12 项结构契约（禁止 import tactics、计划不执行、blocked 不写盘） |
+| `tests/test_studio_runner.py` | 9 项运行时契约（参数校验、流式日志、产物、超时、取消、失败归因） |

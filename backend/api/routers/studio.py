@@ -10,8 +10,9 @@
     POST /studio/plan            只生成命令，不执行
     POST /studio/jobs            创建任务（execute=true 且通过放行规则才真跑）
     GET  /studio/jobs            任务列表
-    GET  /studio/jobs/{id}       任务状态 + 日志
-    GET  /studio/artifacts       Studio 日志产物（白名单目录，不接受任意路径）
+    GET  /studio/jobs/{id}       任务状态 + 日志 + 失败归因
+    POST /studio/jobs/{id}/cancel 取消运行中的任务
+    GET  /studio/artifacts       job 隔离目录内的日志/产物（不接受任意路径）
 
 设计见 docs/unified-desktop-app-architecture.md §3。
 """
@@ -112,20 +113,37 @@ def get_job(job_id: str):
     return _ok(job)
 
 
+@router.post("/jobs/{job_id}/cancel")
+def cancel_job(job_id: str):
+    """取消运行中的任务（terminate 子进程，保留已产生的日志）。"""
+    job = get_runner().cancel(job_id)
+    if job is None:
+        return _bad(40004, f"任务不存在: {job_id}")
+    return _ok(job)
+
+
 @router.get("/artifacts")
 def list_artifacts():
-    """只列 Studio 自己的日志目录，不接受用户传入路径（最强目录穿越防御）。"""
+    """只列 Studio 自己的 job 隔离目录，不接受用户传入路径（最强目录穿越防御）。"""
     folder = tactics_data_file("studio", "jobs").resolve()
     if not folder.is_dir():
         return _ok({"root": str(folder), "items": []})
     items = []
-    for path in sorted(folder.iterdir()):
-        if not path.is_file():
+    for job_dir in sorted(folder.iterdir()):
+        if not job_dir.is_dir():
             continue
-        try:
-            path.resolve().relative_to(folder)
-        except ValueError:
-            continue
-        stat = path.stat()
-        items.append({"name": path.name, "bytes": stat.st_size, "mtime": stat.st_mtime})
+        for path in sorted(job_dir.iterdir()):
+            if not path.is_file():
+                continue
+            try:
+                path.resolve().relative_to(folder)
+            except ValueError:
+                continue
+            stat = path.stat()
+            items.append({
+                "job_id": job_dir.name,
+                "name": path.name,
+                "bytes": stat.st_size,
+                "mtime": stat.st_mtime,
+            })
     return _ok({"root": str(folder), "items": items})

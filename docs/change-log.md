@@ -59,10 +59,67 @@ All changes to LOCKED phases must be recorded here (v8 §1 Change Request mechan
   新 router 可被 `test_packaging_spec.py` 自动收集并导入，且不引入新第三方依赖。
 - 端到端实跑：144 路由（137 → 144）、`/health` 200、`/app/` 200、`/studio/*` 全 200；
   probe job `status=ok / rc=0`，planned job `status=blocked`。
-- **诚实边界**：P0 只交付契约、只读探测与工作台骨架；真实流水线执行（P1）、
-  DAG 断点续跑（P2）、产物浏览器（P3）、打包 frozen 引导与可选 WebView（P4）尚未实现。
+- **诚实边界（P0 当时）**：P0 只交付契约、只读探测与工作台骨架；真实流水线执行（P1，
+  已同日续作见下方条目）、DAG 断点续跑（P2）、产物浏览器（P3）、
+  打包 frozen 引导与可选 WebView（P4）尚未实现。
   `tactics/*.sh` 硬编码路径、`__main__` 守卫、旧复评分重评、工作区 `scripts_registry.py --check`
   缺口仍是各自独立未结项，未并入本阶段。
+
+## 2026-11-12 — Studio 编排层 P1：Runner 实跑能力（Task #56）
+
+**Status**：P1 落地并实跑全绿 —— 门禁 **42/42**、ruff **0**、前端 **7/7**、
+全量 pytest **826 passed / 1 skipped**（P0 817 + 新增 9）、本地 uvicorn **145 路由**端到端全通。
+
+### 一、载体选择：按证据收窄口径，不拿真实脚本凑数
+
+- AST 扫描 55 个「顶层仅标准库 + `__main__` 守卫 + argparse」的 `tactics/` 脚本，
+  **只有 1 个完全无写盘调用**：`engine/_rel_confound.py`；本机实跑 rc=0、11 行输出、零写盘。
+- 其余脚本都会写 `action_analysis/` 或 `tactics/reports/`，跑它们等于触碰未签核的数据产物，
+  与「异常先报告 / 不碰未签核流水线」红线冲突 → **改用** 1 个真实只读 task +
+  3 个参数化 fixture 步骤（载体 `studio/fixtures/studio_probe.py`，纯标准库，
+  只写 job 专属隔离目录）。fixture 明确定位为 Runner 契约验证，**不是战术分析任务**。
+- C→B→A 的真实脚本顺序仍保持 `planned` + 空 `steps`，需老程视觉签核后才转 `active`。
+
+### 二、Runner 能力升级（`backend/services/studio_engine/runner.py`）
+
+| 能力 | 实现 |
+|---|---|
+| 参数 schema | `str/int/float/bool` 强校验、`choices`、未知参数拒绝、必填检查；白名单占位符替换 |
+| 流式日志 | `subprocess.Popen(stdout=PIPE, stderr=STDOUT)` + pump 线程逐行读，边跑边追加 `log.txt` |
+| 超时 | `proc.wait(timeout=...)` → `kill()` → `error_kind=timeout` |
+| 取消 | `POST /studio/jobs/{id}/cancel` → `terminate()` → `cancelled`，worker 不覆盖终态 |
+| 失败归因 | `spawn_error / timeout / cancelled / nonzero_exit / missing_outputs`，每个带 `hint` |
+| 产物校验 | `outputs` glob 相对隔离目录逐一校验，`ok` 时返回 `outputs_found` |
+| 隔离降级 | 数据根不可写时 `tempfile.mkdtemp` 兜底，无外置盘的机器（CI / 打包版）也能跑 |
+
+`manifest.py` 同步新增 `script_root`（`tactics_code` / `studio_fixtures` 双根越界校验）、
+`kind=task`、参数 schema 与 `outputs` 相对路径校验；`active` 步骤一律禁止 `writes_data=true`。
+
+### 三、路由 / 前端 / 打包
+
+- `backend/api/routers/studio.py` 新增 cancel 端点（共 8 个）；`/studio/artifacts` 改为遍历 job 隔离目录。
+- `frontend/js/components/studio.js`：参数输入框、运行中取消按钮、失败归因与 hint、产物列表按钮。
+- `nbacore.spec` datas 与 `scripts/build_app.sh` 预检均加入 `studio/fixtures/`。
+- 新增 `tests/test_studio_runner.py` 9 项；`tests/test_studio_contract.py` 更新为双根 / 多 active 口径。
+
+### 四、端到端实跑（本机，非推断）
+
+```
+routes = 145 · manifest 6 steps / 5 active
+plan  → "--lines 3 --tag e2e --write result.json"
+echo  → ok / rc=0 / outputs=['result.json'] / 6 行日志（log.txt 落盘）
+fail  → failed / rc=5 / nonzero_exit / hint 非空
+real  → ok / rc=0 / 11 行日志（含「判据1 … ρ = -0.216」）
+cancel→ cancelled / cancelled
+artifacts = 14 项（log.txt / result.json）/ /app/ 含工作台导航
+```
+
+### 五、边界与未结
+
+- **未实现**：P2 多步 DAG / 断点续跑 / SSE、P3 产物预览下载、P4 frozen 引导与可选 WebView。
+- 真实写盘战术流水线仍被 `planned` + `blocked` 双重挡住，本轮未触碰 43G 数据产物。
+- 独立未结项未并入：`tactics/*.sh` 硬编码路径、`__main__` 守卫、旧复评分重评、
+  工作区 `scripts_registry.py --check` 缺口；外部改动 `fiba_daily_report_2026-11.md` 仍未夹带。
 
 ## 2026-11-11 — 战术分析项目迁入与代码治理（Task #38–#43）
 

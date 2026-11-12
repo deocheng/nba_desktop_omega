@@ -44,6 +44,8 @@ datas = [
     (str(project_root / "db" / "schema.sql"), "db"),
     # Studio 能力目录：编排顺序与参数的唯一来源，必须随包分发
     (str(project_root / "studio" / "manifest.json"), "studio"),
+    # Runner 契约验证 fixture（纯标准库，零外部数据依赖）
+    (str(project_root / "studio" / "fixtures"), "studio/fixtures"),
 ]
 
 # ── 自动收集 backend 全部子模块，排除测试模块（否则把 pytest 拖进包）──

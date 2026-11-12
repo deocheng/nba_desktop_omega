@@ -1,8 +1,8 @@
 /**
  * Studio 工作台 — 战术视频分析流水线的编排 UI。
  *
- * Layer 4: 纯渲染。顺序、参数、放行规则全部来自 /studio/manifest 与 /studio/capabilities，
- * 前端不记任何脚本路径、不拼命令 —— 这正是「不再依赖 AI 记命令」的落点。
+ * Layer 4: 纯渲染。顺序、参数 schema、放行规则全部来自 /studio/manifest 与
+ * /studio/capabilities，前端不记任何脚本路径、不拼命令 —— 这正是「不再依赖 AI 记命令」的落点。
  * 零构建：原生 JS IIFE，挂 window.Studio，由 app.js 的 nav('studio') 调用。
  */
 (function () {
@@ -28,9 +28,22 @@
       '</div>';
   }
 
+  function paramInputs(step) {
+    var params = step.params || [];
+    if (!params.length) { return '<span style="font-size:11px;color:var(--text-dim);">无参数</span>'; }
+    return params.map(function (p) {
+      return '<div style="display:flex;align-items:center;gap:4px;margin-top:3px;">' +
+        '<span style="font-size:11px;color:var(--text-dim);min-width:52px;">' + esc(p.name) + '</span>' +
+        '<input class="form-control" style="height:24px;font-size:12px;width:96px;padding:2px 6px;"' +
+        ' data-studio-param="1" data-step="' + esc(step.id) + '" data-name="' + esc(p.name) + '"' +
+        ' value="' + esc(p.default == null ? '' : p.default) + '" title="' + esc(p.type) + '">' +
+        '</div>';
+    }).join('');
+  }
+
   function stepRow(step) {
     var active = step.status === 'active';
-    var canRun = active && step.kind === 'probe' && !step.writes_data;
+    var canRun = active && !step.writes_data;
     var badge = active
       ? '<span class="card-badge" style="color:#10b981;">active</span>'
       : '<span class="card-badge">planned · 待签核</span>';
@@ -45,6 +58,7 @@
       (active ? '' : ' disabled') + '>生成计划</button> ' +
       '<button class="btn btn-sm btn-primary" data-studio-run="' + esc(step.id) + '"' +
       (canRun ? '' : ' disabled') + '>' + (canRun ? '运行' : '不可运行') + '</button>' +
+      (active ? paramInputs(step) : '') +
       '</td></tr>';
   }
 
@@ -56,6 +70,28 @@
     }
   }
 
+  function collectParams(stepId) {
+    var params = {};
+    document.querySelectorAll('[data-studio-param]').forEach(function (input) {
+      if (input.getAttribute('data-step') !== stepId) { return; }
+      var value = input.value;
+      if (value !== '') { params[input.getAttribute('data-name')] = value; }
+    });
+    return params;
+  }
+
+  function setCancelButton(jobId, visible) {
+    var btn = el('studioCancelBtn');
+    if (!btn) { return; }
+    btn.style.display = visible ? 'inline-block' : 'none';
+    btn.onclick = visible ? function () {
+      output('正在取消任务 ' + jobId + ' …');
+      api('/studio/jobs/' + encodeURIComponent(jobId) + '/cancel', { method: 'POST' })
+        .then(function (res) { output('[取消] ' + (res.code === 0 ? '已请求取消，见任务状态' : res.message)); })
+        .catch(function (e) { output('[取消失败] ' + e.message); });
+    } : null;
+  }
+
   function bindActions() {
     document.querySelectorAll('[data-studio-plan]').forEach(function (btn) {
       btn.onclick = function () {
@@ -64,7 +100,7 @@
         api('/studio/plan', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ step_id: stepId, params: {} })
+          body: JSON.stringify({ step_id: stepId, params: collectParams(stepId) })
         }).then(function (res) {
           if (res.code !== 0) { output('[失败] ' + res.message); return; }
           var d = res.data || {};
@@ -83,7 +119,7 @@
         api('/studio/jobs', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ step_id: stepId, params: {}, execute: true })
+          body: JSON.stringify({ step_id: stepId, params: collectParams(stepId), execute: true })
         }).then(function (res) {
           if (res.code !== 0) { output('[失败] ' + res.message); return; }
           pollJob(res.data.id, stepId);
@@ -99,24 +135,33 @@
       api('/studio/jobs/' + encodeURIComponent(jobId)).then(function (res) {
         if (res.code !== 0) {
           clearInterval(timer);
+          setCancelButton(jobId, false);
           output('[查询失败] ' + res.message);
           return;
         }
         var job = res.data || {};
         var head = '任务 ' + job.id + ' · ' + stepId + ' · 状态 ' + job.status +
           (job.rc === null || job.rc === undefined ? '' : ' · rc=' + job.rc) +
+          (job.error_kind ? ' · 归因 ' + job.error_kind : '') +
           (job.blocked_reason ? ' · ' + job.blocked_reason : '');
-        output(head + '\n' + '-'.repeat(48) + '\n' + (job.logs || []).join('\n'));
-        if (job.status !== 'pending' && job.status !== 'running') {
+        var detail = (job.error ? '\n原因：' + job.error : '') +
+          (job.hint ? '\n建议：' + job.hint : '') +
+          (job.outputs_found && job.outputs_found.length ? '\n产物：' + job.outputs_found.join(', ') : '');
+        output(head + detail + '\n' + '-'.repeat(48) + '\n' + (job.logs || []).join('\n'));
+        var running = job.status === 'pending' || job.status === 'running';
+        setCancelButton(jobId, running);
+        if (!running) {
           clearInterval(timer);
           if (window.toast) window.toast('Studio 任务结束：' + job.status);
         }
       }).catch(function (e) {
         clearInterval(timer);
+        setCancelButton(jobId, false);
         output('[轮询失败] ' + e.message);
       });
-      if (tries >= 60) {
+      if (tries >= 120) {
         clearInterval(timer);
+        setCancelButton(jobId, false);
         output('[超时] 任务仍在运行，请稍后刷新任务列表。');
       }
     }, 500);
@@ -134,15 +179,20 @@
       '<div class="card"><div class="card-header"><div class="card-title">能力目录 · Manifest</div>' +
       '<span class="card-badge" id="studioStepCount">—</span></div>' +
       '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
-      '<th>步骤</th><th>状态</th><th>说明</th><th>依赖</th><th>操作</th>' +
+      '<th>步骤</th><th>状态</th><th>说明</th><th>依赖</th><th>操作 / 参数</th>' +
       '</tr></thead><tbody id="studioSteps"></tbody></table></div>' +
       '<div style="font-size:12px;color:var(--text-dim);padding:8px 0;">' +
-      '顺序与参数由能力目录固化；planned 项需主理人视觉签核后才会转成 active。</div></div>' +
+      '顺序与参数由能力目录固化；planned 项需主理人视觉签核后才会转成 active。' +
+      'fixture 步骤仅用于验证 Runner 契约，不是战术分析任务。</div></div>' +
       '<div class="card"><div class="card-header"><div class="card-title">计划 / 运行日志</div>' +
-      '<button class="btn btn-sm" id="studioJobsBtn">刷新任务列表</button></div>' +
+      '<div style="display:flex;gap:8px;">' +
+      '<button class="btn btn-sm" id="studioJobsBtn">刷新任务列表</button>' +
+      '<button class="btn btn-sm" id="studioArtifactsBtn">查看产物</button>' +
+      '<button class="btn btn-sm" id="studioCancelBtn" style="display:none;">取消当前任务</button>' +
+      '</div></div>' +
       '<pre id="studioOutput" style="max-height:340px;overflow:auto;background:var(--bg-dark);' +
       'border-radius:8px;padding:12px;font-family:var(--mono);font-size:12px;line-height:1.6;">' +
-      '选择一个步骤：生成计划（不执行）或运行（只读 probe）。</pre></div>';
+      '选择一个步骤：生成计划（不执行）或运行（只读步骤）。</pre></div>';
 
     function showJobs() {
       api('/studio/jobs').then(function (res) {
@@ -151,12 +201,29 @@
         if (!jobs.length) { output('暂无任务。'); return; }
         output(jobs.map(function (j) {
           return [j.id, j.step_id, j.status, 'rc=' + (j.rc === null ? '-' : j.rc),
-            (j.logs || []).length + ' 行日志'].join('  |  ');
+            j.error_kind || '-', (j.logs || []).length + ' 行日志'].join('  |  ');
         }).join('\n'));
       }).catch(function (e) { output('[请求失败] ' + e.message); });
     }
+
+    function showArtifacts() {
+      api('/studio/artifacts').then(function (res) {
+        if (res.code !== 0) { output('[失败] ' + res.message); return; }
+        var d = res.data || {};
+        var items = d.items || [];
+        output('产物根目录：' + (d.root || '') + '\n' +
+          (items.length
+            ? items.map(function (i) {
+                return [i.job_id, i.name, i.bytes + ' B'].join('  |  ');
+              }).join('\n')
+            : '（暂无产物）'));
+      }).catch(function (e) { output('[请求失败] ' + e.message); });
+    }
+
     var jobsBtn = el('studioJobsBtn');
     if (jobsBtn) { jobsBtn.onclick = showJobs; }
+    var artBtn = el('studioArtifactsBtn');
+    if (artBtn) { artBtn.onclick = showArtifacts; }
 
     Promise.all([api('/studio/capabilities'), api('/studio/manifest')])
       .then(function (results) {

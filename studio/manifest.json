@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "title": "NBACore Studio — 能力目录",
-  "note": "这是编排顺序与参数的唯一来源：不再由 AI 或对话上下文记忆。script 一律相对 TACTICS_CODE_ROOT，产物一律相对 TACTICS_DATA_ROOT。planned 项只展示形态，未获主理人视觉签核，Runner 一律拒绝执行。",
+  "note": "这是编排顺序与参数的唯一来源：不再由 AI 或对话上下文记忆。script 相对 script_root（默认 TACTICS_CODE_ROOT；studio_fixtures 指仓库内 studio/fixtures），产物 outputs 相对该 job 的隔离目录 STUDIO_JOB_DIR。planned 项只展示形态，未获主理人视觉签核，Runner 一律拒绝执行。",
   "steps": [
     {
       "id": "probe.cli_help",
@@ -10,11 +10,85 @@
       "title": "CLI 自检（只读）",
       "description": "对标准库脚本执行 --help，验证解释器、代码根与子进程序列可用；不读不写任何数据产物。",
       "script": "engine/_diag_ballfp.py",
+      "script_root": "tactics_code",
       "args": ["--help"],
       "params": [],
       "inputs": [],
       "outputs": [],
       "requires": ["tactics_code", "python"],
+      "writes_data": false,
+      "timeout_sec": 30
+    },
+    {
+      "id": "task.rel_confound",
+      "kind": "task",
+      "status": "active",
+      "title": "关系层语义判别（真实只读脚本）",
+      "description": "调用 tactics/engine/_rel_confound.py，读取既有 validate JSON 并打印 Spearman/框距统计；AST 实查零写盘调用，本机实跑 rc=0、11 行输出。",
+      "script": "engine/_rel_confound.py",
+      "script_root": "tactics_code",
+      "args": ["--suffix", "{suffix}"],
+      "params": [
+        {"name": "suffix", "type": "str", "default": "_poss_tile_fp", "required": false}
+      ],
+      "inputs": [],
+      "outputs": [],
+      "requires": ["tactics_code", "tactics_data", "python"],
+      "writes_data": false,
+      "timeout_sec": 120
+    },
+    {
+      "id": "task.echo_params",
+      "kind": "task",
+      "status": "active",
+      "title": "参数渲染 + 产物校验（fixture）",
+      "description": "可控 fixture：验证占位符渲染、类型校验、流式日志与 outputs 产物校验。产物只写进该 job 的隔离目录。",
+      "script": "studio_probe.py",
+      "script_root": "studio_fixtures",
+      "args": ["--lines", "{lines}", "--tag", "{tag}", "--write", "result.json"],
+      "params": [
+        {"name": "tag", "type": "str", "default": "demo", "required": false},
+        {"name": "lines", "type": "int", "default": 5, "required": false}
+      ],
+      "inputs": [],
+      "outputs": ["result.json"],
+      "requires": ["python"],
+      "writes_data": false,
+      "timeout_sec": 60
+    },
+    {
+      "id": "task.slow_stream",
+      "kind": "task",
+      "status": "active",
+      "title": "流式日志 / 超时 / 取消（fixture）",
+      "description": "可控 fixture：按 sleep 逐行输出，用于验证流式日志、超时 kill 与用户取消；可在运行中取消任务。",
+      "script": "studio_probe.py",
+      "script_root": "studio_fixtures",
+      "args": ["--lines", "40", "--sleep", "{sleep}"],
+      "params": [
+        {"name": "sleep", "type": "float", "default": 0.2, "required": false}
+      ],
+      "inputs": [],
+      "outputs": [],
+      "requires": ["python"],
+      "writes_data": false,
+      "timeout_sec": 30
+    },
+    {
+      "id": "task.fail_demo",
+      "kind": "task",
+      "status": "active",
+      "title": "失败归因（fixture）",
+      "description": "可控 fixture：按 rc 返回非零退出码，验证 nonzero_exit 归因与 stderr 日志合并。",
+      "script": "studio_probe.py",
+      "script_root": "studio_fixtures",
+      "args": ["--lines", "2", "--fail", "{rc}"],
+      "params": [
+        {"name": "rc", "type": "int", "default": 3, "required": false}
+      ],
+      "inputs": [],
+      "outputs": [],
+      "requires": ["python"],
       "writes_data": false,
       "timeout_sec": 30
     },
@@ -25,6 +99,7 @@
       "title": "C→B→A 语料标注（待签核）",
       "description": "占位条目：真实脚本顺序、参数与产物口径需主理人视觉签核后填写，未经签核不得标为 active。",
       "script": null,
+      "script_root": "tactics_code",
       "args": [],
       "params": [],
       "inputs": [],

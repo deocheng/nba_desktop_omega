@@ -1,12 +1,13 @@
-"""Studio 编排层契约回归测试（P0）。
+"""Studio 编排层契约回归测试（P0 + P1 结构层）。
 
 锁死四类不变量：
-  1. 能力目录结构合法、脚本不逃出代码根、active 只能是只读 probe；
+  1. 能力目录结构合法、脚本不逃出各自 script_root、active 只能是只读 probe/task；
   2. plan 只生成命令、**绝不执行**；planned / 写盘步骤一律 blocked 且不触发子进程；
   3. Runner 只走 subprocess CLI，不做任何动态模块加载（tactics/ 探测禁令）；
   4. 路由、前端导航、打包 datas 与新增源码都不失修（门禁 11a 零绝对路径字面量）。
 
-🔴 本测试全程不 import 任何 tactics/ 脚本；唯一实跑的子进程是 `--help` 只读探测。
+P1 运行时能力（超时 / 取消 / 失败归因 / 产物校验）见 tests/test_studio_runner.py。
+🔴 本测试全程不 import 任何 tactics/ 脚本；实跑的子进程都是只读或隔离目录写入。
 """
 from __future__ import annotations
 
@@ -19,7 +20,6 @@ from fastapi.testclient import TestClient
 from backend.app import create_app
 from backend.services.studio_engine import manifest as mf
 from backend.services.studio_engine import runner as rn
-from common.nba_paths import TACTICS_CODE_ROOT
 
 PROJ = Path(__file__).resolve().parent.parent
 PROBE_ID = "probe.cli_help"
@@ -36,22 +36,22 @@ def test_manifest_loads_and_validates():
     assert any(s["id"] == PLANNED_ID and s["status"] == "planned" for s in data["steps"])
 
 
-def test_active_step_is_readonly_probe_and_exists():
+def test_active_steps_are_readonly_and_scripts_exist():
     active = [s for s in mf.load_manifest()["steps"] if s["status"] == "active"]
-    assert len(active) == 1, "P0 只允许一个 active 的只读探测步骤"
-    step = active[0]
-    assert step["kind"] == "probe"
-    assert step["writes_data"] is False
-    assert mf.script_path(step).is_file()
+    assert len(active) >= 5
+    for step in active:
+        assert step["kind"] in mf.RUNNABLE_KINDS
+        assert step["writes_data"] is False
+        assert mf.script_path(step).is_file(), step["id"]
 
 
-def test_manifest_scripts_stay_inside_code_root():
-    root = TACTICS_CODE_ROOT.resolve()
+def test_manifest_scripts_stay_inside_their_declared_root():
     for step in mf.load_manifest()["steps"]:
         if step["script"] is None:
             continue
         assert not Path(step["script"]).is_absolute()
         assert ".." not in Path(step["script"]).parts
+        root = mf.script_root_path(step).resolve()
         mf.script_path(step).resolve().relative_to(root)
 
 
@@ -62,26 +62,32 @@ def test_validate_rejects_path_escape_and_unsigned_active_step():
         mf.validate(data)
 
     data = mf.load_manifest()
-    data["steps"][1]["status"] = "active"
+    data["steps"][-1]["status"] = "active"
+    with pytest.raises(mf.ManifestError):
+        mf.validate(data)
+
+    data = mf.load_manifest()
+    data["steps"][0]["script_root"] = "unknown_root"
     with pytest.raises(mf.ManifestError):
         mf.validate(data)
 
 
 def test_plan_never_executes(monkeypatch):
     calls = []
-    monkeypatch.setattr(rn.subprocess, "run", lambda *a, **k: calls.append(1))
+    monkeypatch.setattr(rn.subprocess, "Popen", lambda *a, **k: calls.append(1))
     plan = rn.Runner(mf.load_manifest()).plan(PROBE_ID, {})
     assert plan["blocked_reason"] is None
     assert len(plan["cmd"]) >= 2
     assert plan["cmd"][1].endswith("_diag_ballfp.py")
     assert plan["cmd"][-1] == "--help"
     assert plan["env_delta"]["PYTHONPATH"] == "cleared"
+    assert "STUDIO_JOB_DIR" in plan["env_delta"]
     assert calls == [], "plan 绝对不能启动子进程"
 
 
 def test_planned_step_is_blocked_without_subprocess(monkeypatch):
     calls = []
-    monkeypatch.setattr(rn.subprocess, "run", lambda *a, **k: calls.append(1))
+    monkeypatch.setattr(rn.subprocess, "Popen", lambda *a, **k: calls.append(1))
     job = rn.Runner(mf.load_manifest()).submit(PLANNED_ID, {}, execute=True)
     assert job.status == "blocked"
     assert "签核" in (job.blocked_reason or "")
@@ -132,6 +138,9 @@ def test_studio_endpoints():
     unknown = client.post("/studio/plan", json={"step_id": "nope", "params": {}})
     assert unknown.json()["code"] == 40001
 
+    missing = client.post("/studio/jobs/does-not-exist/cancel")
+    assert missing.json()["code"] == 40004
+
 
 def test_frontend_and_packaging_wiring():
     idx = (PROJ / "frontend" / "index.html").read_text(encoding="utf-8")
@@ -142,6 +151,8 @@ def test_frontend_and_packaging_wiring():
     assert "components/studio.js" in idx
     assert "loadStudioPage()" in app_js
     assert 'project_root / "studio" / "manifest.json"' in spec
+    assert 'project_root / "studio" / "fixtures"' in spec
+    assert (PROJ / "studio" / "fixtures" / "studio_probe.py").is_file()
 
 
 def test_studio_sources_have_no_hardcoded_absolute_paths():
@@ -151,7 +162,9 @@ def test_studio_sources_have_no_hardcoded_absolute_paths():
         "backend/services/studio_engine/capabilities.py",
         "backend/services/studio_engine/runner.py",
         "backend/api/routers/studio.py",
+        "studio/fixtures/studio_probe.py",
         "tests/test_studio_contract.py",
+        "tests/test_studio_runner.py",
     )
     for rel in files:
         src = (PROJ / rel).read_text(encoding="utf-8")

@@ -1,7 +1,11 @@
 """能力目录（Manifest）加载与校验。
 
-Manifest 是编排顺序与参数的**唯一来源**；加载器把「相对路径 / 状态 / 写盘权限」
-变成可执行断言，避免未经签核的步骤被误跑，也避免 script 逃出代码根。
+Manifest 是编排顺序与参数的**唯一来源**；加载器把「相对路径 / 参数 schema /
+状态 / 写盘权限 / 产物声明」变成可执行断言，避免未经签核的步骤被误跑，
+也避免 script 逃出代码根、产物逃出 job 隔离目录。
+
+P1 新增：``script_root``（tactics_code | studio_fixtures）、``kind=task``、
+参数类型 / choices 校验、``outputs`` 相对 job 目录的 glob 校验。
 
 设计见 docs/unified-desktop-app-architecture.md §3.1。
 """
@@ -10,10 +14,13 @@ from __future__ import annotations
 import json
 from pathlib import Path, PurePosixPath
 
-from common.nba_paths import TACTICS_CODE_ROOT, repo_file, tactics_code_file
+from common.nba_paths import TACTICS_CODE_ROOT, repo_file
 
-KINDS = frozenset({"probe", "pipeline"})
+KINDS = frozenset({"probe", "task", "pipeline"})
+RUNNABLE_KINDS = frozenset({"probe", "task"})
 STATUSES = frozenset({"active", "planned"})
+SCRIPT_ROOTS = frozenset({"tactics_code", "studio_fixtures"})
+PARAM_TYPES = frozenset({"str", "int", "float", "bool"})
 STEP_FIELDS = (
     "id", "kind", "status", "title", "description", "script", "args",
     "params", "inputs", "outputs", "requires", "writes_data", "timeout_sec",
@@ -29,24 +36,67 @@ def manifest_path() -> Path:
     return repo_file("studio", "manifest.json")
 
 
-def _check_script(script: object, step_id: str, status: str) -> None:
+def script_root_path(step: dict | None = None) -> Path:
+    """按 step.script_root 返回允许放脚本的根（默认战术代码根）。"""
+    key = (step or {}).get("script_root", "tactics_code")
+    if key not in SCRIPT_ROOTS:
+        raise ManifestError(f"未知 script_root: {key}")
+    if key == "studio_fixtures":
+        return repo_file("studio", "fixtures")
+    return TACTICS_CODE_ROOT
+
+
+def _check_script(step: dict) -> None:
+    sid = step["id"]
+    script = step["script"]
     if script is None:
-        if status == "active":
-            raise ManifestError(f"{step_id}: active 步骤必须有 script")
+        if step["status"] == "active":
+            raise ManifestError(f"{sid}: active 步骤必须有 script")
         return
     if not isinstance(script, str) or not script.strip():
-        raise ManifestError(f"{step_id}: script 必须是非空字符串或 null")
+        raise ManifestError(f"{sid}: script 必须是非空字符串或 null")
     parts = PurePosixPath(script).parts
     if PurePosixPath(script).is_absolute() or ".." in parts:
-        raise ManifestError(f"{step_id}: script 必须是代码根内的相对路径")
+        raise ManifestError(f"{sid}: script 必须是根内的相对路径")
     if not script.endswith(".py"):
-        raise ManifestError(f"{step_id}: script 必须是 .py 文件")
-    resolved = tactics_code_file(*parts).resolve()
-    root = TACTICS_CODE_ROOT.resolve()
+        raise ManifestError(f"{sid}: script 必须是 .py 文件")
+    root = script_root_path(step).resolve()
     try:
-        resolved.relative_to(root)
+        root.joinpath(*parts).resolve().relative_to(root)
     except ValueError as exc:
-        raise ManifestError(f"{step_id}: script 逃出代码根") from exc
+        raise ManifestError(f"{sid}: script 逃出 {step.get('script_root', 'tactics_code')} 根") from exc
+
+
+def _check_params(step: dict) -> None:
+    sid = step["id"]
+    names: set[str] = set()
+    for spec in step["params"]:
+        if not isinstance(spec, dict):
+            raise ManifestError(f"{sid}: params 每项必须是对象")
+        name = spec.get("name")
+        if not isinstance(name, str) or not name:
+            raise ManifestError(f"{sid}: 参数缺 name")
+        if name in names:
+            raise ManifestError(f"{sid}: 参数名重复: {name}")
+        names.add(name)
+        if spec.get("type", "str") not in PARAM_TYPES:
+            raise ManifestError(f"{sid}/{name}: type 必须是 {sorted(PARAM_TYPES)}")
+        if "required" in spec and not isinstance(spec["required"], bool):
+            raise ManifestError(f"{sid}/{name}: required 必须是布尔")
+        if "choices" in spec:
+            choices = spec["choices"]
+            if not isinstance(choices, list) or not all(isinstance(c, str) for c in choices):
+                raise ManifestError(f"{sid}/{name}: choices 必须是字符串数组")
+
+
+def _check_outputs(step: dict) -> None:
+    sid = step["id"]
+    for pattern in step["outputs"]:
+        if not isinstance(pattern, str) or not pattern:
+            raise ManifestError(f"{sid}: outputs 必须是非空字符串数组")
+        parts = PurePosixPath(pattern).parts
+        if PurePosixPath(pattern).is_absolute() or ".." in parts:
+            raise ManifestError(f"{sid}: outputs 必须是 job 目录内的相对路径")
 
 
 def validate(data: object) -> dict:
@@ -77,6 +127,8 @@ def validate(data: object) -> dict:
             raise ManifestError(f"{sid}: kind 必须是 {sorted(KINDS)}")
         if step["status"] not in STATUSES:
             raise ManifestError(f"{sid}: status 必须是 {sorted(STATUSES)}")
+        if step.get("script_root", "tactics_code") not in SCRIPT_ROOTS:
+            raise ManifestError(f"{sid}: 未知 script_root")
         if not isinstance(step["args"], list) or not all(isinstance(a, str) for a in step["args"]):
             raise ManifestError(f"{sid}: args 必须是字符串数组")
         for key in ("params", "inputs", "outputs", "requires"):
@@ -86,11 +138,13 @@ def validate(data: object) -> dict:
             raise ManifestError(f"{sid}: writes_data 必须是布尔")
         if not isinstance(step["timeout_sec"], int) or step["timeout_sec"] <= 0:
             raise ManifestError(f"{sid}: timeout_sec 必须是正整数")
-        _check_script(step["script"], sid, step["status"])
-        # P0 不变量：真正能跑的步骤只能是只读 probe。
+        _check_script(step)
+        _check_params(step)
+        _check_outputs(step)
+        # 不变量：真正能跑的步骤只能是只读 probe / task，写数据盘的一律 planned。
         if step["status"] == "active":
-            if step["kind"] != "probe" or step["writes_data"]:
-                raise ManifestError(f"{sid}: P0 只允许 active 的只读 probe 步骤")
+            if step["kind"] not in RUNNABLE_KINDS or step["writes_data"]:
+                raise ManifestError(f"{sid}: active 步骤只允许只读 probe/task（禁止写数据盘）")
 
     pipelines = data.get("pipelines", [])
     if not isinstance(pipelines, list):
@@ -136,6 +190,6 @@ def step_by_id(data: dict, step_id: str) -> dict | None:
 
 
 def script_path(step: dict) -> Path:
-    """把 step.script 解析为代码根内的绝对路径。"""
-    _check_script(step["script"], step["id"], step["status"])
-    return tactics_code_file(*PurePosixPath(step["script"]).parts)
+    """把 step.script 解析为对应 script_root 内的绝对路径。"""
+    _check_script(step)
+    return script_root_path(step).joinpath(*PurePosixPath(step["script"]).parts)
